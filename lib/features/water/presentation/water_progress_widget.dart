@@ -7,15 +7,25 @@ class WaterProgressWidget extends StatelessWidget {
     super.key,
     required this.current,
     required this.goal,
+    this.trackColor,
+    this.fillColor,
+    this.size = 180,
+    this.strokeWidth = 16,
   });
 
   final int current;
   final int goal;
+  final Color? trackColor;
+  final Color? fillColor;
+  final double size;
+  final double strokeWidth;
 
   @override
   Widget build(BuildContext context) {
     final progress = goal > 0 ? (current / goal).clamp(0.0, 1.0) : 0.0;
     final cs = Theme.of(context).colorScheme;
+    final resolvedTrack = trackColor ?? cs.primaryContainer;
+    final resolvedFill  = fillColor  ?? cs.primary;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: progress),
@@ -23,17 +33,18 @@ class WaterProgressWidget extends StatelessWidget {
       curve: Curves.easeOutCubic,
       builder: (context, value, _) {
         return SizedBox(
-          width: 180,
-          height: 180,
+          width: size,
+          height: size,
           child: Stack(
             alignment: Alignment.center,
             children: [
               CustomPaint(
-                size: const Size(180, 180),
+                size: Size(size, size),
                 painter: _ArcPainter(
                   progress: value,
-                  trackColor: cs.primaryContainer,
-                  fillColor: cs.primary,
+                  trackColor: resolvedTrack,
+                  fillColor: resolvedFill,
+                  strokeWidth: strokeWidth,
                 ),
               ),
               Column(
@@ -42,10 +53,10 @@ class WaterProgressWidget extends StatelessWidget {
                   Text(
                     '$current',
                     style: TextStyle(
-                      fontSize: 44,
+                      fontSize: size * 0.244,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -1.5,
-                      color: cs.primary,
+                      color: resolvedFill,
                       height: 1,
                     ),
                   ),
@@ -69,11 +80,13 @@ class _ArcPainter extends CustomPainter {
     required this.progress,
     required this.trackColor,
     required this.fillColor,
+    required this.strokeWidth,
   });
 
   final double progress;
   final Color trackColor;
   final Color fillColor;
+  final double strokeWidth;
 
   static const _startAngle = math.pi * 0.75;
   static const _sweepAngle = math.pi * 1.5;
@@ -81,8 +94,7 @@ class _ArcPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 16;
-    const strokeWidth = 16.0;
+    final radius = size.width / 2 - strokeWidth;
 
     final trackPaint = Paint()
       ..color = trackColor
@@ -97,17 +109,10 @@ class _ArcPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final rect = Rect.fromCircle(center: center, radius: radius);
-
     canvas.drawArc(rect, _startAngle, _sweepAngle, false, trackPaint);
 
     if (progress > 0.01) {
-      canvas.drawArc(
-        rect,
-        _startAngle,
-        _sweepAngle * progress,
-        false,
-        fillPaint,
-      );
+      canvas.drawArc(rect, _startAngle, _sweepAngle * progress, false, fillPaint);
     }
   }
 
@@ -115,5 +120,6 @@ class _ArcPainter extends CustomPainter {
   bool shouldRepaint(_ArcPainter old) =>
       old.progress != progress ||
       old.fillColor != fillColor ||
-      old.trackColor != trackColor;
+      old.trackColor != trackColor ||
+      old.strokeWidth != strokeWidth;
 }

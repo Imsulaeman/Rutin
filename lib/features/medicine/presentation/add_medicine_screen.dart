@@ -65,7 +65,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
 
     if (!mounted) return;
     setState(() => _saving = false);
-    context.go('/medicine');
+    context.pop();
   }
 
   Future<void> _scheduleInitialAlarm(Medicine medicine) async {

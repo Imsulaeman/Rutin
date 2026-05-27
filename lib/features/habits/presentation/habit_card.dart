@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
 
 class HabitCard extends StatelessWidget {
@@ -21,11 +23,18 @@ class HabitCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Card(
-      color: isDone
-          ? Color.alphaBlend(cs.primaryContainer.withOpacity(0.4), cs.surface)
-          : null,
+      color: isDone ? AppTheme.habitsColor.withOpacity(0.12) : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isDone
+              ? AppTheme.habitsColor.withOpacity(0.3)
+              : AppTheme.border,
+          width: 1,
+        ),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
@@ -33,18 +42,18 @@ class HabitCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: isDone
-                      ? cs.primaryContainer
-                      : cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
+                      ? AppTheme.habitsColor.withOpacity(0.2)
+                      : AppTheme.surfaceHigh,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
                   child: Text(
                     habit.emoji,
-                    style: const TextStyle(fontSize: 22),
+                    style: const TextStyle(fontSize: 24),
                   ),
                 ),
               ),
@@ -60,9 +69,9 @@ class HabitCard extends StatelessWidget {
                     if (streak > 0) ...[
                       const SizedBox(height: 3),
                       Text(
-                        '$streak hari berturut-turut',
+                        '🔥 $streak hari berturut-turut',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: cs.primary,
+                              color: AppTheme.streakColor,
                               fontWeight: FontWeight.w600,
                             ),
                       ),
@@ -72,11 +81,9 @@ class HabitCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Icon(
-                isDone
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked,
+                isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
                 size: 28,
-                color: isDone ? cs.primary : cs.outlineVariant,
+                color: isDone ? AppTheme.habitsColor : cs.outlineVariant,
               ),
             ],
           ),

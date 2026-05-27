@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../../../app.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../notifications/alarm_service.dart';
 import '../data/medicine_model.dart';
 import '../../../shared/providers/providers.dart';
@@ -29,10 +29,18 @@ class MedicineListScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.medication_outlined,
-                      size: 56,
-                      color: cs.outlineVariant,
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: AppTheme.medicineColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(
+                        Icons.medication_outlined,
+                        size: 36,
+                        color: AppTheme.medicineColor,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -66,20 +74,16 @@ class MedicineListScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(right: 20),
                   decoration: BoxDecoration(
                     color: cs.error,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Icon(
-                    Icons.delete_outline_rounded,
-                    color: cs.onError,
-                  ),
+                  child: Icon(Icons.delete_outline_rounded, color: cs.onError),
                 ),
                 confirmDismiss: (_) async {
                   return await showDialog<bool>(
                     context: context,
                     builder: (_) => AlertDialog(
                       title: const Text('Hapus obat?'),
-                      content: Text(
-                          '${medicine.name} akan dihapus permanen.'),
+                      content: Text('${medicine.name} akan dihapus permanen.'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
@@ -109,17 +113,17 @@ class MedicineListScreen extends ConsumerWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                              horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: cs.primaryContainer,
-                            borderRadius: BorderRadius.circular(8),
+                            color: AppTheme.medicineColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             timeLabel,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: cs.onPrimaryContainer,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.medicineColor,
                             ),
                           ),
                         ),
@@ -130,15 +134,13 @@ class MedicineListScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 medicine.name,
-                                style:
-                                    Theme.of(context).textTheme.titleMedium,
+                                style: Theme.of(context).textTheme.titleMedium,
                               ),
                               if (medicine.dosage != null) ...[
                                 const SizedBox(height: 2),
                                 Text(
                                   medicine.dosage!,
-                                  style:
-                                      Theme.of(context).textTheme.bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ],
@@ -153,21 +155,9 @@ class MedicineListScreen extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'test-full-block',
-            onPressed: () => _openFullBlockNow(context),
-            child: const Icon(Icons.lock_outline),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton(
-            heroTag: 'add-medicine',
-            onPressed: () => context.push('/medicine/add'),
-            child: const Icon(Icons.add_rounded),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => context.push('/medicine/add'),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -176,34 +166,5 @@ class MedicineListScreen extends ConsumerWidget {
     final hour = (minutes ~/ 60).toString().padLeft(2, '0');
     final min = (minutes % 60).toString().padLeft(2, '0');
     return '$hour:$min';
-  }
-
-  Future<void> _openFullBlockNow(BuildContext context) async {
-    try {
-      await AlarmService.scheduleMedicineAlarm(
-        alarmId: 777002,
-        scheduledTime: DateTime.now().add(const Duration(seconds: 10)),
-        medicineName: 'TEST Full Block',
-        dosage: 'debug',
-        renotifyMinutes: 1,
-      );
-      openReminderScreen(
-        alarmId: 777002,
-        medicineName: 'TEST Full Block',
-        dosage: 'debug',
-      );
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Full-block dibuka. Notif ulang tetap jalan tiap 1 menit.'),
-        ),
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal test full-block: $e')),
-      );
-    }
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../data/water_model.dart';
 import '../data/water_repository.dart';
 import 'water_reminder_service.dart';
@@ -98,11 +99,10 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final goal = _goal.goalGlasses;
     final isDone = _current >= goal;
     final totalMl = _current * _goal.glassSizeMl;
-    final targetL = (_goal.dailyTargetMl / 1000).toStringAsFixed(1);
+    final targetMl = _goal.dailyTargetMl;
 
     return Scaffold(
       appBar: AppBar(
@@ -122,23 +122,29 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
           children: [
             const SizedBox(height: 16),
             Center(
-              child: WaterProgressWidget(current: _current, goal: goal),
+              child: WaterProgressWidget(
+                current: _current,
+                goal: goal,
+                trackColor: AppTheme.waterColor.withOpacity(0.15),
+                fillColor: AppTheme.waterColor,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              '${(totalMl / 1000).toStringAsFixed(2)} L dari $targetL L target',
+              '${(totalMl / 1000).toStringAsFixed(2)} L dari '
+              '${(targetMl / 1000).toStringAsFixed(1)} L target',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (isDone) ...[
               const SizedBox(height: 6),
               Text(
-                'Target hari ini tercapai!',
+                'Target hari ini tercapai! 💧',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   fontSize: 13,
-                  color: cs.primary,
+                  color: AppTheme.waterColor,
                 ),
               ),
             ],
@@ -176,6 +182,8 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                 Switch(
                   value: _goal.reminderActive,
                   onChanged: _toggleReminder,
+                  activeThumbColor: AppTheme.waterColor,
+                  activeTrackColor: AppTheme.waterColor.withAlpha(100),
                 ),
               ],
             ),
@@ -196,9 +204,8 @@ class _GlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Material(
-      color: cs.surfaceContainerHighest,
+      color: AppTheme.waterColor.withOpacity(0.12),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -206,7 +213,7 @@ class _GlassButton extends StatelessWidget {
         child: SizedBox(
           width: 68,
           height: 68,
-          child: Icon(icon, size: 30, color: cs.onSurface),
+          child: Icon(icon, size: 30, color: AppTheme.waterColor),
         ),
       ),
     );
@@ -294,6 +301,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
             max: 5.0,
             divisions: 16,
             label: '${_targetL.toStringAsFixed(1)}L',
+            activeColor: AppTheme.waterColor,
             onChanged: (v) => setState(() => _targetL = v),
           ),
           Row(
@@ -303,8 +311,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
               DropdownButton<int>(
                 value: _glassSizeMl,
                 items: _glassSizes
-                    .map((s) =>
-                        DropdownMenuItem(value: s, child: Text('${s}ml')))
+                    .map((s) => DropdownMenuItem(value: s, child: Text('${s}ml')))
                     .toList(),
                 onChanged: (v) => setState(() => _glassSizeMl = v!),
               ),
@@ -346,7 +353,11 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 20),
-          FilledButton(onPressed: _save, child: const Text('Simpan')),
+          FilledButton(
+            onPressed: _save,
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.waterColor),
+            child: const Text('Simpan'),
+          ),
         ],
       ),
     );
