@@ -8,12 +8,14 @@ class HabitCard extends StatelessWidget {
     required this.isDone,
     required this.streak,
     required this.onTap,
+    this.onLongPress,
   });
 
   final Habit habit;
   final bool isDone;
   final int streak;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +31,7 @@ class HabitCard extends StatelessWidget {
               : Theme.of(context).colorScheme.outlineVariant,
         ),
         onTap: onTap,
+        onLongPress: onLongPress,
       ),
     );
   }
