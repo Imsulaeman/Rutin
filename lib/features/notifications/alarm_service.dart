@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -59,32 +58,6 @@ class AlarmService {
       dosage: dosage,
       renotifyMinutes: repeatMinutes,
     );
-  }
-
-  static const int waterAlarmId = 800000;
-
-  static Future<void> scheduleWater({
-    required int intervalMinutes,
-    required int startTimeMinutes,
-    required int endTimeMinutes,
-  }) async {
-    if (!Platform.isAndroid) return;
-    final effectiveInterval = kDebugMode ? 1 : intervalMinutes;
-    final triggerAt = DateTime.now().add(Duration(minutes: effectiveInterval));
-    await _channel.invokeMethod('scheduleWaterReminder', {
-      'alarmId': waterAlarmId,
-      'triggerAtMillis': triggerAt.millisecondsSinceEpoch,
-      'intervalMinutes': effectiveInterval,
-      'startTimeMinutes': startTimeMinutes,
-      'endTimeMinutes': endTimeMinutes,
-    });
-  }
-
-  static Future<void> cancelWater() async {
-    if (!Platform.isAndroid) return;
-    await _channel.invokeMethod('cancelWaterReminder', {
-      'alarmId': waterAlarmId,
-    });
   }
 
   static Future<void> cancel(int alarmId) async {

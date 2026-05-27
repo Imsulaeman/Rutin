@@ -1,7 +1,10 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../app.dart';
 import '../../core/constants/app_constants.dart';
+import '../../features/water/data/water_model.dart';
+import '../../features/water/data/water_repository.dart';
 import 'alarm_service.dart';
 import 'notification_service.dart';
 
@@ -16,6 +19,10 @@ class NotificationHandler {
     final rootAlarmId = payload.$1;
 
     switch (action) {
+      case 'water_taken':
+        await _ensureWaterHive();
+        await WaterRepository().logGlass();
+        return;
       case 'taken':
         await handleTaken(rootAlarmId);
         return;
@@ -59,6 +66,15 @@ class NotificationHandler {
       dosage: dosage,
       renotifyMinutes: AppConstants.renotifyIntervalMinutes,
     );
+  }
+
+  static Future<void> _ensureWaterHive() async {
+    if (Hive.isBoxOpen('water_logs')) return;
+    await Hive.initFlutter();
+    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(WaterGoalAdapter());
+    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(WaterLogAdapter());
+    await Hive.openBox<WaterGoal>('water_goals');
+    await Hive.openBox<WaterLog>('water_logs');
   }
 
   static (int, String, String?) _parsePayload(String? payload) {

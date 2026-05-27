@@ -12,14 +12,6 @@ import androidx.core.app.NotificationCompat
 
 class ReminderAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == "com.ilham.habit_app.ACTION_FIRE_WATER") {
-            handleWater(context, intent)
-        } else {
-            handleMedicine(context, intent)
-        }
-    }
-
-    private fun handleMedicine(context: Context, intent: Intent) {
         val alarmId = intent.getIntExtra("alarm_id", 0)
         val medicineName = intent.getStringExtra("medicine_name") ?: "Obat"
         val dosage = intent.getStringExtra("dosage")
@@ -36,58 +28,6 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             dosage = dosage,
             renotifyMinutes = renotifyMinutes
         )
-    }
-
-    private fun handleWater(context: Context, intent: Intent) {
-        val alarmId = intent.getIntExtra("alarm_id", 0)
-        val intervalMinutes = intent.getIntExtra("interval_minutes", 120)
-        val startTimeMinutes = intent.getIntExtra("start_time_minutes", 420)
-        val endTimeMinutes = intent.getIntExtra("end_time_minutes", 1320)
-
-        val cal = java.util.Calendar.getInstance()
-        val nowMinutes = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
-
-        if (nowMinutes in startTimeMinutes..endTimeMinutes) {
-            showWaterNotification(context, alarmId)
-        }
-
-        // Reschedule next tick — receiver stops itself naturally after endTimeMinutes
-        // because next day the user re-enables from the screen (or boot receiver later)
-        val nextTrigger = System.currentTimeMillis() + (intervalMinutes * 60_000L)
-        val nextCal = java.util.Calendar.getInstance().apply { timeInMillis = nextTrigger }
-        val nextMinutes = nextCal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + nextCal.get(java.util.Calendar.MINUTE)
-        if (nextMinutes <= endTimeMinutes) {
-            NativeReminderScheduler.scheduleWater(
-                context = context,
-                alarmId = alarmId,
-                triggerAtMillis = nextTrigger,
-                intervalMinutes = intervalMinutes,
-                startTimeMinutes = startTimeMinutes,
-                endTimeMinutes = endTimeMinutes
-            )
-        }
-    }
-
-    private fun showWaterNotification(context: Context, alarmId: Int) {
-        val channelId = "water_reminder"
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId, "Pengingat Air", NotificationManager.IMPORTANCE_DEFAULT
-            ).apply { description = "Ingatkan minum air" }
-            nm.createNotificationChannel(channel)
-        }
-
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Waktunya minum air")
-            .setContentText("Sudah minum segelas belum?")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-            .build()
-
-        nm.notify(alarmId, notification)
     }
 
     private fun showFullScreenNotification(

@@ -7,7 +7,6 @@ import android.content.Intent
 
 object NativeReminderScheduler {
     private const val ACTION_FIRE = "com.ilham.habit_app.ACTION_FIRE_REMINDER"
-    private const val ACTION_FIRE_WATER = "com.ilham.habit_app.ACTION_FIRE_WATER"
     private const val EXTRA_ALARM_ID = "alarm_id"
     private const val EXTRA_MEDICINE_NAME = "medicine_name"
     private const val EXTRA_DOSAGE = "dosage"
@@ -49,41 +48,6 @@ object NativeReminderScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
-    }
-
-    fun scheduleWater(
-        context: Context,
-        alarmId: Int,
-        triggerAtMillis: Long,
-        intervalMinutes: Int,
-        startTimeMinutes: Int,
-        endTimeMinutes: Int
-    ) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
-            action = ACTION_FIRE_WATER
-            putExtra(EXTRA_ALARM_ID, alarmId)
-            putExtra("interval_minutes", intervalMinutes)
-            putExtra("start_time_minutes", startTimeMinutes)
-            putExtra("end_time_minutes", endTimeMinutes)
-        }
-        val pi = PendingIntent.getBroadcast(
-            context, alarmId, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
-    }
-
-    fun cancelWater(context: Context, alarmId: Int) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
-            action = ACTION_FIRE_WATER
-        }
-        val pi = PendingIntent.getBroadcast(
-            context, alarmId, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pi)
     }
 
     private fun pendingIntent(

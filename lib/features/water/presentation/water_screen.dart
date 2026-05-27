@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/water_model.dart';
 import '../data/water_repository.dart';
-import '../../notifications/alarm_service.dart';
+import 'water_reminder_service.dart';
 import 'water_progress_widget.dart';
 
 class WaterScreen extends StatefulWidget {
@@ -43,13 +43,9 @@ class _WaterScreenState extends State<WaterScreen> {
     _goal.reminderActive = value;
     await _repo.saveGoal(_goal);
     if (value) {
-      await AlarmService.scheduleWater(
-        intervalMinutes: _goal.reminderIntervalMinutes,
-        startTimeMinutes: _goal.startTimeMinutes,
-        endTimeMinutes: _goal.endTimeMinutes,
-      );
+      await WaterReminderService.schedule(_goal);
     } else {
-      await AlarmService.cancelWater();
+      await WaterReminderService.cancel();
     }
     setState(() {});
   }
@@ -64,11 +60,7 @@ class _WaterScreenState extends State<WaterScreen> {
           _goal = updated;
           await _repo.saveGoal(_goal);
           if (_goal.reminderActive) {
-            await AlarmService.scheduleWater(
-              intervalMinutes: _goal.reminderIntervalMinutes,
-              startTimeMinutes: _goal.startTimeMinutes,
-              endTimeMinutes: _goal.endTimeMinutes,
-            );
+            await WaterReminderService.schedule(_goal);
           }
           setState(() {});
         },
