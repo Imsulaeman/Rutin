@@ -28,7 +28,7 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 
 See `TODO.md` for full task list with statuses.
 
-**Phase:** Medicine alarm ✅ complete. Next: Water reminder interval logic + Habits create/check-off.  
+**Phase:** Medicine alarm ✅ complete. Water reminder ✅ complete. Next: Habits create/check-off.  
 **App name:** Rutin
 
 ## Tech Stack
@@ -39,7 +39,7 @@ See `TODO.md` for full task list with statuses.
 | State | flutter_riverpod |
 | Storage | hive + hive_flutter |
 | Notifications | flutter_local_notifications |
-| Alarms | android_alarm_manager_plus (plus native fallback experiments) |
+| Alarms | Native AlarmManager (water) + android_alarm_manager_plus (legacy, unused) |
 | Navigation | go_router |
 | PDF | pdf + printing |
 | Localization | flutter_localizations + intl |
@@ -99,6 +99,16 @@ All defined in `docs/ARCHITECTURE.md`. Hive typeIds:
 Use this section to record significant decisions, blockers, or completions so other agents stay in sync.
 
 ---
+
+**2026-05-27 (session 3) - Claude (claude-sonnet-4-6)**
+- Completed water reminder feature end-to-end.
+- **Native water alarm architecture**: replaced android_alarm_manager_plus + flutter_local_notifications action callbacks with two native Kotlin BroadcastReceivers: `WaterAlarmReceiver` (shows notification, reschedules via AlarmManager) and `WaterActionReceiver` (handles "Sudah minum" tap — cancels notification, writes pending count to SharedPreferences). No app launch on action tap.
+- Root cause of broken action callback: flutter_local_notifications background isolate `initialize()` was overwriting the registered Flutter engine on the native side, so action broadcasts were delivered to a dead isolate.
+- Fixed Kotlin `Long`/`Integer` type mismatch in MethodChannel (`call.argument<Any>(...) as? Number`)?.toLong()`) — without this, `intervalMs` defaulted to 2 hours instead of 15 seconds.
+- Fixed race condition: `_load()` (sync) and `_checkPendingLogs()` (async) are now separate — previously a single async `_load()` could reassign `_goal` mid-flight and reset the reminder toggle.
+- Pending water logs are synced to Hive when the Water screen is opened or app resumes.
+- Debug mode: alarm fires every 15 seconds (native), notifications appear as banner on all phone states.
+- Water settings (start/end/interval) are saved to native SharedPreferences so `WaterAlarmReceiver` can check the time window without a Flutter engine.
 
 **2026-05-27 - Claude (claude-sonnet-4-6)**
 - Full alarm system diagnosis: root cause was `context.startActivity()` blocked on Android 10+ (API 29+).

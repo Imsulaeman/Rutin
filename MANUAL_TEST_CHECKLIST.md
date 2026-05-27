@@ -2,6 +2,29 @@
 
 ---
 
+## Session 3 — 2026-05-27
+
+Date: 2026-05-27
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### Water Reminder (post-fix)
+
+- [x] Reminder toggle ON → notification fires in ~15 seconds (debug mode). ✅
+- [x] "Sudah minum" action button → notification dismissed, no app launch. ✅
+- [x] Glass count updates when Water screen is opened after tapping action. ✅
+- [x] Reminder toggle OFF → notifications stop. ✅
+- [x] Toggle OFF then ON → alarm reschedules correctly. ✅
+- [x] +/- buttons do not affect reminder toggle state. ✅
+- [x] Settings sheet: change target, glass size, hours → interval recalculates. ✅
+- [x] Notification always shows as banner regardless of phone state. ✅
+
+### Notes
+- flutter_local_notifications action callbacks blocked by ColorOS on background broadcasts — replaced with native WaterAlarmReceiver + WaterActionReceiver.
+- android_alarm_manager_plus is still in pubspec but unused for water (kept to avoid breaking changes).
+
+---
+
 ## Session 2 — 2026-05-27
 
 Date: 2026-05-27  

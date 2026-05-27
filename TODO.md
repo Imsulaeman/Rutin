@@ -40,10 +40,14 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 ## Feature: Water Reminder
 - [x] WaterGoal + WaterLog data models
 - [x] WaterRepository
-- [ ] Interval reminder (every X hours, within active window)
-- [ ] Quick log - tap to add a glass
+- [x] Interval reminder (every X hours, within active window)
+- [x] Quick log - tap to add / remove a glass
 - [x] Daily progress indicator
 - [x] Water screen UI
+- [x] Science-backed target: daily L goal + glass size (ml) → auto-calculated interval
+- [x] Reminder toggle on/off with native AlarmManager
+- [x] "Sudah minum" action button — no app launch, native BroadcastReceiver
+- [x] Settings sheet: target slider, glass size, start/end hours, WHO note
 
 ## Feature: General Habits
 - [x] Habit + HabitLog data models
