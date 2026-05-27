@@ -10,10 +10,10 @@ Build: Debug
 
 ### Delete & Medal
 
-- [ ] Swipe left on Obat → red background with trash icon → confirm dialog → item removed.
-- [ ] Swipe left on Kebiasaan → confirm dialog → item removed (no medal).
-- [ ] Long-press Kebiasaan card → bottom sheet shows → tap "Jadikan Medali" → habit removed from list.
-- [ ] Medal snackbar appears after retiring.
+- [x] Swipe left on Obat → red background with trash icon → confirm dialog → item removed. ✅
+- [x] Swipe left on Kebiasaan → confirm dialog → item removed (no medal). ✅
+- [x] Long-press Kebiasaan card → bottom sheet shows → tap "Jadikan Medali" → habit removed from list. ✅
+- [x] Medal snackbar appears after retiring. ✅
 
 ### Notes
 - Habit reminder notification not yet tested (requires waiting until set time).
