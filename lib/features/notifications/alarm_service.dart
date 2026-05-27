@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -8,7 +9,9 @@ class AlarmService {
   static const MethodChannel _channel =
       MethodChannel('habit_app/native_reminder');
 
-  static Future<void> init() async {}
+  static Future<void> init() async {
+    if (Platform.isAndroid) await AndroidAlarmManager.initialize();
+  }
 
   static int renotifyAlarmId(int alarmId) => alarmId + 1000000;
 

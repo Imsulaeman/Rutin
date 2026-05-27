@@ -12,7 +12,7 @@ class WaterScreen extends StatefulWidget {
   State<WaterScreen> createState() => _WaterScreenState();
 }
 
-class _WaterScreenState extends State<WaterScreen> {
+class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   final _repo = WaterRepository();
   late WaterGoal _goal;
   int _current = 0;
@@ -20,7 +20,19 @@ class _WaterScreenState extends State<WaterScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
   }
 
   void _load() {
