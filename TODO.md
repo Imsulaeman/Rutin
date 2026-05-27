@@ -123,6 +123,8 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] App name: Rutin
 - [ ] App icon
 - [ ] Splash screen
-- [ ] Empty states for all screens
+- [x] Empty states for all screens
+- [x] UI/UX redesign — all screens (Impeccable pass, session 6)
+- [ ] Medal/profile screen (view collected medals)
 - [ ] Data backup / export JSON
 - [ ] Play Store listing

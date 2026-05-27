@@ -100,6 +100,19 @@ Use this section to record significant decisions, blockers, or completions so ot
 
 ---
 
+**2026-05-27 (session 6) - Claude (claude-sonnet-4-6)**
+- Full UI/UX redesign across all 9 files (Impeccable pass). No logic changes — visual layer only.
+- `AppTheme`: warm `surfaceContainerLow` scaffold bg, `CardThemeData` 0-elevation with 1px `outlineVariant` border, tight letter-spacing text hierarchy, 52px `FilledButton`, floating SnackBar with 12px radius.
+- `HomeScreen`: removed AppBar, greeting header with time-of-day salutation ("Selamat pagi/siang/malam"), `FeatureCards` with colored 52×52 icon containers (green/blue/brown), permission wizard logic preserved.
+- `WaterProgressWidget`: `TweenAnimationBuilder<double>` → `CustomPainter` 270° arc (GPU-safe), 180×180, `StrokeCap.round`, center stack shows count + label.
+- `WaterScreen`: arc centered, `_GlassButton` (68×68 `Material` + `InkWell`) replacing bare `IconButton`, `SingleChildScrollView`.
+- `HabitCard`: emoji in 48×48 rounded container, `primaryContainer` tint on done card, streak in `cs.primary` bold.
+- `HabitsScreen` + retire sheet: better empty state, improved retire sheet layout.
+- `AddHabitScreen`: "JADWAL" section label, "PENGINGAT" bordered container with `InkWell` time row.
+- `MedicineListScreen`: time badge with `primaryContainer` bg, improved empty state, `cs.error` Dismissible bg.
+- `AddMedicineScreen`: "WAKTU MINUM" section label, `InkWell` time picker row replacing bare `ListTile`.
+- Fixed `CardTheme` → `CardThemeData` (API change in newer Flutter SDK).
+
 **2026-05-27 (session 5) - Claude (claude-sonnet-4-6)**
 - Added delete (swipe left) for Medicine and Habits. Medicine delete cancels all AlarmManager alarms for that medicine before removing from Hive. Habit delete cancels native HabitAlarmReceiver alarm before removing. Both confirm via AlertDialog before dismissing.
 - Medal system: long-press habit card → "Jadikan Medali" bottom sheet → habit removed, medal stored with peak streak. Auto-update: after each markDone, if new streak > existing medal peak, medal silently updates. Medal Hive model (typeId 10) + MedalRepository. Medals UI (profile/trophy tab) deferred.
