@@ -52,9 +52,9 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 ## Feature: General Habits
 - [x] Habit + HabitLog data models
 - [x] HabitRepository
-- [ ] Create habit (name, emoji, schedule, optional reminder)
-- [ ] Check off for today
-- [ ] Streak counter
+- [x] Create habit (name, emoji, schedule, optional reminder)
+- [x] Check off for today
+- [x] Streak counter
 - [ ] Skip day without breaking streak
 - [ ] Archive habit (pause without deleting)
 - [x] Habits list screen

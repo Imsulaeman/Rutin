@@ -2,6 +2,26 @@
 
 ---
 
+## Session 4 — 2026-05-27
+
+Date: 2026-05-27
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### Habits MVP
+
+- [x] Add habit → Simpan → list refreshes immediately (no restart needed). ✅
+- [x] Habit appears in list with emoji + name. ✅
+- [x] Tap card → marked done, icon fills. ✅
+- [x] Tap again → snackbar "Sudah dilakukan hari ini". ✅
+- [x] Streak counter shows on card after marking done. ✅
+
+### Notes
+- Navigation fix: `context.pop()` instead of `context.go('/habits')` in AddHabitScreen — ensures FAB await resolves and `_load()` fires.
+- Habit reminder notification not yet tested (requires waiting until set time).
+
+---
+
 ## Session 3 — 2026-05-27
 
 Date: 2026-05-27

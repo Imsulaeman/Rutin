@@ -28,7 +28,7 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 
 See `TODO.md` for full task list with statuses.
 
-**Phase:** Medicine alarm ✅ complete. Water reminder ✅ complete. Next: Habits create/check-off.  
+**Phase:** Medicine alarm ✅ complete. Water reminder ✅ complete. Habits MVP ✅ complete. Next: Habit skip day / archive, or Routine stacking.  
 **App name:** Rutin
 
 ## Tech Stack
@@ -99,6 +99,15 @@ All defined in `docs/ARCHITECTURE.md`. Hive typeIds:
 Use this section to record significant decisions, blockers, or completions so other agents stay in sync.
 
 ---
+
+**2026-05-27 (session 4) - Claude (claude-sonnet-4-6)**
+- Completed habits MVP: create habit, check off today, streak counter, optional daily reminder.
+- `AddHabitScreen`: name, emoji (text field), 7-day schedule chips (all selected by default), optional reminder toggle + time picker.
+- `HabitsScreen`: real Hive-backed list, tap to mark done (guarded against double-log), streak shown on card, empty state, FAB → push /habits/add then `_load()` on pop.
+- Navigation fix: `AddHabitScreen` uses `context.pop()` (not `context.go('/habits')`) so the awaited push in HabitsScreen FAB resolves and the list refreshes immediately.
+- **Native habit reminder architecture**: `HabitAlarmReceiver.kt` — BroadcastReceiver shows notification (emoji + name, "Waktunya melakukan kebiasaanmu!"), reschedules itself +24h. `HabitReminderService.dart` computes next trigger with `DateTime.now()` (no timezone package needed), passes `triggerMs` via MethodChannel `scheduleHabitAlarm` / `cancelHabitAlarm`.
+- Avoided `timezone` + `flutter_timezone` packages — flutter_timezone 1.0.8 had JVM 1.8 target incompatible with project's Java/Kotlin 17; native AlarmManager approach sidesteps this entirely and stays consistent with water alarm architecture.
+- Notification tap (`payload == 'habit'`) routes to `/habits` via `appRouter.go()`.
 
 **2026-05-27 (session 3) - Claude (claude-sonnet-4-6)**
 - Completed water reminder feature end-to-end.
