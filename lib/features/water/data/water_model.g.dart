@@ -17,11 +17,11 @@ class WaterGoalAdapter extends TypeAdapter<WaterGoal> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return WaterGoal()
-      ..startTimeMinutes = (fields[2] as int?) ?? 420
-      ..endTimeMinutes = (fields[3] as int?) ?? 1320
-      ..reminderActive = fields[4] == true
-      ..dailyTargetMl = (fields[5] as int?) ?? 2500
-      ..glassSizeMl = (fields[6] as int?) ?? 250;
+      ..startTimeMinutes = fields[2] as int
+      ..endTimeMinutes = fields[3] as int
+      ..reminderActive = fields[4] as bool
+      ..dailyTargetMl = fields[5] as int
+      ..glassSizeMl = fields[6] as int;
   }
 
   @override

@@ -108,12 +108,49 @@ class _HabitsScreenState extends State<HabitsScreen> {
               itemCount: _habits.length,
               itemBuilder: (context, i) {
                 final h = _habits[i];
-                return HabitCard(
-                  habit: h,
-                  isDone: _repo.isCompletedToday(h.id),
-                  streak: _repo.getStreak(h.id),
-                  onTap: () => _markDone(h),
-                  onLongPress: () => _retireAsModal(h),
+                return Dismissible(
+                  key: ValueKey(h.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.error,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.delete_outline, color: Colors.white),
+                  ),
+                  confirmDismiss: (_) async {
+                    return await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Hapus kebiasaan?'),
+                        content: Text('${h.name} akan dihapus permanen tanpa dijadikan medali.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Batal'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Hapus'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  onDismissed: (_) async {
+                    await HabitReminderService.cancel(h.id);
+                    await _repo.delete(h.id);
+                    _load();
+                  },
+                  child: HabitCard(
+                    habit: h,
+                    isDone: _repo.isCompletedToday(h.id),
+                    streak: _repo.getStreak(h.id),
+                    onTap: () => _markDone(h),
+                    onLongPress: () => _retireAsModal(h),
+                  ),
                 );
               },
             ),

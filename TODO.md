@@ -33,6 +33,7 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [ ] RECEIVE_BOOT_COMPLETED - reschedule alarms after reboot
 - [x] Add Medicine screen (name, dosage, times)
 - [x] Medicine list screen
+- [x] Delete medicine (swipe left → confirm dialog → cancels alarm + removes from Hive)
 - [x] Forced full-screen re-open on every repeat (all devices)
 - [ ] Streak counter per medicine
 - [ ] Missed log entry if not taken by end of day
@@ -55,8 +56,8 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] Create habit (name, emoji, schedule, optional reminder)
 - [x] Check off for today
 - [x] Streak counter
-- [ ] Skip day without breaking streak
-- [ ] Archive habit (pause without deleting)
+- [x] Skip day without breaking streak (handled by scheduleDays — only selected days count)
+- [x] Archive habit → replaced with Medal system (long-press → "Jadikan Medali")
 - [x] Habits list screen
 
 ## Feature: Routine Stacking

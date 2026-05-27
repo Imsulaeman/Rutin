@@ -33,14 +33,52 @@ class MedicineListScreen extends ConsumerWidget {
               final timeLabel = medicine.scheduleTimes
                   .map(_formatMinutes)
                   .join(', ');
-              return Card(
-                child: ListTile(
-                  leading: const Icon(Icons.medication_outlined),
-                  title: Text(medicine.name),
-                  subtitle: Text(
-                    medicine.dosage == null
-                        ? 'Jam: $timeLabel'
-                        : '${medicine.dosage} • Jam: $timeLabel',
+              return Dismissible(
+                key: ValueKey(medicine.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.error,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.delete_outline, color: Colors.white),
+                ),
+                confirmDismiss: (_) async {
+                  return await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Hapus obat?'),
+                      content: Text('${medicine.name} akan dihapus permanen.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Batal'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Hapus'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                onDismissed: (_) async {
+                  await AlarmService.cancelAllForAlarm(
+                    medicine.id.hashCode & 0x7fffffff,
+                  );
+                  await repository.delete(medicine.id);
+                },
+                child: Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.medication_outlined),
+                    title: Text(medicine.name),
+                    subtitle: Text(
+                      medicine.dosage == null
+                          ? 'Jam: $timeLabel'
+                          : '${medicine.dosage} • Jam: $timeLabel',
+                    ),
                   ),
                 ),
               );

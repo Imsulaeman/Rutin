@@ -2,6 +2,24 @@
 
 ---
 
+## Session 5 — 2026-05-27
+
+Date: 2026-05-27
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### Delete & Medal
+
+- [ ] Swipe left on Obat → red background with trash icon → confirm dialog → item removed.
+- [ ] Swipe left on Kebiasaan → confirm dialog → item removed (no medal).
+- [ ] Long-press Kebiasaan card → bottom sheet shows → tap "Jadikan Medali" → habit removed from list.
+- [ ] Medal snackbar appears after retiring.
+
+### Notes
+- Habit reminder notification not yet tested (requires waiting until set time).
+
+---
+
 ## Session 4 — 2026-05-27
 
 Date: 2026-05-27

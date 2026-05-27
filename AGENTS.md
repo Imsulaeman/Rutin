@@ -100,6 +100,10 @@ Use this section to record significant decisions, blockers, or completions so ot
 
 ---
 
+**2026-05-27 (session 5) - Claude (claude-sonnet-4-6)**
+- Added delete (swipe left) for Medicine and Habits. Medicine delete cancels all AlarmManager alarms for that medicine before removing from Hive. Habit delete cancels native HabitAlarmReceiver alarm before removing. Both confirm via AlertDialog before dismissing.
+- Medal system: long-press habit card → "Jadikan Medali" bottom sheet → habit removed, medal stored with peak streak. Auto-update: after each markDone, if new streak > existing medal peak, medal silently updates. Medal Hive model (typeId 10) + MedalRepository. Medals UI (profile/trophy tab) deferred.
+
 **2026-05-27 (session 4) - Claude (claude-sonnet-4-6)**
 - Completed habits MVP: create habit, check off today, streak counter, optional daily reminder.
 - `AddHabitScreen`: name, emoji (text field), 7-day schedule chips (all selected by default), optional reminder toggle + time picker.
