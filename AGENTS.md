@@ -11,7 +11,7 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 ## Owner
 
 - **Name:** Ilham Maulana Sulaeman
-- **Device:** Android phone + Huawei Watch (watch receives notifications passively, no special code needed)
+- **Device:** Realme GT 2 Pro (RMX3301), Android 14 + Huawei Watch (watch receives notifications passively, no special code needed)
 - **Goal:** Daily use + Apple Developer Academy portfolio
 
 ## How Ilham Works (important)
@@ -28,8 +28,8 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 
 See `TODO.md` for full task list with statuses.
 
-**Phase:** Medicine reminder reliability + forced full-screen behavior testing  
-**Next:** Stabilize forced full-screen re-open on every repeat on target device behavior, then continue priority feature buildout
+**Phase:** Medicine alarm ✅ complete. Next: Water reminder interval logic + Habits create/check-off.  
+**App name:** Rutin
 
 ## Tech Stack
 
@@ -99,6 +99,19 @@ All defined in `docs/ARCHITECTURE.md`. Hive typeIds:
 Use this section to record significant decisions, blockers, or completions so other agents stay in sync.
 
 ---
+
+**2026-05-27 - Claude (claude-sonnet-4-6)**
+- Full alarm system diagnosis: root cause was `context.startActivity()` blocked on Android 10+ (API 29+).
+- Fixed `ReminderAlarmReceiver.kt`: replaced `startActivity()` with `showFullScreenNotification()` — posts notification with `setFullScreenIntent()`. Android now handles: screen off → full-screen ReminderActivity; screen on → notification banner.
+- Fixed `ReminderActivity.kt`: both buttons now call `nm.cancel(alarmId)` before finish(); removed contradictory `FLAG_ALLOW_LOCK_WHILE_SCREEN_ON`.
+- Fixed `notification_service.dart`: notification ID is now `alarmId` directly (was random timestamp — couldn't cancel by ID).
+- Fixed `notification_handler.dart`: removed double scheduling in snooze (`startRenotifyLoop()` removed — native receiver already reschedules).
+- Fixed `add_medicine_screen.dart`: `context.pop()` → `context.go('/medicine')` so user lands on updated list after saving.
+- Created `docs/plan/report.md` + `docs/plan/plan.md` for full technical record.
+- Created `docs/DECK.md` — app pitch for Apple Developer Academy + personal portfolio.
+- App named **Rutin**. Git repo initialized, first commit `2e6ce21`.
+- Verified on Realme GT 2 Pro / Android 14: screen-off full-screen ✅, screen-on banner ✅, snooze ✅.
+- Gradle OOM fixed: daemon disabled, heap reduced to 512m in `android/gradle.properties`.
 
 **2026-05-25 - Codex (gpt-5)**
 - Environment setup completed and scaffold confirmed working on physical device.

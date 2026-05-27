@@ -33,7 +33,7 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [ ] RECEIVE_BOOT_COMPLETED - reschedule alarms after reboot
 - [x] Add Medicine screen (name, dosage, times)
 - [x] Medicine list screen
-- [~] Forced full-screen re-open on every repeat (all devices)
+- [x] Forced full-screen re-open on every repeat (all devices)
 - [ ] Streak counter per medicine
 - [ ] Missed log entry if not taken by end of day
 
@@ -115,7 +115,7 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 
 ## Polish / ADA Ready
 - [ ] Onboarding flow
-- [ ] App name (TBD)
+- [x] App name: Rutin
 - [ ] App icon
 - [ ] Splash screen
 - [ ] Empty states for all screens

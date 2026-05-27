@@ -1,6 +1,29 @@
 # Manual Test Checklist (Android)
 
-Date: 5/25/2026 - Test 1  
+---
+
+## Session 2 — 2026-05-27
+
+Date: 2026-05-27  
+Device: Realme GT 2 Pro (RMX3301), Android 14  
+Build: Debug
+
+### Alarm System (post-fix)
+
+- [x] App builds and installs successfully.
+- [x] **Screen OFF** — alarm fires → ReminderActivity appears above lock screen (full-screen). ✅
+- [x] **Screen ON / home** — alarm fires → notification banner appears. Tap → ReminderActivity opens. ✅
+- [x] **Snooze** — tap "Tunda 1 menit" → activity closes → reappears after 1 minute. ✅
+- [x] **Add medicine** — after saving, app navigates directly to medicine list (no manual back needed). ✅
+
+### Notes
+- Screen-ON behavior shows banner (not forced full-screen) — this is correct Android behavior, intentional.
+- "Display over other apps" permission auto-granted on debug install.
+- Gradle OOM fixed: daemon disabled, `-Xmx512m` in `gradle.properties`.
+
+---
+
+## Session 1 — 2026-05-25  
 Device: Android 16
 Build: Debug / Release (circle one)
 
