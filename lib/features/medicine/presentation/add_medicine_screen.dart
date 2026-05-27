@@ -27,56 +27,6 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Obat')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nama obat'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Nama obat wajib diisi';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _dosageController,
-                decoration: const InputDecoration(
-                  labelText: 'Dosis (opsional)',
-                ),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Waktu minum'),
-                subtitle: Text(_timeLabel(_selectedTime)),
-                trailing: const Icon(Icons.access_time),
-                onTap: _pickTime,
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _pickTime() async {
     final selected = await showTimePicker(
       context: context,
@@ -144,6 +94,86 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       dateTime = dateTime.add(const Duration(days: 1));
     }
     return dateTime;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Tambah Obat')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+          children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Nama obat'),
+              textCapitalization: TextCapitalization.sentences,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Nama obat wajib diisi' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _dosageController,
+              decoration: const InputDecoration(labelText: 'Dosis (opsional)'),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 32),
+
+            Text(
+              'WAKTU MINUM',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: cs.outlineVariant.withOpacity(0.7),
+                ),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _pickTime,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 18,
+                        color: cs.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 10),
+                      const Text('Waktu minum'),
+                      const Spacer(),
+                      Text(
+                        _timeLabel(_selectedTime),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   static String _timeLabel(TimeOfDay time) {

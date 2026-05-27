@@ -60,7 +60,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
     if (confirmed != true) return;
 
-    // Create or update medal
     final existing = _medals.findByHabit(habit.name, habit.emoji);
     if (existing != null) {
       if (streak > existing.peakStreak) {
@@ -94,18 +93,40 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Kebiasaan')),
       body: _habits.isEmpty
-          ? const Center(
-              child: Text(
-                'Belum ada kebiasaan.\nTambah dengan tombol + di bawah.',
-                textAlign: TextAlign.center,
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 56,
+                      color: cs.outlineVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Belum ada kebiasaan',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tambah kebiasaan pertamamu\ndengan tombol + di bawah.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: _habits.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final h = _habits[i];
                 return Dismissible(
@@ -115,17 +136,22 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.error,
-                      borderRadius: BorderRadius.circular(12),
+                      color: cs.error,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.delete_outline, color: Colors.white),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: cs.onError,
+                    ),
                   ),
                   confirmDismiss: (_) async {
                     return await showDialog<bool>(
                       context: context,
                       builder: (_) => AlertDialog(
                         title: const Text('Hapus kebiasaan?'),
-                        content: Text('${h.name} akan dihapus permanen tanpa dijadikan medali.'),
+                        content: Text(
+                          '${h.name} akan dihapus permanen tanpa dijadikan medali.',
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context, false),
@@ -133,6 +159,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           ),
                           FilledButton(
                             onPressed: () => Navigator.pop(context, true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: cs.error,
+                            ),
                             child: const Text('Hapus'),
                           ),
                         ],
@@ -159,11 +188,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
           await context.push('/habits/add');
           _load();
         },
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
 }
+
+// ─── Retire sheet ─────────────────────────────────────────────────────────────
 
 class _RetireSheet extends StatelessWidget {
   const _RetireSheet({required this.habit, required this.streak});
@@ -172,33 +203,35 @@ class _RetireSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(habit.emoji, style: const TextStyle(fontSize: 48)),
-          const SizedBox(height: 8),
-          Text(
-            habit.name,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text(habit.emoji, style: const TextStyle(fontSize: 52)),
+          const SizedBox(height: 10),
+          Text(habit.name, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
             streak > 0 ? '$streak hari berturut-turut' : 'Belum ada streak',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: streak > 0 ? cs.primary : cs.onSurfaceVariant,
+                  fontWeight: streak > 0 ? FontWeight.w600 : FontWeight.w400,
+                ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
-            'Jadikan medali akan menghapus kebiasaan ini dari daftar aktif dan menyimpannya sebagai pencapaian.',
+            'Kebiasaan ini akan dihapus dari daftar aktif dan disimpan sebagai medali pencapaian.',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
           ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
+          const SizedBox(height: 28),
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            icon: const Text('🏅'),
-            label: const Text('Jadikan Medali'),
+            child: const Text('🏅  Jadikan Medali'),
           ),
           const SizedBox(height: 8),
           TextButton(

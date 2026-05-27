@@ -98,6 +98,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final goal = _goal.goalGlasses;
     final isDone = _current >= goal;
     final totalMl = _current * _goal.glassSizeMl;
@@ -108,74 +109,65 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
         title: const Text('Air'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.tune),
+            icon: const Icon(Icons.tune_rounded),
             tooltip: 'Pengaturan air',
             onPressed: _openSettings,
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            WaterProgressWidget(current: _current, goal: goal),
-            const SizedBox(height: 6),
+            const SizedBox(height: 16),
+            Center(
+              child: WaterProgressWidget(current: _current, goal: goal),
+            ),
+            const SizedBox(height: 12),
             Text(
-              '${(totalMl / 1000).toStringAsFixed(2)}L dari ${targetL}L target',
+              '${(totalMl / 1000).toStringAsFixed(2)} L dari $targetL L target',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (isDone) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 'Target hari ini tercapai!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 13,
+                  color: cs.primary,
                 ),
               ),
             ],
-            const SizedBox(height: 40),
+            const SizedBox(height: 36),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  onPressed: _removeGlass,
-                  icon: const Icon(Icons.remove_circle_outline),
-                  iconSize: 40,
-                ),
-                const SizedBox(width: 32),
-                Column(
-                  children: [
-                    Text(
-                      '$_current',
-                      style: Theme.of(context).textTheme.displayMedium,
-                    ),
-                    Text('dari $goal gelas'),
-                  ],
-                ),
-                const SizedBox(width: 32),
-                IconButton(
-                  onPressed: _addGlass,
-                  icon: const Icon(Icons.add_circle_outline),
-                  iconSize: 40,
-                ),
+                _GlassButton(icon: Icons.remove_rounded, onPressed: _removeGlass),
+                const SizedBox(width: 48),
+                _GlassButton(icon: Icons.add_rounded, onPressed: _addGlass),
               ],
             ),
-            const SizedBox(height: 48),
+            const SizedBox(height: 40),
             const Divider(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Pengingat', style: TextStyle(fontWeight: FontWeight.w600)),
                       Text(
-                        'Setiap ${_goal.reminderIntervalMinutes} menit  ·  ${_fmtTime(_goal.startTimeMinutes)} – ${_fmtTime(_goal.endTimeMinutes)}',
+                        'Pengingat',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Setiap ${_goal.reminderIntervalMinutes} menit  ·  '
+                        '${_fmtTime(_goal.startTimeMinutes)} – ${_fmtTime(_goal.endTimeMinutes)}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -188,6 +180,33 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Glass +/- button ────────────────────────────────────────────────────────
+
+class _GlassButton extends StatelessWidget {
+  const _GlassButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onPressed,
+        child: SizedBox(
+          width: 68,
+          height: 68,
+          child: Icon(icon, size: 30, color: cs.onSurface),
         ),
       ),
     );
@@ -241,30 +260,24 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+      padding: EdgeInsets.fromLTRB(
+          24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('Pengaturan Air', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 4),
-          // Science note
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'WHO merekomendasikan 2.0L (wanita) – 2.5L (pria) per hari dari minuman. '
-              'Di iklim panas seperti Indonesia, tambahkan 0.5–1.0L.',
-              style: TextStyle(fontSize: 12),
-            ),
+          const SizedBox(height: 10),
+          Text(
+            'WHO merekomendasikan 2.0L (wanita) – 2.5L (pria) per hari. '
+            'Di iklim panas seperti Indonesia, tambahkan 0.5–1.0L.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
           ),
-          const SizedBox(height: 20),
-
-          // Target
+          const SizedBox(height: 24),
           Row(
             children: [
               const Text('Target harian'),
@@ -283,8 +296,6 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
             label: '${_targetL.toStringAsFixed(1)}L',
             onChanged: (v) => setState(() => _targetL = v),
           ),
-
-          // Glass size
           Row(
             children: [
               const Text('Ukuran gelas'),
@@ -292,15 +303,14 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
               DropdownButton<int>(
                 value: _glassSizeMl,
                 items: _glassSizes
-                    .map((s) => DropdownMenuItem(value: s, child: Text('${s}ml')))
+                    .map((s) =>
+                        DropdownMenuItem(value: s, child: Text('${s}ml')))
                     .toList(),
                 onChanged: (v) => setState(() => _glassSizeMl = v!),
               ),
             ],
           ),
           const SizedBox(height: 8),
-
-          // Start / end hour
           Row(
             children: [
               const Text('Mulai'),
@@ -308,7 +318,9 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
               DropdownButton<int>(
                 value: _startHour,
                 items: List.generate(24, (i) => i)
-                    .map((h) => DropdownMenuItem(value: h, child: Text('${h.toString().padLeft(2, '0')}:00')))
+                    .map((h) => DropdownMenuItem(
+                        value: h,
+                        child: Text('${h.toString().padLeft(2, '0')}:00')))
                     .toList(),
                 onChanged: (v) => setState(() => _startHour = v!),
               ),
@@ -319,22 +331,21 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
                 value: _endHour,
                 items: List.generate(24, (i) => i)
                     .where((h) => h > _startHour)
-                    .map((h) => DropdownMenuItem(value: h, child: Text('${h.toString().padLeft(2, '0')}:00')))
+                    .map((h) => DropdownMenuItem(
+                        value: h,
+                        child: Text('${h.toString().padLeft(2, '0')}:00')))
                     .toList(),
                 onChanged: (v) => setState(() => _endHour = v!),
               ),
             ],
           ),
           const SizedBox(height: 16),
-
-          // Summary
           Text(
             '$_glasses gelas/hari  ·  pengingat setiap $_intervalMin menit',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 20),
-
           FilledButton(onPressed: _save, child: const Text('Simpan')),
         ],
       ),
