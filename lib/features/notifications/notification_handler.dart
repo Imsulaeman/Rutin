@@ -38,6 +38,8 @@ class NotificationHandler {
             NotificationResponseType.selectedNotification) {
           if (response.payload == 'water') {
             appRouter.go('/water');
+          } else if (response.payload == 'habit') {
+            appRouter.go('/habits');
           } else {
             openReminderScreen(
               alarmId: rootAlarmId,

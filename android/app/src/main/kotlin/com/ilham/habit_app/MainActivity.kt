@@ -69,6 +69,18 @@ class MainActivity : FlutterActivity() {
                         moveTaskToBack(true)
                         result.success(null)
                     }
+                    "scheduleHabitAlarm" -> {
+                        val notifId = call.argument<Int>("notifId") ?: 0
+                        val triggerMs = (call.argument<Any>("triggerMs") as? Number)?.toLong() ?: 0L
+                        val title = call.argument<String>("title") ?: ""
+                        HabitAlarmReceiver.schedule(applicationContext, notifId, triggerMs, title)
+                        result.success(null)
+                    }
+                    "cancelHabitAlarm" -> {
+                        val notifId = call.argument<Int>("notifId") ?: 0
+                        HabitAlarmReceiver.cancel(applicationContext, notifId)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

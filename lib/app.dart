@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
+import 'features/habits/presentation/add_habit_screen.dart';
 import 'features/habits/presentation/habits_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/medicine/presentation/add_medicine_screen.dart';
@@ -29,6 +30,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(path: '/water', builder: (context, _) => const WaterScreen()),
     GoRoute(path: '/habits', builder: (context, _) => const HabitsScreen()),
+    GoRoute(path: '/habits/add', builder: (context, _) => const AddHabitScreen()),
   ],
 );
 
