@@ -29,6 +29,23 @@ class WaterRepository {
     );
   }
 
+  Future<void> removeGlass() async {
+    final today = AppDateUtils.todayString();
+    final existing = _logs.values
+        .toList()
+        .asMap()
+        .entries
+        .cast<MapEntry<int, WaterLog>?>()
+        .firstWhere(
+          (e) => e?.value.date == today,
+          orElse: () => null,
+        );
+    if (existing != null && existing.value.glassesLogged > 0) {
+      existing.value.glassesLogged--;
+      await existing.value.save();
+    }
+  }
+
   Future<void> logGlass() async {
     final today = AppDateUtils.todayString();
     final existing = _logs.values

@@ -60,6 +60,31 @@ class AlarmService {
     );
   }
 
+  static const int waterAlarmId = 800000;
+
+  static Future<void> scheduleWater({
+    required int intervalMinutes,
+    required int startTimeMinutes,
+    required int endTimeMinutes,
+  }) async {
+    if (!Platform.isAndroid) return;
+    final triggerAt = DateTime.now().add(Duration(minutes: intervalMinutes));
+    await _channel.invokeMethod('scheduleWaterReminder', {
+      'alarmId': waterAlarmId,
+      'triggerAtMillis': triggerAt.millisecondsSinceEpoch,
+      'intervalMinutes': intervalMinutes,
+      'startTimeMinutes': startTimeMinutes,
+      'endTimeMinutes': endTimeMinutes,
+    });
+  }
+
+  static Future<void> cancelWater() async {
+    if (!Platform.isAndroid) return;
+    await _channel.invokeMethod('cancelWaterReminder', {
+      'alarmId': waterAlarmId,
+    });
+  }
+
   static Future<void> cancel(int alarmId) async {
     await cancelAllForAlarm(alarmId);
   }

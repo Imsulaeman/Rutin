@@ -15,6 +15,9 @@ class WaterGoal extends HiveObject {
 
   @HiveField(3)
   late int endTimeMinutes; // default: 1320 (10 PM)
+
+  @HiveField(4)
+  bool reminderActive = false;
 }
 
 @HiveType(typeId: 3)

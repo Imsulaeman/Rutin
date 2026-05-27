@@ -20,13 +20,14 @@ class WaterGoalAdapter extends TypeAdapter<WaterGoal> {
       ..dailyGoalGlasses = fields[0] as int
       ..reminderIntervalMinutes = fields[1] as int
       ..startTimeMinutes = fields[2] as int
-      ..endTimeMinutes = fields[3] as int;
+      ..endTimeMinutes = fields[3] as int
+      ..reminderActive = fields[4] == true;
   }
 
   @override
   void write(BinaryWriter writer, WaterGoal obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.dailyGoalGlasses)
       ..writeByte(1)
@@ -34,7 +35,9 @@ class WaterGoalAdapter extends TypeAdapter<WaterGoal> {
       ..writeByte(2)
       ..write(obj.startTimeMinutes)
       ..writeByte(3)
-      ..write(obj.endTimeMinutes);
+      ..write(obj.endTimeMinutes)
+      ..writeByte(4)
+      ..write(obj.reminderActive);
   }
 
   @override

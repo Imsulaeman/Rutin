@@ -34,6 +34,27 @@ class MainActivity : FlutterActivity() {
                         NativeReminderScheduler.cancel(applicationContext, alarmId)
                         result.success(true)
                     }
+                    "scheduleWaterReminder" -> {
+                        val alarmId = call.argument<Int>("alarmId") ?: 0
+                        val triggerAtMillis = call.argument<Long>("triggerAtMillis") ?: 0L
+                        val intervalMinutes = call.argument<Int>("intervalMinutes") ?: 120
+                        val startTimeMinutes = call.argument<Int>("startTimeMinutes") ?: 420
+                        val endTimeMinutes = call.argument<Int>("endTimeMinutes") ?: 1320
+                        NativeReminderScheduler.scheduleWater(
+                            context = applicationContext,
+                            alarmId = alarmId,
+                            triggerAtMillis = triggerAtMillis,
+                            intervalMinutes = intervalMinutes,
+                            startTimeMinutes = startTimeMinutes,
+                            endTimeMinutes = endTimeMinutes
+                        )
+                        result.success(true)
+                    }
+                    "cancelWaterReminder" -> {
+                        val alarmId = call.argument<Int>("alarmId") ?: 0
+                        NativeReminderScheduler.cancelWater(applicationContext, alarmId)
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             }
