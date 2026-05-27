@@ -1,0 +1,26 @@
+{
+  "@@locale": "id",
+  "appTitle": "Habit App",
+  "home": "Beranda",
+  "medicine": "Obat",
+  "water": "Air",
+  "habits": "Kebiasaan",
+  "taken": "Sudah diminum",
+  "snooze": "Tunda 1 menit",
+  "missed": "Terlewat",
+  "streak": "{count} hari berturut-turut",
+  "@streak": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "addMedicine": "Tambah Obat",
+  "addHabit": "Tambah Kebiasaan",
+  "dailyGoal": "Target Harian",
+  "glasses": "{count} gelas",
+  "@glasses": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
+}

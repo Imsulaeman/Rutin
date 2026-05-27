@@ -1,0 +1,26 @@
+{
+  "@@locale": "en",
+  "appTitle": "Habit App",
+  "home": "Home",
+  "medicine": "Medicine",
+  "water": "Water",
+  "habits": "Habits",
+  "taken": "Taken",
+  "snooze": "Snooze 1 min",
+  "missed": "Missed",
+  "streak": "{count} day streak",
+  "@streak": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "addMedicine": "Add Medicine",
+  "addHabit": "Add Habit",
+  "dailyGoal": "Daily Goal",
+  "glasses": "{count} glasses",
+  "@glasses": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  }
+}
