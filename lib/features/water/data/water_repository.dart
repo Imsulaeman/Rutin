@@ -9,10 +9,10 @@ class WaterRepository {
   WaterGoal getGoal() {
     if (_goals.isEmpty) {
       final goal = WaterGoal()
-        ..dailyGoalGlasses = 8
-        ..reminderIntervalMinutes = 120
         ..startTimeMinutes = 420
-        ..endTimeMinutes = 1320;
+        ..endTimeMinutes = 1320
+        ..dailyTargetMl = 2500
+        ..glassSizeMl = 250;
       _goals.add(goal);
       return goal;
     }

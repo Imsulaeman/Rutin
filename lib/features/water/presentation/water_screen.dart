@@ -16,7 +16,6 @@ class _WaterScreenState extends State<WaterScreen> {
   final _repo = WaterRepository();
   late WaterGoal _goal;
   int _current = 0;
-  bool _reminderActive = false;
 
   @override
   void initState() {
@@ -26,23 +25,18 @@ class _WaterScreenState extends State<WaterScreen> {
 
   void _load() {
     _goal = _repo.getGoal();
-    final log = _repo.getTodayLog();
-    setState(() {
-      _current = log?.glassesLogged ?? 0;
-      _reminderActive = _goal.reminderActive;
-    });
+    setState(() => _current = _repo.getTodayLog()?.glassesLogged ?? 0);
   }
 
   Future<void> _addGlass() async {
     await _repo.logGlass();
-    final log = _repo.getTodayLog();
-    setState(() => _current = log?.glassesLogged ?? _current + 1);
+    setState(() => _current++);
   }
 
   Future<void> _removeGlass() async {
     if (_current == 0) return;
     await _repo.removeGlass();
-    setState(() => _current = _current - 1);
+    setState(() => _current--);
   }
 
   Future<void> _toggleReminder(bool value) async {
@@ -57,92 +51,278 @@ class _WaterScreenState extends State<WaterScreen> {
     } else {
       await AlarmService.cancelWater();
     }
-    setState(() => _reminderActive = value);
+    setState(() {});
   }
 
-  String _minutesToTime(int minutes) {
+  void _openSettings() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _WaterSettingsSheet(
+        goal: _goal,
+        onSave: (updated) async {
+          _goal = updated;
+          await _repo.saveGoal(_goal);
+          if (_goal.reminderActive) {
+            await AlarmService.scheduleWater(
+              intervalMinutes: _goal.reminderIntervalMinutes,
+              startTimeMinutes: _goal.startTimeMinutes,
+              endTimeMinutes: _goal.endTimeMinutes,
+            );
+          }
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+  String _fmtTime(int minutes) {
     final h = minutes ~/ 60;
     final m = minutes % 60;
-    final period = h < 12 ? 'AM' : 'PM';
-    final hour = h == 0 ? 12 : (h > 12 ? h - 12 : h);
-    return '$hour:${m.toString().padLeft(2, '0')} $period';
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDone = _current >= _goal.dailyGoalGlasses;
+    final goal = _goal.goalGlasses;
+    final isDone = _current >= goal;
+    final totalMl = _current * _goal.glassSizeMl;
+    final targetL = (_goal.dailyTargetMl / 1000).toStringAsFixed(1);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Air')),
+      appBar: AppBar(
+        title: const Text('Air'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune),
+            tooltip: 'Pengaturan air',
+            onPressed: _openSettings,
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            WaterProgressWidget(current: _current, goal: _goal.dailyGoalGlasses),
-            const SizedBox(height: 8),
-            if (isDone)
-              const Text(
+            WaterProgressWidget(current: _current, goal: goal),
+            const SizedBox(height: 6),
+            Text(
+              '${(totalMl / 1000).toStringAsFixed(2)}L dari ${targetL}L target',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (isDone) ...[
+              const SizedBox(height: 4),
+              Text(
                 'Target hari ini tercapai!',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
-            const SizedBox(height: 32),
+            ],
+            const SizedBox(height: 40),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
                   onPressed: _removeGlass,
                   icon: const Icon(Icons.remove_circle_outline),
-                  iconSize: 36,
-                  tooltip: 'Kurangi',
+                  iconSize: 40,
                 ),
-                const SizedBox(width: 24),
+                const SizedBox(width: 32),
                 Column(
                   children: [
                     Text(
                       '$_current',
                       style: Theme.of(context).textTheme.displayMedium,
                     ),
-                    const Text('gelas hari ini'),
+                    Text('dari $goal gelas'),
                   ],
                 ),
-                const SizedBox(width: 24),
+                const SizedBox(width: 32),
                 IconButton(
                   onPressed: _addGlass,
                   icon: const Icon(Icons.add_circle_outline),
-                  iconSize: 36,
-                  tooltip: 'Tambah segelas',
+                  iconSize: 40,
                 ),
               ],
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 48),
             const Divider(),
             const SizedBox(height: 16),
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Pengingat minum air', style: TextStyle(fontWeight: FontWeight.w600)),
-                      Text('Setiap 2 jam, 07:00 – 22:00', style: TextStyle(fontSize: 12)),
+                      const Text('Pengingat', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        'Setiap ${_goal.reminderIntervalMinutes} menit  ·  ${_fmtTime(_goal.startTimeMinutes)} – ${_fmtTime(_goal.endTimeMinutes)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
                 Switch(
-                  value: _reminderActive,
+                  value: _goal.reminderActive,
                   onChanged: _toggleReminder,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Aktif: ${_minutesToTime(_goal.startTimeMinutes)} – ${_minutesToTime(_goal.endTimeMinutes)}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Settings bottom sheet ────────────────────────────────────────────────────
+
+class _WaterSettingsSheet extends StatefulWidget {
+  const _WaterSettingsSheet({required this.goal, required this.onSave});
+  final WaterGoal goal;
+  final Future<void> Function(WaterGoal) onSave;
+
+  @override
+  State<_WaterSettingsSheet> createState() => _WaterSettingsSheetState();
+}
+
+class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
+  late double _targetL;
+  late int _glassSizeMl;
+  late int _startHour;
+  late int _endHour;
+
+  static const _glassSizes = [150, 200, 250, 300, 350, 500];
+
+  @override
+  void initState() {
+    super.initState();
+    _targetL = widget.goal.dailyTargetMl / 1000;
+    _glassSizeMl = widget.goal.glassSizeMl;
+    _startHour = widget.goal.startTimeMinutes ~/ 60;
+    _endHour = widget.goal.endTimeMinutes ~/ 60;
+  }
+
+  int get _glasses => (_targetL * 1000 / _glassSizeMl).ceil();
+  int get _windowHours => _endHour - _startHour;
+  int get _intervalMin {
+    if (_glasses <= 0 || _windowHours <= 0) return 120;
+    return ((_windowHours * 60) / _glasses).floor().clamp(15, 240);
+  }
+
+  Future<void> _save() async {
+    widget.goal
+      ..dailyTargetMl = (_targetL * 1000).round()
+      ..glassSizeMl = _glassSizeMl
+      ..startTimeMinutes = _startHour * 60
+      ..endTimeMinutes = _endHour * 60;
+    await widget.onSave(widget.goal);
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Pengaturan Air', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 4),
+          // Science note
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'WHO merekomendasikan 2.0L (wanita) – 2.5L (pria) per hari dari minuman. '
+              'Di iklim panas seperti Indonesia, tambahkan 0.5–1.0L.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Target
+          Row(
+            children: [
+              const Text('Target harian'),
+              const Spacer(),
+              Text(
+                '${_targetL.toStringAsFixed(1)} L',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          Slider(
+            value: _targetL,
+            min: 1.0,
+            max: 5.0,
+            divisions: 16,
+            label: '${_targetL.toStringAsFixed(1)}L',
+            onChanged: (v) => setState(() => _targetL = v),
+          ),
+
+          // Glass size
+          Row(
+            children: [
+              const Text('Ukuran gelas'),
+              const Spacer(),
+              DropdownButton<int>(
+                value: _glassSizeMl,
+                items: _glassSizes
+                    .map((s) => DropdownMenuItem(value: s, child: Text('${s}ml')))
+                    .toList(),
+                onChanged: (v) => setState(() => _glassSizeMl = v!),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Start / end hour
+          Row(
+            children: [
+              const Text('Mulai'),
+              const SizedBox(width: 12),
+              DropdownButton<int>(
+                value: _startHour,
+                items: List.generate(24, (i) => i)
+                    .map((h) => DropdownMenuItem(value: h, child: Text('${h.toString().padLeft(2, '0')}:00')))
+                    .toList(),
+                onChanged: (v) => setState(() => _startHour = v!),
+              ),
+              const Spacer(),
+              const Text('Selesai'),
+              const SizedBox(width: 12),
+              DropdownButton<int>(
+                value: _endHour,
+                items: List.generate(24, (i) => i)
+                    .where((h) => h > _startHour)
+                    .map((h) => DropdownMenuItem(value: h, child: Text('${h.toString().padLeft(2, '0')}:00')))
+                    .toList(),
+                onChanged: (v) => setState(() => _endHour = v!),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Summary
+          Text(
+            '$_glasses gelas/hari  ·  pengingat setiap $_intervalMin menit',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 20),
+
+          FilledButton(onPressed: _save, child: const Text('Simpan')),
+        ],
       ),
     );
   }

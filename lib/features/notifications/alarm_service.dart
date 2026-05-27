@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -68,11 +69,12 @@ class AlarmService {
     required int endTimeMinutes,
   }) async {
     if (!Platform.isAndroid) return;
-    final triggerAt = DateTime.now().add(Duration(minutes: intervalMinutes));
+    final effectiveInterval = kDebugMode ? 1 : intervalMinutes;
+    final triggerAt = DateTime.now().add(Duration(minutes: effectiveInterval));
     await _channel.invokeMethod('scheduleWaterReminder', {
       'alarmId': waterAlarmId,
       'triggerAtMillis': triggerAt.millisecondsSinceEpoch,
-      'intervalMinutes': intervalMinutes,
+      'intervalMinutes': effectiveInterval,
       'startTimeMinutes': startTimeMinutes,
       'endTimeMinutes': endTimeMinutes,
     });

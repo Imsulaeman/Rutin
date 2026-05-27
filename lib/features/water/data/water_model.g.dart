@@ -17,27 +17,27 @@ class WaterGoalAdapter extends TypeAdapter<WaterGoal> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return WaterGoal()
-      ..dailyGoalGlasses = fields[0] as int
-      ..reminderIntervalMinutes = fields[1] as int
-      ..startTimeMinutes = fields[2] as int
-      ..endTimeMinutes = fields[3] as int
-      ..reminderActive = fields[4] == true;
+      ..startTimeMinutes = (fields[2] as int?) ?? 420
+      ..endTimeMinutes = (fields[3] as int?) ?? 1320
+      ..reminderActive = fields[4] == true
+      ..dailyTargetMl = (fields[5] as int?) ?? 2500
+      ..glassSizeMl = (fields[6] as int?) ?? 250;
   }
 
   @override
   void write(BinaryWriter writer, WaterGoal obj) {
     writer
       ..writeByte(5)
-      ..writeByte(0)
-      ..write(obj.dailyGoalGlasses)
-      ..writeByte(1)
-      ..write(obj.reminderIntervalMinutes)
       ..writeByte(2)
       ..write(obj.startTimeMinutes)
       ..writeByte(3)
       ..write(obj.endTimeMinutes)
       ..writeByte(4)
-      ..write(obj.reminderActive);
+      ..write(obj.reminderActive)
+      ..writeByte(5)
+      ..write(obj.dailyTargetMl)
+      ..writeByte(6)
+      ..write(obj.glassSizeMl);
   }
 
   @override
