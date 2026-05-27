@@ -55,10 +55,10 @@ Future<void> _showWaterNotification() async {
     'Sudah minum segelas belum?',
     const NotificationDetails(
       android: AndroidNotificationDetails(
-        'water_reminder',
+        'water_reminder_v2',
         'Pengingat Air',
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
+        importance: Importance.high,
+        priority: Priority.high,
         autoCancel: true,
         actions: [
           AndroidNotificationAction(
