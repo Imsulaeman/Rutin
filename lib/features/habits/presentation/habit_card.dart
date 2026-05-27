@@ -3,6 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
 
+// Star count milestones: 3/7/14/30/60 days
+int _starsForStreak(int streak) {
+  if (streak >= 60) return 5;
+  if (streak >= 30) return 4;
+  if (streak >= 14) return 3;
+  if (streak >= 7)  return 2;
+  if (streak >= 3)  return 1;
+  return 0;
+}
+
 class HabitCard extends StatelessWidget {
   const HabitCard({
     super.key,
@@ -66,16 +76,8 @@ class HabitCard extends StatelessWidget {
                       habit.name,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    if (streak > 0) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        '🔥 $streak hari berturut-turut',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.streakColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
+                    const SizedBox(height: 5),
+                    _StarRow(streak: streak),
                   ],
                 ),
               ),
@@ -89,6 +91,30 @@ class HabitCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StarRow extends StatelessWidget {
+  const _StarRow({required this.streak});
+  final int streak;
+
+  @override
+  Widget build(BuildContext context) {
+    final filled = _starsForStreak(streak);
+    return Row(
+      children: List.generate(5, (i) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 2),
+          child: Icon(
+            i < filled ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: 14,
+            color: i < filled
+                ? AppTheme.streakColor
+                : AppTheme.muted.withOpacity(0.4),
+          ),
+        );
+      }),
     );
   }
 }

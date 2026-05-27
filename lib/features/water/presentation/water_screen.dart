@@ -105,118 +105,181 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
     final targetMl = _goal.dailyTargetMl;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Air'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Pengaturan air',
-            onPressed: _openSettings,
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 16),
-            Center(
-              child: WaterProgressWidget(
-                current: _current,
-                goal: goal,
-                trackColor: AppTheme.waterColor.withOpacity(0.15),
-                fillColor: AppTheme.waterColor,
+            // Custom header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 8, 0),
+              child: Row(
+                children: [
+                  Text('Air', style: Theme.of(context).textTheme.headlineMedium),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.tune_rounded),
+                    tooltip: 'Pengaturan air',
+                    onPressed: _openSettings,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${(totalMl / 1000).toStringAsFixed(2)} L dari '
-              '${(targetMl / 1000).toStringAsFixed(1)} L target',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (isDone) ...[
-              const SizedBox(height: 6),
-              Text(
-                'Target hari ini tercapai! 💧',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: AppTheme.waterColor,
-                ),
-              ),
-            ],
-            const SizedBox(height: 36),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _GlassButton(icon: Icons.remove_rounded, onPressed: _removeGlass),
-                const SizedBox(width: 48),
-                _GlassButton(icon: Icons.add_rounded, onPressed: _addGlass),
-              ],
-            ),
-            const SizedBox(height: 40),
-            const Divider(),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Pengingat',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Setiap ${_goal.reminderIntervalMinutes} menit  ·  '
-                        '${_fmtTime(_goal.startTimeMinutes)} – ${_fmtTime(_goal.endTimeMinutes)}',
-                        style: Theme.of(context).textTheme.bodySmall,
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Hero row: big ml (left) + arc (right)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TweenAnimationBuilder<int>(
+                                tween: IntTween(begin: 0, end: totalMl),
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeOutCubic,
+                                builder: (_, v, __) => Text(
+                                  _fmtMl(v),
+                                  style: const TextStyle(
+                                    fontSize: 56,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -2.0,
+                                    color: AppTheme.waterColor,
+                                    height: 1,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
+                                'ml',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF6AB7F5),
+                                  height: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Target harian: $targetMl ml',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        WaterProgressWidget(
+                          current: _current,
+                          goal: goal,
+                          size: 100,
+                          strokeWidth: 9,
+                          trackColor: AppTheme.waterColor.withOpacity(0.15),
+                          fillColor: AppTheme.waterColor,
+                        ),
+                      ],
+                    ),
+
+                    if (isDone) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.waterColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Target hari ini tercapai!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppTheme.waterColor,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
+
+                    const SizedBox(height: 48),
+
+                    // Add glass pill button
+                    FilledButton(
+                      onPressed: _addGlass,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.waterColor,
+                        minimumSize: const Size(double.infinity, 56),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: Text('+ ${_goal.glassSizeMl} ml'),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Remove glass link
+                    TextButton(
+                      onPressed: _current > 0 ? _removeGlass : null,
+                      child: const Text('Kurangi satu gelas'),
+                    ),
+
+                    const SizedBox(height: 32),
+                    const Divider(),
+                    const SizedBox(height: 20),
+
+                    // Reminder toggle
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Pengingat',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Setiap ${_goal.reminderIntervalMinutes} menit  ·  '
+                                '${_fmtTime(_goal.startTimeMinutes)} – ${_fmtTime(_goal.endTimeMinutes)}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _goal.reminderActive,
+                          onChanged: _toggleReminder,
+                          activeThumbColor: AppTheme.waterColor,
+                          activeTrackColor: AppTheme.waterColor.withAlpha(100),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                Switch(
-                  value: _goal.reminderActive,
-                  onChanged: _toggleReminder,
-                  activeThumbColor: AppTheme.waterColor,
-                  activeTrackColor: AppTheme.waterColor.withAlpha(100),
-                ),
-              ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-// ─── Glass +/- button ────────────────────────────────────────────────────────
-
-class _GlassButton extends StatelessWidget {
-  const _GlassButton({required this.icon, required this.onPressed});
-
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.waterColor.withOpacity(0.12),
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onPressed,
-        child: SizedBox(
-          width: 68,
-          height: 68,
-          child: Icon(icon, size: 30, color: AppTheme.waterColor),
-        ),
-      ),
-    );
+  static String _fmtMl(int ml) {
+    if (ml >= 1000) {
+      return ml.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+    }
+    return ml.toString();
   }
 }
 

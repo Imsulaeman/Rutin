@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
 import '../data/habit_repository.dart';
 import '../data/medal_model.dart';
@@ -15,18 +16,40 @@ class HabitsScreen extends StatefulWidget {
   State<HabitsScreen> createState() => _HabitsScreenState();
 }
 
-class _HabitsScreenState extends State<HabitsScreen> {
+class _HabitsScreenState extends State<HabitsScreen>
+    with SingleTickerProviderStateMixin {
   final _repo = HabitRepository();
   final _medals = MedalRepository();
   List<Habit> _habits = [];
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _load();
   }
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   void _load() => setState(() => _habits = _repo.getAll());
+
+  List<Habit> get _filtered {
+    if (_tabController.index == 0) {
+      // Pagi: no reminder or reminder before noon (720 min)
+      return _habits.where((h) =>
+          h.reminderMinutes == null || h.reminderMinutes! < 720).toList();
+    } else {
+      // Sore: reminder from noon onward
+      return _habits.where((h) =>
+          h.reminderMinutes != null && h.reminderMinutes! >= 720).toList();
+    }
+  }
 
   Future<void> _markDone(Habit habit) async {
     if (_repo.isCompletedToday(habit.id)) {
@@ -94,9 +117,23 @@ class _HabitsScreenState extends State<HabitsScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final visible = _filtered;
     return Scaffold(
-      appBar: AppBar(title: const Text('Kebiasaan')),
-      body: _habits.isEmpty
+      appBar: AppBar(
+        title: const Text('Kebiasaan'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Pagi'),
+            Tab(text: 'Sore'),
+          ],
+          indicatorColor: AppTheme.habitsColor,
+          labelColor: AppTheme.habitsColor,
+          unselectedLabelColor: AppTheme.muted,
+          dividerColor: AppTheme.border,
+        ),
+      ),
+      body: visible.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(40),
@@ -110,12 +147,16 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Belum ada kebiasaan',
+                      _habits.isEmpty
+                          ? 'Belum ada kebiasaan'
+                          : 'Tidak ada kebiasaan di sesi ini',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Tambah kebiasaan pertamamu\ndengan tombol + di bawah.',
+                      _habits.isEmpty
+                          ? 'Tambah kebiasaan pertamamu\ndengan tombol + di bawah.'
+                          : 'Coba tab yang lain atau tambah kebiasaan baru.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -125,10 +166,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: _habits.length,
+              itemCount: visible.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
-                final h = _habits[i];
+                final h = visible[i];
                 return Dismissible(
                   key: ValueKey(h.id),
                   direction: DismissDirection.endToStart,

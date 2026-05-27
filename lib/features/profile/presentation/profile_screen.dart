@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../habits/data/habit_repository.dart';
 import '../../habits/data/medal_model.dart';
 import '../../habits/data/medal_repository.dart';
 
@@ -13,7 +14,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _medals = MedalRepository();
+  final _habits = HabitRepository();
   List<Medal> _list = [];
+  int _bestActiveStreak = 0;
 
   @override
   void initState() {
@@ -24,7 +27,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _load() {
     final sorted = _medals.getAll()
       ..sort((a, b) => b.awardedAt.compareTo(a.awardedAt));
-    setState(() => _list = sorted);
+    final allHabits = _habits.getAll();
+    final best = allHabits.isEmpty
+        ? 0
+        : allHabits.map((h) => _habits.getStreak(h.id)).reduce((a, b) => a > b ? a : b);
+    setState(() {
+      _list = sorted;
+      _bestActiveStreak = best;
+    });
   }
 
   @override
@@ -55,31 +65,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppTheme.streakColor, Color(0xFFFF9800)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [Color(0xFF1A1A2E), Color(0xFF0F2027)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              '🏅',
-              style: TextStyle(fontSize: 40),
+            // Animated flame
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.92, end: 1.06),
+              duration: const Duration(milliseconds: 900),
+              curve: Curves.easeInOut,
+              builder: (context, scale, child) {
+                return Transform.scale(scale: scale, child: child);
+              },
+              onEnd: () => setState(() {}), // loops by rebuilding
+              child: const Text('🔥', style: TextStyle(fontSize: 64)),
             ),
             const SizedBox(height: 12),
             Text(
+              '$_bestActiveStreak',
+              style: const TextStyle(
+                fontSize: 56,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: -2,
+                height: 1,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'hari streak terbaik',
+              style: TextStyle(fontSize: 15, color: Colors.white60),
+            ),
+            const SizedBox(height: 24),
+            Text(
               'Medali',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                   ),
             ),
-            const SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 2),
+            const Text(
               'Kebiasaan yang sudah kamu capai',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                  ),
+              style: TextStyle(fontSize: 13, color: Colors.white54),
             ),
           ],
         ),

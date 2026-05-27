@@ -109,12 +109,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final greeting  = hour < 5 ? 'Selamat malam' : hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat malam';
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: Stack(
+        children: [
+          // Illustrated nature background (fixed)
+          const Positioned.fill(child: _NatureBackground()),
+          // Scrollable content on top
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // Header
               Row(
                 children: [
@@ -278,9 +283,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ],
                 ),
               ),
+              // Extra bottom space so illustration is visible when scrolled to end
+              const SizedBox(height: 160),
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }
@@ -466,4 +475,114 @@ class _MiniArcPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MiniArcPainter old) => old.progress != progress;
+}
+
+// ─── Illustrated nature background ───────────────────────────────────────────
+
+class _NatureBackground extends StatelessWidget {
+  const _NatureBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _NaturePainter(),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+class _NaturePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Sky gradient
+    final skyRect = Rect.fromLTWH(0, 0, w, h);
+    canvas.drawRect(
+      skyRect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF0D1117),
+            Color(0xFF0D1117),
+            Color(0xFF0F2027),
+          ],
+          stops: [0.0, 0.55, 1.0],
+        ).createShader(skyRect),
+    );
+
+    // Stars scattered in upper sky
+    final starPaint = Paint()..color = Colors.white.withOpacity(0.75);
+    const starPositions = [
+      [0.12, 0.06], [0.28, 0.04], [0.45, 0.09], [0.62, 0.03],
+      [0.78, 0.07], [0.88, 0.12], [0.05, 0.15], [0.50, 0.16],
+      [0.70, 0.19], [0.35, 0.22], [0.92, 0.25], [0.18, 0.30],
+    ];
+    for (final s in starPositions) {
+      canvas.drawCircle(Offset(w * s[0], h * s[1]), 1.5, starPaint);
+    }
+    canvas.drawCircle(Offset(w * 0.20, h * 0.10), 2.2, starPaint);
+    canvas.drawCircle(Offset(w * 0.75, h * 0.05), 2.0, starPaint);
+
+    // Back hill (dark green)
+    final backHill = Path()
+      ..moveTo(0, h * 0.72)
+      ..cubicTo(w * 0.18, h * 0.58, w * 0.40, h * 0.65, w * 0.60, h * 0.60)
+      ..cubicTo(w * 0.75, h * 0.57, w * 0.88, h * 0.62, w, h * 0.68)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(backHill, Paint()..color = const Color(0xFF1B4332));
+
+    // Front hill (brighter green)
+    final frontHill = Path()
+      ..moveTo(0, h * 0.84)
+      ..cubicTo(w * 0.22, h * 0.70, w * 0.48, h * 0.78, w * 0.68, h * 0.72)
+      ..cubicTo(w * 0.82, h * 0.68, w * 0.92, h * 0.74, w, h * 0.80)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(frontHill, Paint()..color = const Color(0xFF2D6A4F));
+
+    // Blob characters on the hills
+    _drawBlob(canvas, Offset(w * 0.18, h * 0.695), 22, const Color(0xFF52B788));
+    _drawBlob(canvas, Offset(w * 0.75, h * 0.715), 18, const Color(0xFF95D5B2));
+    _drawBlob(canvas, Offset(w * 0.48, h * 0.765), 14, const Color(0xFF74C69D));
+
+    // Simple trees
+    _drawTree(canvas, Offset(w * 0.08, h * 0.82), h * 0.06);
+    _drawTree(canvas, Offset(w * 0.60, h * 0.80), h * 0.05);
+    _drawTree(canvas, Offset(w * 0.90, h * 0.84), h * 0.055);
+  }
+
+  void _drawBlob(Canvas canvas, Offset center, double r, Color color) {
+    canvas.drawCircle(center, r, Paint()..color = color);
+    final eye = Paint()..color = const Color(0xFF1A1A2E);
+    canvas.drawCircle(center + Offset(-r * 0.28, -r * 0.08), r * 0.20, eye);
+    canvas.drawCircle(center + Offset(r * 0.28, -r * 0.08), r * 0.20, eye);
+    final shine = Paint()..color = Colors.white.withOpacity(0.8);
+    canvas.drawCircle(center + Offset(-r * 0.22, -r * 0.14), r * 0.07, shine);
+    canvas.drawCircle(center + Offset(r * 0.34, -r * 0.14), r * 0.07, shine);
+  }
+
+  void _drawTree(Canvas canvas, Offset base, double h) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: base, width: h * 0.18, height: h * 0.4),
+        const Radius.circular(2),
+      ),
+      Paint()..color = const Color(0xFF1B2C1E),
+    );
+    canvas.drawCircle(
+      base + Offset(0, -h * 0.55),
+      h * 0.35,
+      Paint()..color = const Color(0xFF1B4332),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_NaturePainter old) => false;
 }
