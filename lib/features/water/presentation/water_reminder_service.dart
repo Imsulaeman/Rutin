@@ -1,22 +1,28 @@
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../data/water_model.dart';
-import '../water_reminder_callback.dart';
 
 class WaterReminderService {
+  static const _channel = MethodChannel('habit_app/native_reminder');
+
   static Future<void> schedule(WaterGoal goal) async {
-    final effectiveInterval = kDebugMode ? 1 : goal.reminderIntervalMinutes;
-    await AndroidAlarmManager.oneShot(
-      Duration(minutes: effectiveInterval),
-      waterAlarmId,
-      waterAlarmCallback,
-      exact: true,
-      wakeup: true,
-    );
+    final intervalMs = kDebugMode ? 15000 : goal.reminderIntervalMinutes * 60000;
+    await _channel.invokeMethod('saveWaterSettings', {
+      'startMin': goal.startTimeMinutes,
+      'endMin': goal.endTimeMinutes,
+      'intervalMs': intervalMs,
+      'reminderActive': true,
+      'debug': kDebugMode,
+    });
+    await _channel.invokeMethod('scheduleWaterAlarm', {'delayMs': intervalMs});
   }
 
   static Future<void> cancel() async {
-    await AndroidAlarmManager.cancel(waterAlarmId);
+    await _channel.invokeMethod('cancelWaterAlarm');
+  }
+
+  static Future<int> getPendingLogs() async {
+    return await _channel.invokeMethod<int>('getPendingWaterLogs') ?? 0;
   }
 }

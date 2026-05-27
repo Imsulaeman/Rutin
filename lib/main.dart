@@ -7,7 +7,8 @@ import 'app.dart';
 import 'features/habits/data/habit_model.dart';
 import 'features/medicine/data/medicine_model.dart';
 import 'features/notifications/alarm_service.dart';
-import 'features/notifications/notification_handler.dart';
+import 'features/notifications/notification_handler.dart'
+    show NotificationHandler, onBackgroundNotification;
 import 'features/routines/data/routine_model.dart';
 import 'features/sleep/data/sleep_model.dart';
 import 'features/tb/data/tb_model.dart';
@@ -64,7 +65,7 @@ Future<void> _initNotifications() async {
   await flutterLocalNotificationsPlugin.initialize(
     initSettings,
     onDidReceiveNotificationResponse: NotificationHandler.handle,
-    onDidReceiveBackgroundNotificationResponse: NotificationHandler.handle,
+    onDidReceiveBackgroundNotificationResponse: onBackgroundNotification,
   );
 
   final androidImplementation = flutterLocalNotificationsPlugin

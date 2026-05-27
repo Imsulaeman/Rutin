@@ -10,6 +10,7 @@ const int waterAlarmId = 800000;
 
 @pragma('vm:entry-point')
 Future<void> waterAlarmCallback() async {
+  debugPrint('[WAC] waterAlarmCallback fired');
   await Hive.initFlutter();
   if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(WaterGoalAdapter());
   if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(WaterLogAdapter());
@@ -28,26 +29,30 @@ Future<void> waterAlarmCallback() async {
   }
 
   // Reschedule next tick if still within window
-  final effectiveInterval = kDebugMode ? 1 : goal.reminderIntervalMinutes;
-  final nextMin = nowMin + effectiveInterval;
-  if (nextMin <= goal.endTimeMinutes) {
+  if (kDebugMode) {
     await AndroidAlarmManager.oneShot(
-      Duration(minutes: effectiveInterval),
+      const Duration(seconds: 15),
       waterAlarmId,
       waterAlarmCallback,
       exact: true,
       wakeup: true,
     );
+  } else {
+    final intervalMin = goal.reminderIntervalMinutes;
+    if (nowMin + intervalMin <= goal.endTimeMinutes) {
+      await AndroidAlarmManager.oneShot(
+        Duration(minutes: intervalMin),
+        waterAlarmId,
+        waterAlarmCallback,
+        exact: true,
+        wakeup: true,
+      );
+    }
   }
 }
 
 Future<void> _showWaterNotification() async {
   final plugin = FlutterLocalNotificationsPlugin();
-  await plugin.initialize(
-    const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-    ),
-  );
 
   await plugin.show(
     waterAlarmId,
@@ -65,6 +70,7 @@ Future<void> _showWaterNotification() async {
             'water_taken',
             'Sudah minum',
             cancelNotification: true,
+            showsUserInterface: true,
           ),
         ],
       ),

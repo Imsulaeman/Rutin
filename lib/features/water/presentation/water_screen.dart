@@ -22,6 +22,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _load();
+    _checkPendingLogs();
   }
 
   @override
@@ -32,12 +33,21 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _load();
+    if (state == AppLifecycleState.resumed) _checkPendingLogs();
   }
 
   void _load() {
     _goal = _repo.getGoal();
     setState(() => _current = _repo.getTodayLog()?.glassesLogged ?? 0);
+  }
+
+  void _checkPendingLogs() async {
+    final pending = await WaterReminderService.getPendingLogs();
+    if (pending <= 0 || !mounted) return;
+    for (var i = 0; i < pending; i++) {
+      await _repo.logGlass();
+    }
+    if (mounted) setState(() => _current = _repo.getTodayLog()?.glassesLogged ?? 0);
   }
 
   Future<void> _addGlass() async {

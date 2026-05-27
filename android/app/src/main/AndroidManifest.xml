@@ -57,6 +57,12 @@
         <receiver
             android:name=".ReminderAlarmReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".WaterAlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".WaterActionReceiver"
+            android:exported="false" />
         <service
             android:name="dev.fluttercommunity.plus.androidalarmmanager.AlarmService"
             android:exported="false"
