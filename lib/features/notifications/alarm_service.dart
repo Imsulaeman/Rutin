@@ -67,6 +67,14 @@ class AlarmService {
     await cancelAllForAlarm(alarmId);
   }
 
+  /// Drains "taken" events queued by the native reminder screen. Each entry is
+  /// `"$alarmId|$firedAtMillis"`. Native clears the queue once read.
+  static Future<List<String>> getPendingTaken() async {
+    if (!Platform.isAndroid) return const [];
+    final raw = await _channel.invokeMethod<List<dynamic>>('getPendingTaken');
+    return raw?.cast<String>() ?? const [];
+  }
+
   static Future<void> cancelAllForAlarm(int alarmId) async {
     if (!Platform.isAndroid) return;
     await _channel.invokeMethod('cancelReminder', {

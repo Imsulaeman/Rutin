@@ -41,11 +41,9 @@ class NotificationHandler {
           } else if (response.payload == 'habit') {
             appRouter.go('/habits');
           } else {
-            openReminderScreen(
-              alarmId: rootAlarmId,
-              medicineName: payload.$2,
-              dosage: payload.$3,
-            );
+            // Medicine alarms render natively (ReminderActivity); a tapped
+            // notification just opens the medicine list.
+            appRouter.go('/medicine');
           }
         }
         return;

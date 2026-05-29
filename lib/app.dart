@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,7 +9,6 @@ import 'features/habits/presentation/habits_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/medicine/presentation/add_medicine_screen.dart';
 import 'features/medicine/presentation/medicine_list_screen.dart';
-import 'features/medicine/presentation/reminder_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/water/presentation/water_screen.dart';
 
@@ -69,27 +69,8 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (_, __) => const AddHabitScreen(),
     ),
-    GoRoute(
-      path: '/reminder',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => ReminderScreen(
-        alarmId: int.tryParse(state.uri.queryParameters['id'] ?? '') ?? 0,
-        medicineName: state.uri.queryParameters['name'] ?? 'Obat',
-        dosage: state.uri.queryParameters['dosage'],
-      ),
-    ),
   ],
 );
-
-void openReminderScreen({
-  required int alarmId,
-  required String medicineName,
-  String? dosage,
-}) {
-  final encodedName   = Uri.encodeQueryComponent(medicineName);
-  final encodedDosage = Uri.encodeQueryComponent(dosage ?? '');
-  appRouter.push('/reminder?id=$alarmId&name=$encodedName&dosage=$encodedDosage');
-}
 
 // ─── Shell scaffold ───────────────────────────────────────────────────────────
 
@@ -97,42 +78,164 @@ class ShellScaffold extends StatelessWidget {
   const ShellScaffold({super.key, required this.shell});
   final StatefulNavigationShell shell;
 
+  // 4 tab branches flank a central + FAB (add). Profile (branch 4) is reached
+  // from the home header menu, matching the mockup's 4-tab + FAB layout.
+  void _go(int branch) {
+    HapticFeedback.selectionClick();
+    shell.goBranch(branch, initialLocation: branch == shell.currentIndex);
+  }
+
+  void _showAdd(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF131C2B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(width: 40, height: 4, decoration: BoxDecoration(
+              color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.medication_rounded, color: Color(0xFFEE5A8C)),
+              title: const Text('Tambah Obat', style: TextStyle(color: Colors.white)),
+              onTap: () { Navigator.pop(sheetCtx); context.push('/medicine/add'); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.star_rounded, color: Color(0xFFF4A92B)),
+              title: const Text('Tambah Kebiasaan', style: TextStyle(color: Colors.white)),
+              onTap: () { Navigator.pop(sheetCtx); context.push('/habits/add'); },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0B0E1A),
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) => shell.goBranch(
-          i,
-          initialLocation: i == shell.currentIndex,
-        ),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Beranda',
+      bottomNavigationBar: _BottomNav(
+        currentIndex: shell.currentIndex,
+        onTap: _go,
+        onAdd: () => _showAdd(context),
+      ),
+    );
+  }
+}
+
+// ─── Custom bottom nav with raised center + FAB ────────────────────────────────
+
+class _BottomNav extends StatelessWidget {
+  const _BottomNav({
+    required this.currentIndex,
+    required this.onTap,
+    required this.onAdd,
+  });
+
+  final int currentIndex;
+  final void Function(int branch) onTap;
+  final VoidCallback onAdd;
+
+  static const _navBg    = Color(0xFF131C2B);
+  static const _green    = Color(0xFF4CC56A);
+  static const _inactive = Color(0xFF6B7688);
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewPadding.bottom;
+    return SizedBox(
+      height: 66 + inset,
+      child: Stack(
+        clipBehavior: Clip.none, // let the FAB poke above the bar
+        children: [
+          Positioned.fill(
+            child: Container(
+              padding: EdgeInsets.only(bottom: inset),
+              decoration: const BoxDecoration(
+                color: _navBg,
+                boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 16, offset: Offset(0, -2))],
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: _Tab(icon: Icons.home_rounded, label: 'Beranda',
+                      active: currentIndex == 0, onTap: () => onTap(0))),
+                  Expanded(child: _Tab(icon: Icons.medication_rounded, label: 'Obat',
+                      active: currentIndex == 1, onTap: () => onTap(1))),
+                  const SizedBox(width: 72), // gap for the FAB
+                  Expanded(child: _Tab(icon: Icons.water_drop_rounded, label: 'Air',
+                      active: currentIndex == 2, onTap: () => onTap(2))),
+                  Expanded(child: _Tab(icon: Icons.check_circle_rounded, label: 'Kebiasaan',
+                      active: currentIndex == 3, onTap: () => onTap(3))),
+                ],
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.medication_outlined),
-            selectedIcon: Icon(Icons.medication_rounded),
-            label: 'Obat',
+          Positioned(
+            top: -18,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: onAdd,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF5FD97E), _green],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: _green.withOpacity(0.5), blurRadius: 18, offset: const Offset(0, 6)),
+                    ],
+                    border: Border.all(color: _navBg, width: 4),
+                  ),
+                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+                ),
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.water_drop_outlined),
-            selectedIcon: Icon(Icons.water_drop_rounded),
-            label: 'Air',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.check_circle_outline),
-            selectedIcon: Icon(Icons.check_circle_rounded),
-            label: 'Kebiasaan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events_rounded),
-            label: 'Profil',
-          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Tab extends StatelessWidget {
+  const _Tab({required this.icon, required this.label, required this.active, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? _BottomNav._green : _BottomNav._inactive;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(
+            fontSize: 10.5,
+            color: color,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+          )),
         ],
       ),
     );

@@ -65,6 +65,13 @@ class MainActivity : FlutterActivity() {
                         prefs.edit().putInt("pending_glasses", 0).apply()
                         result.success(count)
                     }
+                    "getPendingTaken" -> {
+                        val prefs = applicationContext.getSharedPreferences("medicine_pending", android.content.Context.MODE_PRIVATE)
+                        val set = prefs.getStringSet("pending_taken", emptySet()) ?: emptySet()
+                        val list = ArrayList(set)
+                        prefs.edit().putStringSet("pending_taken", emptySet()).apply()
+                        result.success(list)
+                    }
                     "minimizeApp" -> {
                         moveTaskToBack(true)
                         result.success(null)

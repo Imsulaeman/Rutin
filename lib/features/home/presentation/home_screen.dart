@@ -1,17 +1,24 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../main.dart';
 import '../../../shared/providers/providers.dart';
-import '../../habits/data/habit_model.dart';
 import '../../habits/data/habit_repository.dart';
 import '../../medicine/data/medicine_model.dart';
 import '../../water/data/water_repository.dart';
+
+// ─── Palette (sampled from preview/02_today_dashboard) ──────────────────────────
+const _bgTop  = Color(0xFF0B0E1A); // scaffold fallback behind the background image
+const _medGradient   = [Color(0xFFEE5A8C), Color(0xFFD93A6E)]; // magenta-pink
+const _waterGradient = [Color(0xFF3E8BF0), Color(0xFF2168D8)]; // sky → blue
+const _habitGradient = [Color(0xFFFCD15B), Color(0xFFF4A92B)]; // gold → amber
+const _accentGreen   = Color(0xFF4CC56A);
+const _dateGrey      = Color(0xFF9AA3B2);
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +28,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   static bool _permissionDialogShown = false;
 
   final _waterRepo = WaterRepository();
@@ -32,13 +39,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _glassSizeMl  = 250;
   int _habitsDue    = 0;
   int _habitsDone   = 0;
-  List<Habit> _todayHabits = [];
+
+  // Staggered fade+slide entrance (transform/opacity only).
+  late final AnimationController _entrance;
+  // Ambient loop: drives star twinkle + sun bob in the night scene.
+  late final AnimationController _ambient;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _entrance = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 760),
+    );
+    _ambient = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3200),
+    )..repeat(reverse: true);
     _load();
+    _entrance.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeShowPermissionWizard(context);
     });
@@ -47,6 +67,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _entrance.dispose();
+    _ambient.dispose();
     super.dispose();
   }
 
@@ -68,7 +90,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _glassSizeMl  = goal.glassSizeMl;
       _habitsDue    = today.length;
       _habitsDone   = today.where((h) => _habitRepo.isCompletedToday(h.id)).length;
-      _todayHabits  = today;
     });
   }
 
@@ -105,191 +126,107 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final medicines = ref.watch(medicineRepositoryProvider).getAll();
     final nextMed   = _nextMedicine(medicines);
-    final hour      = DateTime.now().hour;
-    final greeting  = hour < 5 ? 'Selamat malam' : hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat malam';
+    final waterPct  = _waterGoal > 0 ? (_waterCurrent / _waterGoal).clamp(0.0, 1.0) : 0.0;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Illustrated nature background (fixed)
-          const Positioned.fill(child: _NatureBackground()),
-          // Scrollable content on top
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Dark background → light status-bar icons.
+      value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: _bgTop,
+        body: Stack(
+          children: [
+            // Full-screen night background fills the whole screen, so the cards
+            // sit inside the scene instead of floating on an empty navy gap.
+            Positioned.fill(
+              child: Image.asset(
+                'assets/home_background.webp',
+                fit: BoxFit.cover,
+                alignment: Alignment.bottomCenter,
+              ),
+            ),
+            // Sun rising between the hills, with a gentle bob.
+            Align(
+              alignment: const Alignment(0, 0.44),
+              child: _BobbingSun(ambient: _ambient),
+            ),
+            // Foreground hills (sky keyed out of the background) drawn OVER the
+            // sun so it reads as rising from behind them.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Image.asset(
+                  'assets/home_foreground.webp',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            SafeArea(
+              bottom: false,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              // Header
-              Row(
-                children: [
-                  Expanded(
+                  _FadeSlideIn(
+                    animation: _entrance,
+                    start: 0.0,
+                    end: 0.5,
+                    child: _Header(
+                      title: 'Hari Ini',
+                      date: _formattedDate(),
+                      onMenu: () {
+                        HapticFeedback.selectionClick();
+                        context.go('/profile');
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          greeting,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.muted,
-                              ),
+                        _FadeSlideIn(
+                          animation: _entrance,
+                          start: 0.12,
+                          end: 0.6,
+                          child: _MedicineCard(
+                            count: medicines.length,
+                            nextName: nextMed?.name,
+                            timeLabel: nextMed != null
+                                ? _fmtMinutes(_nextMedicineMinutes(nextMed))
+                                : null,
+                            onTap: () => context.go('/medicine'),
+                          ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Rutin',
-                          style: Theme.of(context).textTheme.headlineLarge,
+                        const SizedBox(height: 14),
+                        _FadeSlideIn(
+                          animation: _entrance,
+                          start: 0.22,
+                          end: 0.7,
+                          child: _WaterCard(
+                            current: _waterCurrent,
+                            goal: _waterGoal,
+                            glassSizeMl: _glassSizeMl,
+                            pct: waterPct,
+                            onTap: () => context.go('/water'),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _FadeSlideIn(
+                          animation: _entrance,
+                          start: 0.32,
+                          end: 0.8,
+                          child: _HabitsCard(
+                            done: _habitsDone,
+                            due: _habitsDue,
+                            onTap: () => context.go('/habits'),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceHigh,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.person_outline_rounded, size: 22, color: AppTheme.muted),
-                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _formattedDate(),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 28),
-
-              // Medicine card
-              _FeatureCard(
-                color: AppTheme.medicineColor,
-                icon: Icons.medication_rounded,
-                label: 'Obat',
-                onTap: () => context.go('/medicine'),
-                child: nextMed != null
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            nextMed.name,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          if (nextMed.dosage != null)
-                            Text(
-                              nextMed.dosage!,
-                              style: const TextStyle(fontSize: 12, color: Colors.white54),
-                            ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _fmtMinutes(_nextMedicineMinutes(nextMed)),
-                            style: const TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -1.0,
-                              height: 1,
-                            ),
-                          ),
-                        ],
-                      )
-                    : const Text(
-                        'Tidak ada jadwal',
-                        style: TextStyle(fontSize: 15, color: Colors.white60),
-                      ),
-              ),
-              const SizedBox(height: 12),
-
-              // Water card
-              _FeatureCard(
-                color: AppTheme.waterColor,
-                icon: Icons.water_drop_rounded,
-                label: 'Air',
-                onTap: () => context.go('/water'),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${_waterCurrent * _glassSizeMl}',
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -1.0,
-                              height: 1,
-                            ),
-                          ),
-                          Text(
-                            'ml dari ${_waterGoal * _glassSizeMl} ml target',
-                            style: const TextStyle(fontSize: 12, color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _MiniArc(
-                      progress: _waterGoal > 0
-                          ? (_waterCurrent / _waterGoal).clamp(0.0, 1.0)
-                          : 0.0,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Habits card
-              _FeatureCard(
-                color: AppTheme.habitsColor,
-                icon: Icons.check_circle_rounded,
-                label: 'Kebiasaan',
-                onTap: () => context.go('/habits'),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _habitsDue == 0
-                          ? 'Tidak ada kebiasaan hari ini'
-                          : '$_habitsDone dari $_habitsDue selesai',
-                      style: const TextStyle(fontSize: 13, color: Colors.white70),
-                    ),
-                    if (_todayHabits.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          for (final h in _todayHabits.take(4))
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Opacity(
-                                opacity: _habitRepo.isCompletedToday(h.id) ? 1.0 : 0.35,
-                                child: Text(h.emoji, style: const TextStyle(fontSize: 26)),
-                              ),
-                            ),
-                          if (_todayHabits.length > 4)
-                            Text(
-                              '+${_todayHabits.length - 4}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.white54,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              // Extra bottom space so illustration is visible when scrolled to end
-              const SizedBox(height: 160),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-        ],
       ),
     );
   }
@@ -361,58 +298,164 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 }
 
-// ─── Feature card ─────────────────────────────────────────────────────────────
+// ─── Header ─────────────────────────────────────────────────────────────────
 
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
-    required this.color,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.child,
-  });
+class _Header extends StatelessWidget {
+  const _Header({required this.title, required this.date, required this.onMenu});
 
-  final Color color;
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Widget child;
+  final String title;
+  final String date;
+  final VoidCallback onMenu;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color, Color.lerp(color, Colors.black, 0.25)!],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: Colors.white, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  label,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _IconButton(icon: Icons.menu_rounded, onTap: onMenu),
+              Expanded(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const Spacer(),
-                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 13),
-              ],
+              ),
+              _IconButton(icon: Icons.calendar_today_rounded, onTap: onMenu),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(date, style: const TextStyle(fontSize: 13, color: _dateGrey)),
+        ],
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  const _IconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Pressable(
+      onTap: onTap,
+      scale: 0.85,
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Icon(icon, color: Colors.white, size: 22),
+      ),
+    );
+  }
+}
+
+// ─── Cards ──────────────────────────────────────────────────────────────────
+
+/// Shared full-width gradient card shell: icon badge + title/subtitle + trailing.
+class _GradientCard extends StatelessWidget {
+  const _GradientCard({
+    required this.gradient,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    required this.onTap,
+  });
+
+  final List<Color> gradient;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget trailing;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Pressable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          // 3-stop gradient: a lighter sheen at the very top reads as gloss.
+          gradient: LinearGradient(
+            colors: [
+              Color.lerp(gradient.first, Colors.white, 0.16)!,
+              gradient.first,
+              gradient.last,
+            ],
+            stops: const [0.0, 0.28, 1.0],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            // Colored bloom — bleeds the card's hue into the dark scene so it
+            // fuses with the background instead of floating on top of it.
+            BoxShadow(
+              color: gradient.last.withOpacity(0.50),
+              blurRadius: 34,
+              spreadRadius: -6,
+              offset: const Offset(0, 16),
             ),
-            const SizedBox(height: 14),
-            child,
+            BoxShadow(
+              color: gradient.first.withOpacity(0.22),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Frosted badge
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.22),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.85),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            trailing,
           ],
         ),
       ),
@@ -420,169 +463,270 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-// ─── Mini arc (home water card) ───────────────────────────────────────────────
+class _MedicineCard extends StatelessWidget {
+  const _MedicineCard({
+    required this.count,
+    required this.nextName,
+    required this.timeLabel,
+    required this.onTap,
+  });
 
-class _MiniArc extends StatelessWidget {
-  const _MiniArc({required this.progress});
+  final int count;
+  final String? nextName;
+  final String? timeLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GradientCard(
+      gradient: _medGradient,
+      icon: Icons.medication_rounded,
+      title: 'Obat',
+      subtitle: count == 0 ? 'Tidak ada jadwal' : '$count obat hari ini',
+      onTap: onTap,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            timeLabel ?? '—',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.8), size: 22),
+        ],
+      ),
+    );
+  }
+}
+
+class _WaterCard extends StatelessWidget {
+  const _WaterCard({
+    required this.current,
+    required this.goal,
+    required this.glassSizeMl,
+    required this.pct,
+    required this.onTap,
+  });
+
+  final int current;
+  final int goal;
+  final int glassSizeMl;
+  final double pct;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GradientCard(
+      gradient: _waterGradient,
+      icon: Icons.water_drop_rounded,
+      title: 'Air',
+      subtitle: '${current * glassSizeMl} / ${goal * glassSizeMl} ml',
+      onTap: onTap,
+      trailing: _PercentRing(progress: pct),
+    );
+  }
+}
+
+/// Small trailing ring used on the water card. Animates fill on (re)build.
+class _PercentRing extends StatelessWidget {
+  const _PercentRing({required this.progress});
   final double progress;
 
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: progress),
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 700),
       curve: Curves.easeOutCubic,
-      builder: (_, value, __) => CustomPaint(
-        size: const Size(72, 72),
-        painter: _MiniArcPainter(value),
+      builder: (_, value, __) => SizedBox(
+        width: 48,
+        height: 48,
+        child: CustomPaint(
+          painter: _RingPainter(value),
+          child: Center(
+            child: Text(
+              '${(value * 100).round()}%',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _MiniArcPainter extends CustomPainter {
-  const _MiniArcPainter(this.progress);
+class _RingPainter extends CustomPainter {
+  const _RingPainter(this.progress);
   final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 6;
-    const startAngle = math.pi * 0.75;
-    const sweep = math.pi * 1.5;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle, sweep, false,
+    final radius = size.width / 2 - 3;
+    canvas.drawCircle(
+      center,
+      radius,
       Paint()
-        ..color = Colors.white24
+        ..color = Colors.white.withOpacity(0.28)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
-        ..strokeCap = StrokeCap.round,
+        ..strokeWidth = 5,
     );
-    if (progress > 0.01) {
+    if (progress > 0.001) {
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
-        startAngle, sweep * progress, false,
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
         Paint()
           ..color = Colors.white
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 6
+          ..strokeWidth = 5
           ..strokeCap = StrokeCap.round,
       );
     }
   }
 
   @override
-  bool shouldRepaint(_MiniArcPainter old) => old.progress != progress;
+  bool shouldRepaint(_RingPainter old) => old.progress != progress;
 }
 
-// ─── Illustrated nature background ───────────────────────────────────────────
+class _HabitsCard extends StatelessWidget {
+  const _HabitsCard({required this.done, required this.due, required this.onTap});
 
-class _NatureBackground extends StatelessWidget {
-  const _NatureBackground();
+  final int done;
+  final int due;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _NaturePainter(),
-      child: const SizedBox.expand(),
+    final dots = due == 0 ? 0 : math.min(due, 5);
+    return _GradientCard(
+      gradient: _habitGradient,
+      icon: Icons.star_rounded,
+      title: 'Kebiasaan',
+      subtitle: due == 0 ? 'Tidak ada hari ini' : '$done / $due selesai',
+      onTap: onTap,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < dots; i++)
+            Padding(
+              padding: const EdgeInsets.only(left: 5),
+              child: Container(
+                width: 11,
+                height: 11,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i < done ? _accentGreen : Colors.white.withOpacity(0.4),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-class _NaturePainter extends CustomPainter {
+// ─── Sun mascot ───────────────────────────────────────────────────────────────
+// Separate transparent layer over the background so it can move independently.
+
+class _BobbingSun extends StatelessWidget {
+  const _BobbingSun({required this.ambient});
+  final Animation<double> ambient;
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Sky gradient
-    final skyRect = Rect.fromLTWH(0, 0, w, h);
-    canvas.drawRect(
-      skyRect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF0D1117),
-            Color(0xFF0D1117),
-            Color(0xFF0F2027),
-          ],
-          stops: [0.0, 0.55, 1.0],
-        ).createShader(skyRect),
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return AnimatedBuilder(
+      animation: ambient,
+      builder: (_, child) {
+        final phase = math.sin(ambient.value * 2 * math.pi);
+        return Transform.translate(
+          offset: Offset(0, -5 * phase),                       // gentle vertical bob
+          child: Transform.scale(scale: 1 + 0.02 * phase, child: child), // soft glow breath
+        );
+      },
+      child: Image.asset('assets/home_sun.webp', width: w * 0.34, fit: BoxFit.contain),
     );
-
-    // Stars scattered in upper sky
-    final starPaint = Paint()..color = Colors.white.withOpacity(0.75);
-    const starPositions = [
-      [0.12, 0.06], [0.28, 0.04], [0.45, 0.09], [0.62, 0.03],
-      [0.78, 0.07], [0.88, 0.12], [0.05, 0.15], [0.50, 0.16],
-      [0.70, 0.19], [0.35, 0.22], [0.92, 0.25], [0.18, 0.30],
-    ];
-    for (final s in starPositions) {
-      canvas.drawCircle(Offset(w * s[0], h * s[1]), 1.5, starPaint);
-    }
-    canvas.drawCircle(Offset(w * 0.20, h * 0.10), 2.2, starPaint);
-    canvas.drawCircle(Offset(w * 0.75, h * 0.05), 2.0, starPaint);
-
-    // Back hill (dark green)
-    final backHill = Path()
-      ..moveTo(0, h * 0.72)
-      ..cubicTo(w * 0.18, h * 0.58, w * 0.40, h * 0.65, w * 0.60, h * 0.60)
-      ..cubicTo(w * 0.75, h * 0.57, w * 0.88, h * 0.62, w, h * 0.68)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-    canvas.drawPath(backHill, Paint()..color = const Color(0xFF1B4332));
-
-    // Front hill (brighter green)
-    final frontHill = Path()
-      ..moveTo(0, h * 0.84)
-      ..cubicTo(w * 0.22, h * 0.70, w * 0.48, h * 0.78, w * 0.68, h * 0.72)
-      ..cubicTo(w * 0.82, h * 0.68, w * 0.92, h * 0.74, w, h * 0.80)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-    canvas.drawPath(frontHill, Paint()..color = const Color(0xFF2D6A4F));
-
-    // Blob characters on the hills
-    _drawBlob(canvas, Offset(w * 0.18, h * 0.695), 22, const Color(0xFF52B788));
-    _drawBlob(canvas, Offset(w * 0.75, h * 0.715), 18, const Color(0xFF95D5B2));
-    _drawBlob(canvas, Offset(w * 0.48, h * 0.765), 14, const Color(0xFF74C69D));
-
-    // Simple trees
-    _drawTree(canvas, Offset(w * 0.08, h * 0.82), h * 0.06);
-    _drawTree(canvas, Offset(w * 0.60, h * 0.80), h * 0.05);
-    _drawTree(canvas, Offset(w * 0.90, h * 0.84), h * 0.055);
   }
+}
 
-  void _drawBlob(Canvas canvas, Offset center, double r, Color color) {
-    canvas.drawCircle(center, r, Paint()..color = color);
-    final eye = Paint()..color = const Color(0xFF1A1A2E);
-    canvas.drawCircle(center + Offset(-r * 0.28, -r * 0.08), r * 0.20, eye);
-    canvas.drawCircle(center + Offset(r * 0.28, -r * 0.08), r * 0.20, eye);
-    final shine = Paint()..color = Colors.white.withOpacity(0.8);
-    canvas.drawCircle(center + Offset(-r * 0.22, -r * 0.14), r * 0.07, shine);
-    canvas.drawCircle(center + Offset(r * 0.34, -r * 0.14), r * 0.07, shine);
-  }
+// ─── Shared interaction helpers ──────────────────────────────────────────────
 
-  void _drawTree(Canvas canvas, Offset base, double h) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(center: base, width: h * 0.18, height: h * 0.4),
-        const Radius.circular(2),
+/// Press-to-scale + haptic wrapper. transform/opacity only → GPU-safe.
+class _Pressable extends StatefulWidget {
+  const _Pressable({required this.child, required this.onTap, this.scale = 0.97});
+
+  final Widget child;
+  final VoidCallback onTap;
+  final double scale;
+
+  @override
+  State<_Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<_Pressable> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _down = true),
+      onTapUp: (_) => setState(() => _down = false),
+      onTapCancel: () => setState(() => _down = false),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.onTap();
+      },
+      child: AnimatedScale(
+        scale: _down ? widget.scale : 1.0,
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        child: widget.child,
       ),
-      Paint()..color = const Color(0xFF1B2C1E),
-    );
-    canvas.drawCircle(
-      base + Offset(0, -h * 0.55),
-      h * 0.35,
-      Paint()..color = const Color(0xFF1B4332),
     );
   }
+}
+
+/// Staggered entrance: fade + 16px upward slide.
+class _FadeSlideIn extends StatelessWidget {
+  const _FadeSlideIn({
+    required this.animation,
+    required this.start,
+    required this.end,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final double start;
+  final double end;
+  final Widget child;
 
   @override
-  bool shouldRepaint(_NaturePainter old) => false;
+  Widget build(BuildContext context) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+    return AnimatedBuilder(
+      animation: curved,
+      builder: (_, child) => Opacity(
+        opacity: curved.value.clamp(0.0, 1.0),
+        child: Transform.translate(
+          offset: Offset(0, 16 * (1 - curved.value)),
+          child: child,
+        ),
+      ),
+      child: child,
+    );
+  }
 }

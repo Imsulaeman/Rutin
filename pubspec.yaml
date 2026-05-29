@@ -33,3 +33,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/home_background.webp
+    - assets/home_sun.webp
+    - assets/home_foreground.webp
+    - assets/med_pill_mascot.webp
+    - assets/med_reminder_bg.webp
