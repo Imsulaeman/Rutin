@@ -58,6 +58,9 @@
             android:name=".ReminderAlarmReceiver"
             android:exported="false" />
         <receiver
+            android:name=".ReminderDismissReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".WaterAlarmReceiver"
             android:exported="false" />
         <receiver

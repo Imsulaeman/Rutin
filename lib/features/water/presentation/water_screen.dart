@@ -19,6 +19,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   final _repo = WaterRepository();
   late WaterGoal _goal;
   int _currentMl = 0;
+  int? _undoAmountMl;
 
   @override
   void initState() {
@@ -55,24 +56,22 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   Future<void> _addMl(int amount) async {
     HapticFeedback.lightImpact();
     await _repo.addMl(amount);
-    setState(() => _currentMl = _repo.getTodayMl());
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('+$amount ml ditambahkan'),
-          duration: const Duration(seconds: 3),
-          action: SnackBarAction(
-            label: 'Urungkan',
-            textColor: AppTheme.waterColor,
-            onPressed: () async {
-              await _repo.removeMl(amount);
-              if (mounted) setState(() => _currentMl = _repo.getTodayMl());
-            },
-          ),
-        ),
-      );
+    setState(() {
+      _currentMl = _repo.getTodayMl();
+      _undoAmountMl = amount;
+    });
+  }
+
+  Future<void> _undoLastAdd() async {
+    final amount = _undoAmountMl;
+    if (amount == null) return;
+    await _repo.removeMl(amount);
+    if (!mounted) return;
+    setState(() {
+      _currentMl = _repo.getTodayMl();
+      _undoAmountMl = null;
+    });
   }
 
   void _openSettings() {
@@ -245,6 +244,14 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                       child: Text('+ ${_goal.glassSizeMl} ml'),
                     ),
 
+                    if (_undoAmountMl != null) ...[
+                      const SizedBox(height: 12),
+                      _UndoBar(
+                        amountMl: _undoAmountMl!,
+                        onUndo: _undoLastAdd,
+                      ),
+                    ],
+
                     const SizedBox(height: 12),
 
                     // Quick-add chips
@@ -382,6 +389,47 @@ class _QuickAddChipState extends State<_QuickAddChip> {
 }
 
 // ─── Settings bottom sheet ────────────────────────────────────────────────────
+
+class _UndoBar extends StatelessWidget {
+  const _UndoBar({
+    required this.amountMl,
+    required this.onUndo,
+  });
+
+  final int amountMl;
+  final Future<void> Function() onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.waterColor.withOpacity(0.28),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded,
+              color: AppTheme.waterColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '+$amountMl ml ditambahkan',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          TextButton(
+            onPressed: onUndo,
+            child: const Text('Urungkan'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _WaterSettingsSheet extends StatefulWidget {
   const _WaterSettingsSheet({required this.goal, required this.onSave});

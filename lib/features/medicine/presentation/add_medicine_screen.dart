@@ -69,16 +69,15 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
   }
 
   Future<void> _scheduleInitialAlarm(Medicine medicine) async {
-    final minutes = medicine.scheduleTimes.first;
-    final next = _nextTime(minutes);
-    final alarmId = medicine.id.hashCode & 0x7fffffff;
-
-    await AlarmService.scheduleMedicineAlarm(
-      alarmId: alarmId,
-      scheduledTime: next,
-      medicineName: medicine.name,
-      dosage: medicine.dosage,
-    );
+    for (final minutes in medicine.scheduleTimes) {
+      await AlarmService.scheduleMedicineAlarm(
+        alarmId: AlarmService.medicineRootAlarmId(medicine.id, minutes),
+        scheduledTime: _nextTime(minutes),
+        scheduledMinutes: minutes,
+        medicineName: medicine.name,
+        dosage: medicine.dosage,
+      );
+    }
   }
 
   DateTime _nextTime(int minutes) {

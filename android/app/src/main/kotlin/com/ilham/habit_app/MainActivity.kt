@@ -16,16 +16,20 @@ class MainActivity : FlutterActivity() {
                     "scheduleReminder" -> {
                         val alarmId = call.argument<Int>("alarmId") ?: 0
                         val triggerAtMillis = call.argument<Long>("triggerAtMillis") ?: 0L
+                        val scheduledMinutes = call.argument<Int>("scheduledMinutes") ?: 0
                         val medicineName = call.argument<String>("medicineName") ?: "Obat"
                         val dosage = call.argument<String>("dosage")
                         val renotifyMinutes = call.argument<Int>("renotifyMinutes") ?: 10
+                        val isLoop = call.argument<Boolean>("isLoop") ?: false
                         NativeReminderScheduler.schedule(
                             context = applicationContext,
-                            alarmId = alarmId,
+                            rootAlarmId = alarmId,
                             triggerAtMillis = triggerAtMillis,
+                            scheduledMinutes = scheduledMinutes,
                             medicineName = medicineName,
                             dosage = dosage,
-                            renotifyMinutes = renotifyMinutes
+                            renotifyMinutes = renotifyMinutes,
+                            isLoop = isLoop
                         )
                         result.success(true)
                     }
@@ -33,6 +37,15 @@ class MainActivity : FlutterActivity() {
                         val alarmId = call.argument<Int>("alarmId") ?: 0
                         NativeReminderScheduler.cancel(applicationContext, alarmId)
                         result.success(true)
+                    }
+                    "cancelDoseLoop" -> {
+                        val alarmId = call.argument<Int>("alarmId") ?: 0
+                        NativeReminderScheduler.cancelLoop(applicationContext, alarmId)
+                        result.success(true)
+                    }
+                    "getReminderDebug" -> {
+                        val alarmId = call.argument<Int>("alarmId") ?: 0
+                        result.success(HashMap(NativeReminderScheduler.debugState(applicationContext, alarmId)))
                     }
                     "scheduleWaterAlarm" -> {
                         val delayMs = (call.argument<Any>("delayMs") as? Number)?.toLong() ?: 15_000L

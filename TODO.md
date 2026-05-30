@@ -4,6 +4,23 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 
 ---
 
+## Handoff → Codex (session 9 follow-ups)
+
+### Kebiasaan (Habits)
+- [x] **Restore "create new stack" affordance.** After adding the long-press hint text, the way to make a new stack disappeared — user can no longer create one. Bring back a clear "+ buat rutinitas baru" entry point (e.g. tab-bar `+`, or a button) that's always reachable.
+- [x] **Merge two independent habits into a stack via drag.** When the user long-presses an ungrouped (independent) habit and drags it onto another independent habit, show a prompt/confirm button to create a new stack from the two — i.e. dropping habit-on-habit offers "Gabungkan jadi rutinitas".
+- [x] **Habit time display must match Obat exactly.** Current habit card shows a small clock+time chip; replace with the exact same time treatment/style used on the Obat (medicine) card so they're visually identical.
+
+### Obat (Medicine)
+- [x] **Daily medicine schedule re-arms for the next day.** Base medicine alarms now schedule tomorrow's fixed-time reminder separately from the current dose re-notify loop, so tapping `Sudah diminum` stops today's loop without killing tomorrow's reminder.
+- [x] **Swipe-to-delete like Habits.** Add slide-to-delete on medicine items, matching the Habits swipe-to-delete interaction.
+- [ ] **Better Obat workflow — DISCUSS FIRST (do not build yet).** Rework the overall add/track flow on the Obat tab. Needs a design discussion before implementation.
+
+### Air (Water)
+- [x] **Replace the annoying add-water snackbar.** The pop-up after adding water lingers / doesn't dismiss and is annoying. Replaced with a persistent inline Undo bar on the Air tab itself.
+
+---
+
 ## Environment Setup
 - [x] Install Flutter SDK 3.44.0
 - [x] Install Android Studio
@@ -30,6 +47,7 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] Alarm service - re-notification every 10 min until "Taken"
 - [x] "Taken" action dismisses all pending re-notifications
 - [x] "Snooze 1 min" action
+- [x] Daily medicine alarms continue across days after the current dose is taken
 - [ ] RECEIVE_BOOT_COMPLETED - reschedule alarms after reboot
 - [x] Add Medicine screen (name, dosage, times)
 - [x] Medicine list screen
@@ -49,6 +67,7 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] Reminder toggle on/off with native AlarmManager
 - [x] "Sudah minum" action button — no app launch, native BroadcastReceiver
 - [x] Settings sheet: target slider, glass size, start/end hours, WHO note
+- [x] Inline persistent undo bar on Water screen (replaces add-water snackbar)
 
 ## Feature: General Habits
 - [x] Habit + HabitLog data models

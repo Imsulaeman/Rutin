@@ -50,6 +50,7 @@ class ReminderActivity : Activity() {
             View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
 
         val alarmId = intent.getIntExtra("alarm_id", 0)
+        val scheduledMinutes = intent.getIntExtra("scheduled_minutes", 0)
         val medicineName = intent.getStringExtra("medicine_name") ?: "Obat"
         val dosage = intent.getStringExtra("dosage").orEmpty()
         val renotifyMinutes = intent.getIntExtra("renotify_minutes", 10)
@@ -108,10 +109,10 @@ class ReminderActivity : Activity() {
         // White primary button.
         content.addView(Button("✓  Sudah diminum", Color.WHITE, pink).apply {
             setOnClickListener {
-                writePendingTaken(alarmId)
+                writePendingTaken(alarmId, scheduledMinutes)
                 val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 nm.cancel(alarmId)
-                NativeReminderScheduler.cancel(this@ReminderActivity, alarmId)
+                NativeReminderScheduler.cancelLoop(this@ReminderActivity, alarmId)
                 finish()
             }
         })
@@ -125,11 +126,13 @@ class ReminderActivity : Activity() {
                 val trigger = System.currentTimeMillis() + 60_000L
                 NativeReminderScheduler.schedule(
                     context = this@ReminderActivity,
-                    alarmId = alarmId,
+                    rootAlarmId = alarmId,
                     triggerAtMillis = trigger,
+                    scheduledMinutes = scheduledMinutes,
                     medicineName = medicineName,
                     dosage = if (dosage.isEmpty()) null else dosage,
-                    renotifyMinutes = renotifyMinutes
+                    renotifyMinutes = renotifyMinutes,
+                    isLoop = true
                 )
                 finish()
             }
@@ -234,11 +237,11 @@ class ReminderActivity : Activity() {
     }
 
     // ── bridge: queue a "taken" event for Dart to drain into Hive ────────────────
-    private fun writePendingTaken(alarmId: Int) {
+    private fun writePendingTaken(alarmId: Int, scheduledMinutes: Int) {
         val prefs = getSharedPreferences("medicine_pending", Context.MODE_PRIVATE)
         val current = prefs.getStringSet("pending_taken", emptySet()) ?: emptySet()
         val updated = HashSet(current)
-        updated.add("$alarmId|${System.currentTimeMillis()}")
+        updated.add("$alarmId|$scheduledMinutes|${System.currentTimeMillis()}")
         prefs.edit().putStringSet("pending_taken", updated).apply()
     }
 

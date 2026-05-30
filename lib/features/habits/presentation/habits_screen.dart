@@ -385,6 +385,127 @@ class _HabitsScreenState extends State<HabitsScreen> {
     }
   }
 
+  Future<void> _createGroupFromPair(Habit dragged, Habit target) async {
+    final targetIndex = _flatItems.indexWhere(
+      (item) => item is Habit && item.id == target.id,
+    );
+    if (targetIndex == -1) return;
+
+    final nameCtrl = TextEditingController(text: 'Rutinitas baru');
+    String emoji = target.emoji;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: const Text('Gabungkan jadi rutinitas'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Template',
+                    style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                        )),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final t in _groupTemplates)
+                      GestureDetector(
+                        onTap: () {
+                          nameCtrl.text = t.$2;
+                          setD(() => emoji = t.$1);
+                        },
+                        child: Chip(
+                          label: Text('${t.$1} ${t.$2}'),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showEmojiPicker(ctx);
+                        if (picked != null) setD(() => emoji = picked);
+                      },
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceHigh,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Center(
+                          child: Text(emoji,
+                              style: const TextStyle(fontSize: 26)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: nameCtrl,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                            labelText: 'Nama rutinitas'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Gabungkan')),
+          ],
+        ),
+      ),
+    );
+
+    if (result != true || nameCtrl.text.trim().isEmpty) return;
+
+    final group = HabitGroup()
+      ..id = DateTime.now().millisecondsSinceEpoch.toString()
+      ..name = nameCtrl.text.trim()
+      ..emoji = emoji
+      ..sortIndex = targetIndex;
+    await _repo.saveGroup(group);
+
+    target
+      ..groupId = group.id
+      ..sortIndex = 0;
+    dragged
+      ..groupId = group.id
+      ..sortIndex = 1;
+    await _repo.save(target);
+    await _repo.save(dragged);
+
+    final flat = _repo.getFlatList()
+      ..removeWhere((item) =>
+          item is Habit && (item.id == target.id || item.id == dragged.id));
+    flat.insert(targetIndex.clamp(0, flat.length), group);
+    await _repo.reorderFlatList(flat);
+    await _repo.reorderHabitsInGroup([target, dragged]);
+    _expanded[group.id] = true;
+    _load();
+  }
+
   Future<void> _renameGroup(HabitGroup group) async {
     final nameCtrl = TextEditingController(text: group.name);
     String emoji = group.emoji;
@@ -575,14 +696,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
       ),
       body: Column(
         children: [
-          if (_groups.isNotEmpty)
-            _TabBar(
-              groups: _groups,
-              selectedGroupId: _selectedGroupId,
-              onSelect: (id) => setState(() => _selectedGroupId = id),
-              onCreateGroup: _createGroup,
-              onGroupActions: _showGroupActions,
-            ),
+          _TabBar(
+            groups: _groups,
+            selectedGroupId: _selectedGroupId,
+            onSelect: (id) => setState(() => _selectedGroupId = id),
+            onCreateGroup: _createGroup,
+            onGroupActions: _showGroupActions,
+          ),
           Expanded(
             child: _selectedGroupId == null
                 ? _EditModeView(
@@ -607,7 +727,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     onReloaded: _load,
                     onEnsureExpanded: (id) =>
                         setState(() => _expanded[id] = true),
-                    onCreateGroup: _createGroup,
+                    onCreateGroupFromPair: _createGroupFromPair,
                   )
                 : _GroupView(
                     group: _groups.firstWhere(
@@ -768,8 +888,7 @@ class _Tab extends StatelessWidget {
 
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onCreateGroup});
-  final VoidCallback onCreateGroup;
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -785,7 +904,7 @@ class _EmptyState extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
-            'Tap + untuk menambah, atau buat rutinitas dulu.',
+            'Tap + untuk menambah kebiasaan, lalu buat rutinitas dari tab Semua.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -952,7 +1071,7 @@ class _EditModeView extends StatefulWidget {
     required this.onDelete,
     required this.onReloaded,
     required this.onEnsureExpanded,
-    required this.onCreateGroup,
+    required this.onCreateGroupFromPair,
   });
 
   final List<dynamic> flatItems;
@@ -970,7 +1089,7 @@ class _EditModeView extends StatefulWidget {
   final Future<void> Function(Habit) onDelete;
   final VoidCallback onReloaded;
   final void Function(String groupId) onEnsureExpanded;
-  final VoidCallback onCreateGroup;
+  final Future<void> Function(Habit dragged, Habit target) onCreateGroupFromPair;
 
   @override
   State<_EditModeView> createState() => _EditModeViewState();
@@ -1022,6 +1141,16 @@ class _EditModeViewState extends State<_EditModeView> {
     widget.onReloaded();
   }
 
+  Future<void> _handleMergeDrop(Habit dragged, Habit target) async {
+    if (dragged.id == target.id) return;
+    await widget.onCreateGroupFromPair(dragged, target);
+    if (!mounted) return;
+    setState(() {
+      _isDragging = false;
+      _draggingHabit = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
@@ -1066,12 +1195,17 @@ class _EditModeViewState extends State<_EditModeView> {
           child: _SwipeToDelete(
             habit: item,
             onDelete: () => widget.onDelete(item),
-            child: HabitCard(
-              habit: item,
-              isDone: widget.repo.isCompletedToday(item.id),
-              streak: widget.repo.getStreak(item.id),
-              onTap: () => widget.onTap(item),
-              onMoreTap: () => widget.onMoreTap(item),
+            child: _UngroupedHabitDropTarget(
+              active: _isDragging && _draggingHabit,
+              target: item,
+              onAcceptHabit: _handleMergeDrop,
+              child: HabitCard(
+                habit: item,
+                isDone: widget.repo.isCompletedToday(item.id),
+                streak: widget.repo.getStreak(item.id),
+                onTap: () => widget.onTap(item),
+                onMoreTap: () => widget.onMoreTap(item),
+              ),
             ),
           ),
         ));
@@ -1132,7 +1266,7 @@ class _EditModeViewState extends State<_EditModeView> {
     }
 
     if (widget.flatItems.isEmpty) {
-      rows.add(_EmptyState(onCreateGroup: widget.onCreateGroup));
+      rows.add(const _EmptyState());
     }
 
     rows.add(const SizedBox(height: 16));
@@ -1392,6 +1526,89 @@ class _DropZone extends StatelessWidget {
                     color: AppTheme.habitsColor, size: 20))
             : null,
       ),
+    );
+  }
+}
+
+class _UngroupedHabitDropTarget extends StatelessWidget {
+  const _UngroupedHabitDropTarget({
+    required this.active,
+    required this.target,
+    required this.onAcceptHabit,
+    required this.child,
+  });
+
+  final bool active;
+  final Habit target;
+  final Future<void> Function(Habit dragged, Habit target) onAcceptHabit;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!active) return child;
+    return DragTarget<Object>(
+      onWillAcceptWithDetails: (details) =>
+          details.data is Habit &&
+          (details.data as Habit).groupId == null &&
+          target.groupId == null &&
+          (details.data as Habit).id != target.id,
+      onAcceptWithDetails: (details) async {
+        final dragged = details.data;
+        if (dragged is Habit) {
+          await onAcceptHabit(dragged, target);
+        }
+      },
+      builder: (context, candidates, rejected) {
+        final highlighted = candidates.isNotEmpty;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: highlighted
+                ? Border.all(
+                    color: AppTheme.habitsColor.withValues(alpha: 0.7),
+                    width: 1.5,
+                  )
+                : null,
+          ),
+          child: Stack(
+            children: [
+              child,
+              if (highlighted)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.habitsColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceDark,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: AppTheme.habitsColor),
+                        ),
+                        child: const Text(
+                          'Gabungkan jadi rutinitas',
+                          style: TextStyle(
+                            color: AppTheme.habitsColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

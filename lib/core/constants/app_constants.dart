@@ -1,6 +1,6 @@
 class AppConstants {
   static const int snoozeMinutes = 1;
-  static const int renotifyIntervalMinutes = 10;
+  static const int renotifyIntervalMinutes = 1;
   static const int defaultWaterTargetMl = 2500;   // 2.5L — WHO midpoint for adults
   static const int defaultWaterGlassSizeMl = 250; // standard glass
   static const int defaultWaterStartMinutes = 420;  // 7 AM

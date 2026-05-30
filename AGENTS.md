@@ -100,6 +100,12 @@ Use this section to record significant decisions, blockers, or completions so ot
 
 ---
 
+**2026-05-30 (session 10) - Codex (gpt-5)**
+- **Medicine daily schedule fix** — reworked the native reminder architecture so each medicine time has a daily base alarm plus a separate active-dose re-notify loop. When a dose fires, tomorrow's fixed-time reminder is scheduled immediately; tapping `Sudah diminum` now cancels only today's loop, not the future daily schedule. Root alarm ids are now per `(medicineId, scheduledMinute)` rather than one id per medicine.
+- **Water undo UX** — removed the add-water snackbar and replaced it with a persistent inline Undo bar directly under the main add button on the Air screen.
+- **Habits follow-up correction** — restored `Semua` as the always-visible stack workspace (tab bar always shown, no extra inline "buat rutinitas baru" row) and changed the reminder time pill to a Habits-themed purple pill instead of reusing Obat's pink medicine styling literally.
+- Verification: `dart analyze` on changed Dart files passed with info-level existing lints only. Android Kotlin compile passed with `.\gradlew.bat app:compileDebugKotlin --no-daemon` after a daemon crash on the first attempt.
+
 **2026-05-30 (session 9) - Claude (claude-opus-4-8 / claude-sonnet-4-6)**
 Refinement pass across Home, Water, Obat, Kebiasaan:
 - **Time chip on habit card** — when a habit has a reminder, the card shows a small clock + `HH:MM` in habits-purple (mirrors Obat). Feeds the existing auto-sort-by-time.

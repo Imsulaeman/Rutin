@@ -66,6 +66,7 @@ class NotificationHandler {
     await AlarmService.scheduleRenotify(
       alarmId: notificationId,
       delay: const Duration(minutes: AppConstants.snoozeMinutes),
+      scheduledMinutes: 0,
       medicineName: medicineName,
       dosage: dosage,
       renotifyMinutes: AppConstants.renotifyIntervalMinutes,

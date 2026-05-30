@@ -12,27 +12,52 @@ import androidx.core.app.NotificationCompat
 
 class ReminderAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val alarmId = intent.getIntExtra("alarm_id", 0)
+        val rootAlarmId = intent.getIntExtra("root_alarm_id", intent.getIntExtra("alarm_id", 0))
+        val scheduledMinutes = intent.getIntExtra("scheduled_minutes", 0)
         val medicineName = intent.getStringExtra("medicine_name") ?: "Obat"
         val dosage = intent.getStringExtra("dosage")
         val renotifyMinutes = intent.getIntExtra("renotify_minutes", 10)
+        val isLoop = intent.getBooleanExtra("is_loop", false)
 
-        showFullScreenNotification(context, alarmId, medicineName, dosage, renotifyMinutes)
+        if (!isLoop && scheduledMinutes >= 0) {
+            NativeReminderScheduler.schedule(
+                context = context,
+                rootAlarmId = rootAlarmId,
+                triggerAtMillis = nextDayTrigger(scheduledMinutes),
+                scheduledMinutes = scheduledMinutes,
+                medicineName = medicineName,
+                dosage = dosage,
+                renotifyMinutes = renotifyMinutes,
+                isLoop = false
+            )
+        }
+
+        showFullScreenNotification(
+            context,
+            rootAlarmId,
+            scheduledMinutes,
+            medicineName,
+            dosage,
+            renotifyMinutes
+        )
 
         val nextTrigger = System.currentTimeMillis() + (renotifyMinutes * 60_000L)
         NativeReminderScheduler.schedule(
             context = context,
-            alarmId = alarmId,
+            rootAlarmId = rootAlarmId,
             triggerAtMillis = nextTrigger,
+            scheduledMinutes = scheduledMinutes,
             medicineName = medicineName,
             dosage = dosage,
-            renotifyMinutes = renotifyMinutes
+            renotifyMinutes = renotifyMinutes,
+            isLoop = true
         )
     }
 
     private fun showFullScreenNotification(
         context: Context,
-        alarmId: Int,
+        rootAlarmId: Int,
+        scheduledMinutes: Int,
         medicineName: String,
         dosage: String?,
         renotifyMinutes: Int
@@ -55,15 +80,30 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         val activityIntent = Intent(context, ReminderActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra("alarm_id", alarmId)
+            putExtra("alarm_id", rootAlarmId)
+            putExtra("scheduled_minutes", scheduledMinutes)
             putExtra("medicine_name", medicineName)
             putExtra("dosage", dosage)
             putExtra("renotify_minutes", renotifyMinutes)
         }
         val fullScreenPi = PendingIntent.getActivity(
             context,
-            alarmId,
+            rootAlarmId,
             activityIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val deleteIntent = Intent(context, ReminderDismissReceiver::class.java).apply {
+            putExtra("alarm_id", rootAlarmId)
+            putExtra("scheduled_minutes", scheduledMinutes)
+            putExtra("medicine_name", medicineName)
+            putExtra("dosage", dosage)
+            putExtra("renotify_minutes", renotifyMinutes)
+        }
+        val deletePi = PendingIntent.getBroadcast(
+            context,
+            rootAlarmId,
+            deleteIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -79,8 +119,24 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             .setOngoing(true)
             .setAutoCancel(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDeleteIntent(deletePi)
             .build()
 
-        nm.notify(alarmId, notification)
+        nm.notify(rootAlarmId, notification)
+    }
+
+    private fun nextDayTrigger(scheduledMinutes: Int): Long {
+        val now = java.util.Calendar.getInstance()
+        val next = now.clone() as java.util.Calendar
+        next.set(java.util.Calendar.HOUR_OF_DAY, scheduledMinutes / 60)
+        next.set(java.util.Calendar.MINUTE, scheduledMinutes % 60)
+        next.set(java.util.Calendar.SECOND, 0)
+        next.set(java.util.Calendar.MILLISECOND, 0)
+        if (!next.after(now)) {
+            next.add(java.util.Calendar.DAY_OF_YEAR, 1)
+        } else {
+            next.add(java.util.Calendar.DAY_OF_YEAR, 1)
+        }
+        return next.timeInMillis
     }
 }

@@ -38,6 +38,8 @@ class MedicineListScreen extends ConsumerStatefulWidget {
 class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     with WidgetsBindingObserver {
   DateTime _selected = _dateOnly(DateTime.now());
+  Map<int, Map<String, int>> _reminderDebug = const {};
+  String _debugFingerprint = '';
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -46,6 +48,7 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _drainPending();
+    _refreshReminderDebug(ref.read(medicineRepositoryProvider));
   }
 
   @override
@@ -57,7 +60,10 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // The native alarm screen runs while we're backgrounded; re-sync on return.
-    if (state == AppLifecycleState.resumed) _drainPending();
+    if (state == AppLifecycleState.resumed) {
+      _drainPending();
+      _refreshReminderDebug(ref.read(medicineRepositoryProvider), force: true);
+    }
   }
 
   /// Pulls "taken" taps made on the native reminder screen and records them as
@@ -68,27 +74,57 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     final repo = ref.read(medicineRepositoryProvider);
     for (final e in events) {
       final parts = e.split('|');
-      if (parts.length != 2) continue;
+      if (parts.length < 2) continue;
       final alarmId = int.tryParse(parts[0]);
-      final firedMs = int.tryParse(parts[1]);
+      final scheduledMin = parts.length >= 3 ? int.tryParse(parts[1]) : null;
+      final firedMs = int.tryParse(parts.length >= 3 ? parts[2] : parts[1]);
       if (alarmId == null || firedMs == null) continue;
       final med = _medicineForAlarm(repo, alarmId);
       if (med == null || med.scheduleTimes.isEmpty) continue;
       final fired = DateTime.fromMillisecondsSinceEpoch(firedMs);
-      final firedMin = fired.hour * 60 + fired.minute;
       // Match the dose whose scheduled time is closest to when it fired.
-      final min = med.scheduleTimes.reduce(
-          (a, b) => (a - firedMin).abs() <= (b - firedMin).abs() ? a : b);
+      final firedMin = fired.hour * 60 + fired.minute;
+      final min = scheduledMin ??
+          med.scheduleTimes.reduce(
+              (a, b) => (a - firedMin).abs() <= (b - firedMin).abs() ? a : b);
       final scheduled =
           DateTime(fired.year, fired.month, fired.day, min ~/ 60, min % 60);
       await repo.setTaken(med.id, scheduled, true);
     }
+    await _refreshReminderDebug(repo, force: true);
     if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshReminderDebug(
+    MedicineRepository repo, {
+    bool force = false,
+  }) async {
+    final ids = <int>[
+      for (final medicine in repo.getAll())
+        for (final minute in medicine.scheduleTimes)
+          AlarmService.medicineRootAlarmId(medicine.id, minute),
+    ]..sort();
+    final fingerprint = ids.join(',');
+    if (!force && fingerprint == _debugFingerprint) return;
+
+    final next = <int, Map<String, int>>{};
+    for (final id in ids) {
+      next[id] = await AlarmService.getReminderDebug(id);
+    }
+    if (!mounted) return;
+    setState(() {
+      _debugFingerprint = fingerprint;
+      _reminderDebug = next;
+    });
   }
 
   static Medicine? _medicineForAlarm(MedicineRepository repo, int alarmId) {
     for (final m in repo.getAll()) {
-      if ((m.id.hashCode & 0x7fffffff) == alarmId) return m;
+      for (final minutes in m.scheduleTimes) {
+        if (AlarmService.medicineRootAlarmId(m.id, minutes) == alarmId) {
+          return m;
+        }
+      }
     }
     return null;
   }
@@ -132,6 +168,7 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
             valueListenable: Hive.box<Medicine>('medicines').listenable(),
             builder: (context, _, __) {
               final doses = _dosesFor(repo);
+              _refreshReminderDebug(repo);
               return Column(
                 children: [
                   _header(),
@@ -149,11 +186,19 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                                 const EdgeInsets.fromLTRB(20, 0, 20, 28),
                             children: [
                               for (final d in doses) ...[
-                                _DoseCard(
-                                  dose: d,
-                                  taken: repo.isTaken(d.medicine.id, d.scheduled),
-                                  onToggle: (v) => _toggle(repo, d, v),
-                                  onLongPress: () => _confirmDelete(repo, d.medicine),
+                                _SwipeToDeleteMedicine(
+                                  key: ValueKey(
+                                    'dose_${d.medicine.id}_${d.minute}_${d.scheduled.millisecondsSinceEpoch}',
+                                  ),
+                                  medicine: d.medicine,
+                                  onDelete: () => _confirmDelete(repo, d.medicine),
+                                  child: _DoseCard(
+                                    dose: d,
+                                    taken: repo.isTaken(d.medicine.id, d.scheduled),
+                                    debugText: _debugTextFor(d),
+                                    onToggle: (v) => _toggle(repo, d, v),
+                                    onLongPress: () => _confirmDelete(repo, d.medicine),
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
                               ],
@@ -355,9 +400,37 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
       ),
     );
     if (ok != true) return;
-    await AlarmService.cancelAllForAlarm(m.id.hashCode & 0x7fffffff);
+    for (final minutes in m.scheduleTimes) {
+      await AlarmService.cancelAllForAlarm(
+        AlarmService.medicineRootAlarmId(m.id, minutes),
+      );
+    }
     await repo.delete(m.id);
+    await _refreshReminderDebug(repo, force: true);
     if (mounted) setState(() {});
+  }
+
+  String? _debugTextFor(_Dose dose) {
+    if (!_isToday) return null;
+    final alarmId =
+        AlarmService.medicineRootAlarmId(dose.medicine.id, dose.minute);
+    final debug = _reminderDebug[alarmId];
+    if (debug == null) return null;
+    final baseMillis = debug['baseMillis'];
+    if (baseMillis == null || baseMillis <= 0) return null;
+    final base = DateTime.fromMillisecondsSinceEpoch(baseMillis);
+    final dayLabel = _dateOnly(base) == _dateOnly(DateTime.now())
+        ? 'hari ini'
+        : _dateOnly(base) == _dateOnly(DateTime.now().add(const Duration(days: 1)))
+            ? 'besok'
+            : '${base.day}/${base.month}';
+    return 'Berikutnya $dayLabel ${_fmtClock(base)}';
+  }
+
+  static String _fmtClock(DateTime dt) {
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   void _comingSoon() {
@@ -426,12 +499,14 @@ class _DoseCard extends StatelessWidget {
   const _DoseCard({
     required this.dose,
     required this.taken,
+    required this.debugText,
     required this.onToggle,
     required this.onLongPress,
   });
 
   final _Dose dose;
   final bool taken;
+  final String? debugText;
   final ValueChanged<bool> onToggle;
   final VoidCallback onLongPress;
 
@@ -489,6 +564,17 @@ class _DoseCard extends StatelessWidget {
                                     color: _grey, fontSize: 13),
                               ),
                             ],
+                            if (debugText != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                debugText!,
+                                style: const TextStyle(
+                                  color: _green,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -508,6 +594,66 @@ class _DoseCard extends StatelessWidget {
         ),
       ),
     ),
+    );
+  }
+}
+
+class _SwipeToDeleteMedicine extends StatelessWidget {
+  const _SwipeToDeleteMedicine({
+    required super.key,
+    required this.medicine,
+    required this.onDelete,
+    required this.child,
+  });
+
+  final Medicine medicine;
+  final Future<void> Function() onDelete;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: key!,
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.error,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Icon(
+          Icons.delete_outline_rounded,
+          color: Theme.of(context).colorScheme.onError,
+        ),
+      ),
+      confirmDismiss: (_) async => await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: _surface,
+              title: const Text('Hapus obat?',
+                  style: TextStyle(color: Colors.white)),
+              content: Text(
+                '${medicine.name} akan dihapus permanen.',
+                style: const TextStyle(color: _grey),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Batal'),
+                ),
+                FilledButton(
+                  style:
+                      FilledButton.styleFrom(backgroundColor: _medGradient.last),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Hapus'),
+                ),
+              ],
+            ),
+          ) ??
+          false,
+      onDismissed: (_) => onDelete(),
+      child: child,
     );
   }
 }

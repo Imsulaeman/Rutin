@@ -25,6 +25,7 @@ Future<void> main() async {
   _registerHiveAdapters();
   await _openHiveBoxes();
   await AlarmService.init();
+  await _syncMedicineSchedules();
   await _initNotifications();
 
   runApp(const ProviderScope(child: HabitApp()));
@@ -63,6 +64,39 @@ Future<void> _openHiveBoxes() async {
   ]);
 }
 
+Future<void> _syncMedicineSchedules() async {
+  final medicines = Hive.box<Medicine>('medicines')
+      .values
+      .where((medicine) => medicine.isActive);
+  for (final medicine in medicines) {
+    await AlarmService.cancelAllForAlarm(medicine.id.hashCode & 0x7fffffff);
+    for (final minutes in medicine.scheduleTimes) {
+      await AlarmService.scheduleMedicineAlarm(
+        alarmId: AlarmService.medicineRootAlarmId(medicine.id, minutes),
+        scheduledTime: _nextMedicineTime(minutes),
+        scheduledMinutes: minutes,
+        medicineName: medicine.name,
+        dosage: medicine.dosage,
+      );
+    }
+  }
+}
+
+DateTime _nextMedicineTime(int minutes) {
+  final now = DateTime.now();
+  var next = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    minutes ~/ 60,
+    minutes % 60,
+  );
+  if (!next.isAfter(now)) {
+    next = next.add(const Duration(days: 1));
+  }
+  return next;
+}
+
 Future<void> _initNotifications() async {
   const androidSettings =
       AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -78,7 +112,7 @@ Future<void> _initNotifications() async {
           AndroidFlutterLocalNotificationsPlugin>();
   await androidImplementation?.requestNotificationsPermission();
   try {
-    await (androidImplementation as dynamic?)?.requestExactAlarmsPermission();
+    await (androidImplementation as dynamic)?.requestExactAlarmsPermission();
   } catch (_) {
     // Older plugin versions may not expose exact-alarm permission request.
   }

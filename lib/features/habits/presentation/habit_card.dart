@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
 
+const _habitTimeGradient = [Color(0xFF9B6BFF), Color(0xFF7C3AED)];
+
 class HabitCard extends StatelessWidget {
   const HabitCard({
     super.key,
@@ -17,7 +19,7 @@ class HabitCard extends StatelessWidget {
   final bool isDone;
   final int streak;
   final VoidCallback onTap;
-  final VoidCallback? onMoreTap; // ··· context menu
+  final VoidCallback? onMoreTap;
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +53,10 @@ class HabitCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(habit.emoji,
-                      style: const TextStyle(fontSize: 22)),
+                  child: Text(
+                    habit.emoji,
+                    style: const TextStyle(fontSize: 22),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -60,52 +64,41 @@ class HabitCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(habit.name,
-                        style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      habit.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 2),
                     Text(
-                      streak > 0
-                          ? '$streak hari beruntun 🔥'
-                          : 'Mulai hari ini',
+                      streak > 0 ? '$streak hari beruntun 🔥' : 'Mulai hari ini',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: streak > 0
                                 ? AppTheme.streakColor
                                 : cs.onSurfaceVariant,
                           ),
                     ),
-                    if (habit.reminderMinutes != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.access_time_rounded,
-                              size: 11, color: AppTheme.habitsColor),
-                          const SizedBox(width: 3),
-                          Text(
-                            _fmtTime(habit.reminderMinutes!),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.habitsColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
-              // ··· menu button — absorbs tap so it doesn't trigger card onTap
-              if (onMoreTap != null)
+              if (habit.reminderMinutes != null) ...[
+                const SizedBox(width: 10),
+                _TimePill(label: _fmtTime(habit.reminderMinutes!)),
+              ],
+              if (onMoreTap != null) ...[
+                const SizedBox(width: 8),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onMoreTap,
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                    child: Icon(Icons.more_vert_rounded,
-                        size: 18, color: AppTheme.muted),
+                    child: Icon(
+                      Icons.more_vert_rounded,
+                      size: 18,
+                      color: AppTheme.muted,
+                    ),
                   ),
                 ),
+              ],
               const SizedBox(width: 4),
               Icon(
                 isDone
@@ -125,5 +118,30 @@ class HabitCard extends StatelessWidget {
     final h = minutes ~/ 60;
     final m = minutes % 60;
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
+}
+
+class _TimePill extends StatelessWidget {
+  const _TimePill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: _habitTimeGradient),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
 }

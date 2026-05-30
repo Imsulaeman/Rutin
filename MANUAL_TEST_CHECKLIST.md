@@ -2,6 +2,47 @@
 
 ---
 
+## Session 10 — 2026-05-30
+
+Date: 2026-05-30
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### Obat — daily re-arm + swipe delete
+
+- [ ] Add one medicine 1-2 minutes ahead.
+- [ ] Wait until the alarm fires.
+- [ ] Open `Obat` after the alarm appears.
+- [ ] Expected: the medicine card shows a green debug line like `Berikutnya besok HH:MM`.
+- [ ] Tap `Sudah diminum`.
+- [ ] Re-open `Obat`.
+- [ ] Expected: the green `Berikutnya besok HH:MM` line is still there for that medicine time.
+- [ ] Swipe the medicine card left.
+- [ ] Expected: red delete background appears.
+- [ ] Confirm delete.
+- [ ] Expected: medicine is removed and no longer appears in the list.
+
+### Kebiasaan — timer placement
+
+- [ ] Open `Kebiasaan`.
+- [ ] Find a habit with a reminder time.
+- [ ] Expected: the time pill sits on the right side of the card like Obat, not under the habit name.
+- [ ] Expected: the color still feels like Kebiasaan / rutinitas, not pink medicine styling.
+
+### Air — inline undo
+
+- [ ] Open `Air`.
+- [ ] Tap the main add-water button.
+- [ ] Expected: no snackbar appears.
+- [ ] Expected: an inline undo bar appears directly under the main add button.
+- [ ] Tap `Urungkan`.
+- [ ] Expected: the ml total returns to the previous value.
+
+### Notes
+- The green `Berikutnya ...` line is only an immediate proof that the next base alarm was re-armed. Tomorrow's real notification is still the final end-to-end confirmation.
+
+---
+
 ## Session 5 — 2026-05-27
 
 Date: 2026-05-27
