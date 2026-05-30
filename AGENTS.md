@@ -100,6 +100,13 @@ Use this section to record significant decisions, blockers, or completions so ot
 
 ---
 
+**2026-05-30 (session 11) - Codex (gpt-5)**
+- **Obat workflow redesign** — the Obat tab is now a true `Hari ini` dashboard grouped into `Perlu diminum sekarang`, `Berikutnya`, `Sudah diminum`, and `Terlewat` instead of a flat medicine list.
+- **Food timing** — medicines now store and display `Bebas`, `Sebelum makan`, `Sesudah makan`, or `Saat makan` as a first-class property on both add-flow and dose cards.
+- **Riwayat calendar** — added a separate medicine history page with monthly calendar dots and per-day dose inspection so taken vs missed is visible by date.
+- **Reminder interval correction** — persistent medicine re-notify now matches product intent at 1 minute, not 10 minutes.
+- Verification: analyzer hit only existing info-level lints. A full Flutter debug build was blocked once by a local Dart worker thread startup failure on Windows after code edits, so device-level verification of the new Obat UI still needs a fresh run.
+
 **2026-05-30 (session 10) - Codex (gpt-5)**
 - **Medicine daily schedule fix** — reworked the native reminder architecture so each medicine time has a daily base alarm plus a separate active-dose re-notify loop. When a dose fires, tomorrow's fixed-time reminder is scheduled immediately; tapping `Sudah diminum` now cancels only today's loop, not the future daily schedule. Root alarm ids are now per `(medicineId, scheduledMinute)` rather than one id per medicine.
 - **Water undo UX** — removed the add-water snackbar and replaced it with a persistent inline Undo bar directly under the main add button on the Air screen.

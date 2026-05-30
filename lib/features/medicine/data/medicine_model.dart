@@ -2,6 +2,34 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 part 'medicine_model.g.dart';
 
+class MedicineMealTiming {
+  static const bebas = 'bebas';
+  static const sebelumMakan = 'sebelum_makan';
+  static const sesudahMakan = 'sesudah_makan';
+  static const saatMakan = 'saat_makan';
+
+  static const values = [
+    bebas,
+    sebelumMakan,
+    sesudahMakan,
+    saatMakan,
+  ];
+
+  static String label(String value) {
+    switch (value) {
+      case sebelumMakan:
+        return 'Sebelum makan';
+      case sesudahMakan:
+        return 'Sesudah makan';
+      case saatMakan:
+        return 'Saat makan';
+      case bebas:
+      default:
+        return 'Bebas';
+    }
+  }
+}
+
 @HiveType(typeId: 0)
 class Medicine extends HiveObject {
   @HiveField(0)
@@ -21,6 +49,9 @@ class Medicine extends HiveObject {
 
   @HiveField(5)
   late int colorValue;
+
+  @HiveField(6)
+  late String mealTimingKey;
 }
 
 @HiveType(typeId: 1)

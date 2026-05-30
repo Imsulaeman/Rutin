@@ -6,6 +6,12 @@ import '../../../features/notifications/alarm_service.dart';
 import '../../../shared/providers/providers.dart';
 import '../data/medicine_model.dart';
 
+const _navy = Color(0xFF0B0E1A);
+const _surface = Color(0xFF161D2E);
+const _surfaceLine = Color(0xFF222C42);
+const _medGradient = [Color(0xFFEE5A8C), Color(0xFFD93A6E)];
+const _grey = Color(0xFF9AA3B2);
+
 class AddMedicineScreen extends ConsumerStatefulWidget {
   const AddMedicineScreen({super.key});
 
@@ -18,6 +24,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
   final _nameController = TextEditingController();
   final _dosageController = TextEditingController();
   TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  String _mealTimingKey = MedicineMealTiming.bebas;
   bool _saving = false;
 
   @override
@@ -49,7 +56,8 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
           : _dosageController.text.trim()
       ..scheduleTimes = [_selectedTime.hour * 60 + _selectedTime.minute]
       ..isActive = true
-      ..colorValue = Colors.green.value;
+      ..colorValue = Colors.green.toARGB32()
+      ..mealTimingKey = _mealTimingKey;
 
     try {
       await repository.save(medicine);
@@ -97,79 +105,114 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Obat')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
-          children: [
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nama obat'),
-              textCapitalization: TextCapitalization.sentences,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Nama obat wajib diisi' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _dosageController,
-              decoration: const InputDecoration(labelText: 'Dosis (opsional)'),
-              textCapitalization: TextCapitalization.sentences,
-            ),
-            const SizedBox(height: 32),
-
-            Text(
-              'WAKTU MINUM',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: cs.outlineVariant.withOpacity(0.7),
+      backgroundColor: _navy,
+      appBar: AppBar(
+        backgroundColor: _navy,
+        foregroundColor: Colors.white,
+        title: const Text('Tambah Obat'),
+      ),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+            children: [
+              _SectionCard(
+                child: Column(
+                  children: [
+                    _TextField(
+                      controller: _nameController,
+                      label: 'Nama obat',
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Nama obat wajib diisi'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                    _TextField(
+                      controller: _dosageController,
+                      label: 'Dosis',
+                      hintText: 'Contoh: 1 tablet',
+                    ),
+                  ],
                 ),
               ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: _pickTime,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+              const SizedBox(height: 18),
+              _SectionTitle('WAKTU MINUM'),
+              const SizedBox(height: 10),
+              _SectionCard(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: _pickTime,
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.access_time_rounded,
-                        size: 18,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 10),
-                      const Text('Waktu minum'),
-                      const Spacer(),
-                      Text(
-                        _timeLabel(_selectedTime),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: cs.primary,
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: _medGradient.first.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.access_time_rounded,
+                          color: Colors.white,
                         ),
                       ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Jadwal dosis',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Notifikasi akan terus muncul sampai diminum.',
+                              style: TextStyle(color: _grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _TimePill(label: _timeLabel(_selectedTime)),
                     ],
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
-            ),
-          ],
+              const SizedBox(height: 18),
+              _SectionTitle('ATURAN MAKAN'),
+              const SizedBox(height: 10),
+              _SectionCard(
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final option in MedicineMealTiming.values)
+                      _MealChip(
+                        label: MedicineMealTiming.label(option),
+                        selected: option == _mealTimingKey,
+                        onTap: () => setState(() => _mealTimingKey = option),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: _medGradient.last,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(54),
+                ),
+                onPressed: _saving ? null : _save,
+                child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -179,5 +222,146 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        color: _grey,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _surfaceLine),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _TextField extends StatelessWidget {
+  const _TextField({
+    required this.controller,
+    required this.label,
+    this.hintText,
+    this.validator,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? hintText;
+  final String? Function(String?)? validator;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white),
+      validator: validator,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        labelStyle: const TextStyle(color: _grey),
+        hintStyle: const TextStyle(color: _grey),
+        filled: true,
+        fillColor: const Color(0xFF0F1524),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _surfaceLine),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFEE5A8C)),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimePill extends StatelessWidget {
+  const _TimePill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: _medGradient),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _MealChip extends StatelessWidget {
+  const _MealChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: selected ? const LinearGradient(colors: _medGradient) : null,
+          color: selected ? null : const Color(0xFF0F1524),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? Colors.transparent : _surfaceLine,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: selected ? 1 : 0.88),
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
   }
 }

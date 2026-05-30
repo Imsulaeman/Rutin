@@ -15,10 +15,15 @@ class MedicineRepository {
 
   Future<void> delete(String id) => _medicines.delete(id);
 
-  List<MedicineLog> getLogsForDate(String date) => _logs.values
-      .where((l) =>
-          l.scheduledTime.toIso8601String().startsWith(date))
-      .toList();
+  List<MedicineLog> getLogsForDate(DateTime date) {
+    final day = DateTime(date.year, date.month, date.day);
+    return _logs.values.where((l) {
+      final scheduled = l.scheduledTime;
+      return scheduled.year == day.year &&
+          scheduled.month == day.month &&
+          scheduled.day == day.day;
+    }).toList();
+  }
 
   Future<void> saveLog(MedicineLog log) =>
       _logs.add(log);
@@ -27,7 +32,7 @@ class MedicineRepository {
   // A dose is keyed by (medicineId, minute-truncated local scheduledTime).
   // The medicine list is the only writer, so this key is the single source.
 
-  MedicineLog? _findLog(String medicineId, DateTime scheduled) {
+  MedicineLog? findLog(String medicineId, DateTime scheduled) {
     for (final l in _logs.values) {
       if (l.medicineId == medicineId &&
           l.scheduledTime.isAtSameMomentAs(scheduled)) {
@@ -38,11 +43,11 @@ class MedicineRepository {
   }
 
   bool isTaken(String medicineId, DateTime scheduled) =>
-      _findLog(medicineId, scheduled)?.status == 'taken';
+      findLog(medicineId, scheduled)?.status == 'taken';
 
   Future<void> setTaken(
       String medicineId, DateTime scheduled, bool taken) async {
-    final existing = _findLog(medicineId, scheduled);
+    final existing = findLog(medicineId, scheduled);
     if (taken) {
       if (existing != null) {
         existing

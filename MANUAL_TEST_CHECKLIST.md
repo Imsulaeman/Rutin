@@ -2,13 +2,45 @@
 
 ---
 
-## Session 10 — 2026-05-30
+## Session 11 - 2026-05-30
 
 Date: 2026-05-30
 Device: Realme GT 2 Pro (RMX3301), Android 14
 Build: Debug
 
-### Obat — daily re-arm + swipe delete
+### Obat - Today workflow
+
+- [ ] Open `Obat`.
+- [ ] Expected: the first view is `Hari ini`, not a flat medicine database list.
+- [ ] Expected: sections appear for `Perlu diminum sekarang`, `Berikutnya`, `Sudah diminum`, and `Terlewat`.
+- [ ] Add one new medicine.
+- [ ] Expected: add flow includes food timing options `Bebas`, `Sebelum makan`, `Sesudah makan`, `Saat makan`.
+- [ ] Expected: the saved dose card shows the selected food timing as a badge.
+
+### Obat - Riwayat calendar
+
+- [ ] Open `Obat` and tap the calendar button.
+- [ ] Expected: a separate `Riwayat Obat` page opens.
+- [ ] Expected: the month view shows colored dots for daily adherence state.
+- [ ] Tap a date with medicine activity.
+- [ ] Expected: the lower panel lists that day's doses with status like `Diminum`, `Terlewat`, or `Belum waktunya`.
+
+### Obat - 1 minute persistence
+
+- [ ] Create one medicine 1 minute ahead.
+- [ ] Wait for the reminder.
+- [ ] Ignore or dismiss it.
+- [ ] Expected: it comes back about 1 minute later until `Sudah diminum`.
+
+---
+
+## Session 10 - 2026-05-30
+
+Date: 2026-05-30
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### Obat - daily re-arm + swipe delete
 
 - [ ] Add one medicine 1-2 minutes ahead.
 - [ ] Wait until the alarm fires.
@@ -22,14 +54,14 @@ Build: Debug
 - [ ] Confirm delete.
 - [ ] Expected: medicine is removed and no longer appears in the list.
 
-### Kebiasaan — timer placement
+### Kebiasaan - timer placement
 
 - [ ] Open `Kebiasaan`.
 - [ ] Find a habit with a reminder time.
 - [ ] Expected: the time pill sits on the right side of the card like Obat, not under the habit name.
 - [ ] Expected: the color still feels like Kebiasaan / rutinitas, not pink medicine styling.
 
-### Air — inline undo
+### Air - inline undo
 
 - [ ] Open `Air`.
 - [ ] Tap the main add-water button.
@@ -38,12 +70,9 @@ Build: Debug
 - [ ] Tap `Urungkan`.
 - [ ] Expected: the ml total returns to the previous value.
 
-### Notes
-- The green `Berikutnya ...` line is only an immediate proof that the next base alarm was re-armed. Tomorrow's real notification is still the final end-to-end confirmation.
-
 ---
 
-## Session 5 — 2026-05-27
+## Session 5 - 2026-05-27
 
 Date: 2026-05-27
 Device: Realme GT 2 Pro (RMX3301), Android 14
@@ -51,17 +80,14 @@ Build: Debug
 
 ### Delete & Medal
 
-- [x] Swipe left on Obat → red background with trash icon → confirm dialog → item removed. ✅
-- [x] Swipe left on Kebiasaan → confirm dialog → item removed (no medal). ✅
-- [x] Long-press Kebiasaan card → bottom sheet shows → tap "Jadikan Medali" → habit removed from list. ✅
-- [x] Medal snackbar appears after retiring. ✅
-
-### Notes
-- Habit reminder notification not yet tested (requires waiting until set time).
+- [x] Swipe left on Obat -> confirm dialog -> item removed
+- [x] Swipe left on Kebiasaan -> confirm dialog -> item removed
+- [x] Long-press Kebiasaan card -> `Jadikan Medali` -> habit removed from list
+- [x] Medal snackbar appears after retiring
 
 ---
 
-## Session 4 — 2026-05-27
+## Session 4 - 2026-05-27
 
 Date: 2026-05-27
 Device: Realme GT 2 Pro (RMX3301), Android 14
@@ -69,165 +95,39 @@ Build: Debug
 
 ### Habits MVP
 
-- [x] Add habit → Simpan → list refreshes immediately (no restart needed). ✅
-- [x] Habit appears in list with emoji + name. ✅
-- [x] Tap card → marked done, icon fills. ✅
-- [x] Tap again → snackbar "Sudah dilakukan hari ini". ✅
-- [x] Streak counter shows on card after marking done. ✅
-
-### Notes
-- Navigation fix: `context.pop()` instead of `context.go('/habits')` in AddHabitScreen — ensures FAB await resolves and `_load()` fires.
-- Habit reminder notification not yet tested (requires waiting until set time).
+- [x] Add habit -> `Simpan` -> list refreshes immediately
+- [x] Habit appears in list with emoji + name
+- [x] Tap card -> marked done
+- [x] Tap again -> `Sudah dilakukan hari ini`
+- [x] Streak counter shows on card after marking done
 
 ---
 
-## Session 3 — 2026-05-27
+## Session 3 - 2026-05-27
 
 Date: 2026-05-27
 Device: Realme GT 2 Pro (RMX3301), Android 14
 Build: Debug
 
-### Water Reminder (post-fix)
+### Water Reminder
 
-- [x] Reminder toggle ON → notification fires in ~15 seconds (debug mode). ✅
-- [x] "Sudah minum" action button → notification dismissed, no app launch. ✅
-- [x] Glass count updates when Water screen is opened after tapping action. ✅
-- [x] Reminder toggle OFF → notifications stop. ✅
-- [x] Toggle OFF then ON → alarm reschedules correctly. ✅
-- [x] +/- buttons do not affect reminder toggle state. ✅
-- [x] Settings sheet: change target, glass size, hours → interval recalculates. ✅
-- [x] Notification always shows as banner regardless of phone state. ✅
-
-### Notes
-- flutter_local_notifications action callbacks blocked by ColorOS on background broadcasts — replaced with native WaterAlarmReceiver + WaterActionReceiver.
-- android_alarm_manager_plus is still in pubspec but unused for water (kept to avoid breaking changes).
+- [x] Reminder toggle ON -> notification fires in debug mode
+- [x] `Sudah minum` action dismisses notification without app launch
+- [x] Water count updates after opening Water screen
+- [x] Reminder toggle OFF stops notifications
 
 ---
 
-## Session 2 — 2026-05-27
+## Session 2 - 2026-05-27
 
-Date: 2026-05-27  
-Device: Realme GT 2 Pro (RMX3301), Android 14  
+Date: 2026-05-27
+Device: Realme GT 2 Pro (RMX3301), Android 14
 Build: Debug
 
-### Alarm System (post-fix)
+### Alarm System
 
-- [x] App builds and installs successfully.
-- [x] **Screen OFF** — alarm fires → ReminderActivity appears above lock screen (full-screen). ✅
-- [x] **Screen ON / home** — alarm fires → notification banner appears. Tap → ReminderActivity opens. ✅
-- [x] **Snooze** — tap "Tunda 1 menit" → activity closes → reappears after 1 minute. ✅
-- [x] **Add medicine** — after saving, app navigates directly to medicine list (no manual back needed). ✅
-
-### Notes
-- Screen-ON behavior shows banner (not forced full-screen) — this is correct Android behavior, intentional.
-- "Display over other apps" permission auto-granted on debug install.
-- Gradle OOM fixed: daemon disabled, `-Xmx512m` in `gradle.properties`.
-
----
-
-## Session 1 — 2026-05-25  
-Device: Android 16
-Build: Debug / Release (circle one)
-
-## 0) Pre-check
-
-- [X] `flutter run` builds successfully.
-- [X] App opens to `Beranda`.
-- [-] Permission popup appears on `Beranda` (Izin Wajib).
-- [-] Tap `Notifikasi` and allow permission.
-- [-] Tap `Exact Alarm` and allow permission.
-- [-] Tap `Full Screen` and allow permission.
-- [-] Tap `Selesai`.
-
-## 1) Navigation Back Behavior
-
-- [X] Tap `Obat` from `Beranda`.
-- [X] Press Android back button.
-- [X] Expected: returns to `Beranda` (app does not close).
-- [X] Repeat for `Air` and `Kebiasaan` screens.
-
-## 2) Add Medicine Flow
-
-- [X] Open `Obat`.
-- [X] Tap `+` button.
-- [X] Fill `Nama obat`.
-- [X] (Optional) Fill `Dosis`.
-- [X] Pick `Waktu minum`.
-- [X] Tap `Simpan`.
-- [-, I needed to go back to beranda and back to obat] Expected: back to medicine list with new item visible.
-
-## 3) Alarm Trigger Baseline
-
-- [X] Create a medicine with near-future time (easy to wait).
-- [X] Wait until scheduled time.
-- [X] Expected: medicine notification appears with:
-  - `Sudah diminum`
-  - `Tunda 1 menit`
-
-## 3A) Full-screen Reminder Flow
-
-- [ ] Tap the medicine notification body (not action button).
-- [ ] Expected: app opens `Pengingat Obat` full-screen page.
-- [ ] Expected: back button is blocked on this page.
-- [ ] Expected: only two actions are available:
-  - `Sudah diminum`
-  - `Tunda 1 menit`
-
-## 4) Re-notify Every 10 Minutes
-
-- [] Ignore the first medicine notification.
-- [] Wait ~10 minutes.
-- [] Expected: same medicine notification appears again.
-
-## 4A) Fast Persistent Test (1-minute loop)
-
-- [X] Open `Obat`.
-- [X] Tap small `timer` button (test persistent 1m).
-- [X] Expected: snackbar says first notif in ~10s and repeats every 1 min.
-- [X] Wait ~10 seconds.
-- [X] Expected: notification appears.
-- [X] Ignore it and wait ~1 minute.
-- [X] Expected: notification repeats.
-- [-] Tap `Sudah diminum`.
-- [ ] Wait >1 minute.
-- [ ] Expected: repeat stops.
-
-## 5) "Sudah diminum" Stops Loop
-
-- [ ] When notification appears, tap `Sudah diminum`.
-- [ ] Wait >10 minutes.
-- [ ] Expected: no repeat notification for that reminder cycle.
-
-## 6) "Tunda 15 menit" Works
-
-- [ ] Trigger medicine notification again.
-- [ ] Tap `Tunda 1 menit`.
-- [ ] Wait ~1 minute.
-- [ ] Expected: notification appears again.
-- [ ] Ignore this reappeared notification once.
-- [ ] Wait ~10 minutes.
-- [ ] Expected: loop resumes every ~10 minutes until `Sudah diminum`.
-
-## 7) App Lifecycle Sanity
-
-- [ ] Force close app.
-- [ ] Reopen app.
-- [ ] Add another medicine reminder.
-- [ ] Expected: add flow still works, reminder still notifies.
-
-## 8) Result Summary
-
-### Pass
-
-- [ ] Navigation back behavior
-- [ ] Add medicine flow
-- [ ] First reminder notification
-- [ ] 10-minute re-notify
-- [ ] "Sudah diminum" stop logic
-- [ ] "Tunda 1 menit" snooze logic
-
-### Notes / Bugs Found
-
-- No pop-up permission when opened the app, its because I already installed? 
-- Can't tap sudah diminum dan tunda 1 menit
-- ____________________________________________
+- [x] App builds and installs successfully
+- [x] Screen OFF -> alarm fires -> ReminderActivity appears above lock screen
+- [x] Screen ON -> banner appears -> tap opens ReminderActivity
+- [x] `Tunda 1 menit` reappears after 1 minute
+- [x] Add medicine returns directly to medicine list after save
