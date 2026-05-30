@@ -10,33 +10,33 @@ class HabitCard extends StatelessWidget {
     required this.isDone,
     required this.streak,
     required this.onTap,
-    this.onLongPress,
+    this.onMoreTap,
   });
 
   final Habit habit;
   final bool isDone;
   final int streak;
   final VoidCallback onTap;
-  final VoidCallback? onLongPress;
+  final VoidCallback? onMoreTap; // ··· context menu
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Card(
-      color: isDone ? AppTheme.habitsColor.withValues(alpha: 0.12) : AppTheme.surfaceDark,
+      color: isDone
+          ? AppTheme.habitsColor.withValues(alpha: 0.12)
+          : AppTheme.surfaceDark,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isDone
               ? AppTheme.habitsColor.withValues(alpha: 0.35)
               : AppTheme.border,
-          width: 1,
         ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
@@ -51,7 +51,8 @@ class HabitCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(habit.emoji, style: const TextStyle(fontSize: 22)),
+                  child: Text(habit.emoji,
+                      style: const TextStyle(fontSize: 22)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -59,13 +60,13 @@ class HabitCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      habit.name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    Text(habit.name,
+                        style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 2),
                     Text(
-                      streak > 0 ? '$streak hari beruntun 🔥' : 'Mulai hari ini',
+                      streak > 0
+                          ? '$streak hari beruntun 🔥'
+                          : 'Mulai hari ini',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: streak > 0
                                 ? AppTheme.streakColor
@@ -75,7 +76,18 @@ class HabitCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              // ··· menu button — absorbs tap so it doesn't trigger card onTap
+              if (onMoreTap != null)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onMoreTap,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    child: Icon(Icons.more_vert_rounded,
+                        size: 18, color: AppTheme.muted),
+                  ),
+                ),
+              const SizedBox(width: 4),
               Icon(
                 isDone
                     ? Icons.check_circle_rounded

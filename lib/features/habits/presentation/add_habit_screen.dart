@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
 import '../data/habit_repository.dart';
+import 'emoji_picker.dart';
 import 'habit_reminder_service.dart';
 
 class AddHabitScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   final _formKey = GlobalKey<FormState>();
   final _repo = HabitRepository();
   late final TextEditingController _nameController;
-  late final TextEditingController _emojiController;
+  late String _emoji;
 
   static const _dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
   late final Set<int> _selectedDays;
@@ -38,7 +39,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     super.initState();
     final h = widget.habit;
     _nameController = TextEditingController(text: h?.name ?? '');
-    _emojiController = TextEditingController(text: h?.emoji ?? '✅');
+    _emoji = h?.emoji ?? '✅';
     _selectedDays = h?.scheduleDays.toSet() ?? {1, 2, 3, 4, 5, 6, 7};
     _selectedGroupId = h?.groupId;
     _groups = _repo.getGroups();
@@ -55,7 +56,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emojiController.dispose();
     super.dispose();
   }
 
@@ -76,15 +76,18 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             ..sortIndex = _repo.habitsInGroup(_selectedGroupId).length);
       habit
         ..name = _nameController.text.trim()
-        ..emoji = _emojiController.text.trim().isEmpty
-            ? '✅'
-            : _emojiController.text.trim()
+        ..emoji = _emoji
         ..scheduleDays = (_selectedDays.toList()..sort())
         ..groupId = _selectedGroupId
         ..reminderMinutes =
             _reminderEnabled ? _reminderTime.hour * 60 + _reminderTime.minute : null;
 
       await _repo.save(habit);
+
+      // Auto-sort by time on first placement into a group
+      if (_selectedGroupId != null) {
+        await _repo.autoSortNewItem(_selectedGroupId!, habit.id);
+      }
 
       try {
         if (_reminderEnabled) {
@@ -131,16 +134,23 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                SizedBox(
-                  width: 80,
-                  child: TextFormField(
-                    controller: _emojiController,
-                    decoration: const InputDecoration(labelText: 'Emoji'),
-                    maxLength: 4,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 22),
-                    buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-                        const SizedBox.shrink(),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showEmojiPicker(context);
+                    if (picked != null) setState(() => _emoji = picked);
+                  },
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceHigh,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Center(
+                      child: Text(_emoji,
+                          style: const TextStyle(fontSize: 28)),
+                    ),
                   ),
                 ),
               ],

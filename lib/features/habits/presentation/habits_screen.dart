@@ -8,7 +8,18 @@ import '../data/habit_repository.dart';
 import '../data/medal_model.dart';
 import '../data/medal_repository.dart';
 import 'habit_card.dart';
+import 'emoji_picker.dart';
 import 'habit_reminder_service.dart';
+
+const _groupTemplates = [
+  ('☀️', 'Bangun Tidur'),
+  ('🌙', 'Sebelum Tidur'),
+  ('🍽️', 'Setelah Makan'),
+  ('💪', 'Olahraga'),
+  ('📚', 'Belajar'),
+  ('🧘', 'Meditasi'),
+];
+
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -20,9 +31,13 @@ class HabitsScreen extends StatefulWidget {
 class _HabitsScreenState extends State<HabitsScreen> {
   final _repo = HabitRepository();
   final _medals = MedalRepository();
-  List<HabitGroup> _groups = [];
-  List<Habit> _allHabits = [];
-  String? _selectedGroupId; // null = "Semua"
+
+  List<dynamic> _flatItems = []; // Habit (ungrouped) | HabitGroup
+  Map<String, List<Habit>> _groupHabits = {};
+  final Map<String, bool> _expanded = {};
+
+  // null = flat/Semua view; non-null = group-specific tab
+  String? _selectedGroupId;
 
   @override
   void initState() {
@@ -32,25 +47,39 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   void _load() {
     setState(() {
-      _groups = _repo.getGroups();
-      _allHabits = _repo.getAll();
+      _flatItems = _repo.getFlatList();
+      _groupHabits = {
+        for (final g in _repo.getGroups())
+          g.id: _repo.habitsInGroup(g.id),
+      };
+      // Validate selected group still exists
+      if (_selectedGroupId != null &&
+          !_groupHabits.containsKey(_selectedGroupId)) {
+        _selectedGroupId = null;
+      }
     });
   }
 
+  List<HabitGroup> get _groups =>
+      _flatItems.whereType<HabitGroup>().toList();
+
+  List<Habit> get _allHabits => [
+        ..._flatItems.whereType<Habit>(),
+        for (final habits in _groupHabits.values) ...habits,
+      ];
+
+  // ─── Habit actions ────────────────────────────────────────────────────────
+
   Future<void> _safeCancel(String id) async {
-    try {
-      await HabitReminderService.cancel(id);
-    } catch (_) {}
+    try { await HabitReminderService.cancel(id); } catch (_) {}
   }
 
   Future<void> _markDone(Habit habit) async {
     if (_repo.isCompletedToday(habit.id)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sudah dilakukan hari ini'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Sudah dilakukan hari ini'),
+        duration: Duration(seconds: 1),
+      ));
       return;
     }
     await _repo.markDone(habit.id);
@@ -68,10 +97,11 @@ class _HabitsScreenState extends State<HabitsScreen> {
     }
   }
 
-  void _showActions(Habit habit) {
+  void _showHabitActions(Habit habit) {
+    final groups = _groups;
     showModalBottomSheet(
       context: context,
-      builder: (sheetCtx) => SafeArea(
+      builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -80,16 +110,25 @@ class _HabitsScreenState extends State<HabitsScreen> {
               leading: const Icon(Icons.edit_rounded),
               title: const Text('Edit'),
               onTap: () async {
-                Navigator.pop(sheetCtx);
+                Navigator.pop(ctx);
                 await context.push('/habits/add', extra: habit);
                 _load();
               },
             ),
+            if (groups.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.drive_file_move_rounded),
+                title: const Text('Pindahkan ke rutinitas'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showMoveToGroup(habit);
+                },
+              ),
             ListTile(
               leading: const Text('🏅', style: TextStyle(fontSize: 22)),
               title: const Text('Jadikan medali'),
               onTap: () {
-                Navigator.pop(sheetCtx);
+                Navigator.pop(ctx);
                 _retireAsModal(habit);
               },
             ),
@@ -98,8 +137,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   color: Theme.of(context).colorScheme.error),
               title: const Text('Hapus'),
               onTap: () async {
-                Navigator.pop(sheetCtx);
-                await _confirmDelete(habit);
+                Navigator.pop(ctx);
+                await _confirmDeleteHabit(habit);
               },
             ),
             const SizedBox(height: 8),
@@ -109,7 +148,60 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
   }
 
-  Future<void> _confirmDelete(Habit habit) async {
+  Future<void> _showMoveToGroup(Habit habit) async {
+    final groups = _groups;
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text('Pindahkan ke',
+                  style: Theme.of(ctx).textTheme.titleMedium),
+            ),
+            if (habit.groupId != null)
+              ListTile(
+                leading: const Text('📋', style: TextStyle(fontSize: 20)),
+                title: const Text('Tanpa rutinitas'),
+                onTap: () => Navigator.pop(ctx, ''),
+              ),
+            for (final g in groups)
+              if (g.id != habit.groupId)
+                ListTile(
+                  leading: Text(g.emoji, style: const TextStyle(fontSize: 20)),
+                  title: Text(g.name),
+                  onTap: () => Navigator.pop(ctx, g.id),
+                ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null) return;
+    final newGroupId = result.isEmpty ? null : result;
+    final oldGroupId = habit.groupId;
+
+    if (newGroupId == oldGroupId) return;
+
+    habit.groupId = newGroupId;
+
+    if (newGroupId != null) {
+      habit.sortIndex = (_repo.habitsInGroup(newGroupId)).length;
+      await _repo.save(habit);
+      await _repo.autoSortNewItem(newGroupId, habit.id);
+    } else {
+      habit.sortIndex = _flatItems.length;
+      await _repo.save(habit);
+    }
+    _load();
+  }
+
+  Future<void> _confirmDeleteHabit(Habit habit) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -117,9 +209,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
         content: Text('${habit.name} akan dihapus permanen.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
@@ -151,14 +242,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
         await _medals.save(existing);
       }
     } else {
-      final medal = Medal()
+      await _medals.save(Medal()
         ..id = DateTime.now().millisecondsSinceEpoch.toString()
         ..name = habit.name
         ..emoji = habit.emoji
         ..peakStreak = streak
         ..awardedAt = DateTime.now()
-        ..type = 'habit';
-      await _medals.save(medal);
+        ..type = 'habit');
     }
 
     await _safeCancel(habit.id);
@@ -166,79 +256,108 @@ class _HabitsScreenState extends State<HabitsScreen> {
     _load();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${habit.emoji} ${habit.name} dijadikan medali!'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${habit.emoji} ${habit.name} dijadikan medali!'),
+      ));
     }
   }
+
+  // ─── Group actions ────────────────────────────────────────────────────────
 
   Future<void> _createGroup() async {
     final nameCtrl = TextEditingController();
     String emoji = '📋';
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
           title: const Text('Rutinitas baru'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      final e = await _pickEmoji(ctx);
-                      if (e != null) setD(() => emoji = e);
-                    },
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceHigh,
-                        borderRadius: BorderRadius.circular(12),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Template',
+                    style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                        )),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final t in _groupTemplates)
+                      GestureDetector(
+                        onTap: () {
+                          nameCtrl.text = t.$2;
+                          setD(() => emoji = t.$1);
+                        },
+                        child: Chip(
+                          label: Text('${t.$1} ${t.$2}'),
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
-                      child: Center(
-                        child: Text(emoji,
-                            style: const TextStyle(fontSize: 24)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showEmojiPicker(ctx);
+                        if (picked != null) setD(() => emoji = picked);
+                      },
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceHigh,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.border),
+                        ),
+                        child: Center(
+                          child: Text(emoji,
+                              style: const TextStyle(fontSize: 26)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: nameCtrl,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration:
-                          const InputDecoration(labelText: 'Nama rutinitas'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: nameCtrl,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                            labelText: 'Nama rutinitas'),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal'),
-            ),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal')),
             FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Buat'),
-            ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Buat')),
           ],
         ),
       ),
     );
+
     if (result == true && nameCtrl.text.trim().isNotEmpty) {
       final group = HabitGroup()
         ..id = DateTime.now().millisecondsSinceEpoch.toString()
         ..name = nameCtrl.text.trim()
         ..emoji = emoji
-        ..sortIndex = _groups.length;
+        ..sortIndex = _flatItems.length;
       await _repo.saveGroup(group);
       _load();
     }
@@ -247,61 +366,58 @@ class _HabitsScreenState extends State<HabitsScreen> {
   Future<void> _renameGroup(HabitGroup group) async {
     final nameCtrl = TextEditingController(text: group.name);
     String emoji = group.emoji;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
           title: const Text('Ubah rutinitas'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          content: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      final e = await _pickEmoji(ctx);
-                      if (e != null) setD(() => emoji = e);
-                    },
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceHigh,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(emoji,
-                            style: const TextStyle(fontSize: 24)),
-                      ),
-                    ),
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showEmojiPicker(ctx);
+                  if (picked != null) setD(() => emoji = picked);
+                },
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceHigh,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: nameCtrl,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration:
-                          const InputDecoration(labelText: 'Nama rutinitas'),
-                    ),
+                  child: Center(
+                    child: Text(emoji,
+                        style: const TextStyle(fontSize: 26)),
                   ),
-                ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: nameCtrl,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration:
+                      const InputDecoration(labelText: 'Nama rutinitas'),
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal'),
-            ),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal')),
             FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Simpan'),
-            ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Simpan')),
           ],
         ),
       ),
     );
+
     if (result == true && nameCtrl.text.trim().isNotEmpty) {
       group
         ..name = nameCtrl.text.trim()
@@ -320,9 +436,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
             'Kebiasaan di rutinitas ini akan dipindah ke "Tanpa rutinitas".'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
@@ -334,51 +449,38 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
     if (ok == true) {
       await _repo.deleteGroup(group.id);
-      if (_selectedGroupId == group.id) _selectedGroupId = null;
       _load();
     }
   }
 
-  Future<String?> _pickEmoji(BuildContext ctx) async {
-    final ctrl = TextEditingController();
-    return showDialog<String>(
-      context: ctx,
-      builder: (dCtx) => AlertDialog(
-        title: const Text('Pilih emoji'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          maxLength: 4,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 32),
-          decoration: const InputDecoration(hintText: '📋'),
-          buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-              const SizedBox.shrink(),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(
-                dCtx, ctrl.text.trim().isEmpty ? null : ctrl.text.trim()),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+  // ─── Reorder ──────────────────────────────────────────────────────────────
+
+  Future<void> _onFlatReorder(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex--;
+    final items = [..._flatItems];
+    final item = items.removeAt(oldIndex);
+    items.insert(newIndex, item);
+    await _repo.reorderFlatList(items);
+    _load();
   }
 
-  Future<void> _onReorder(String groupId, int oldIndex, int newIndex) async {
-    final habits = _repo.habitsInGroup(groupId);
+  Future<void> _onGroupReorder(
+      String groupId, int oldIndex, int newIndex) async {
     if (newIndex > oldIndex) newIndex--;
-    final item = habits.removeAt(oldIndex);
-    habits.insert(newIndex, item);
+    final habits = <Habit>[...(_groupHabits[groupId] ?? [])];
+    final habit = habits.removeAt(oldIndex);
+    habits.insert(newIndex, habit);
     await _repo.reorderHabitsInGroup(habits);
-    setState(() => _allHabits = _repo.getAll());
+    _load();
   }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final doneCount = _allHabits.where((h) => _repo.isCompletedToday(h.id)).length;
-    final bestStreak = _allHabits.fold<int>(
+    final all = _allHabits;
+    final doneCount = all.where((h) => _repo.isCompletedToday(h.id)).length;
+    final bestStreak = all.fold<int>(
         0, (b, h) => _repo.getStreak(h.id) > b ? _repo.getStreak(h.id) : b);
 
     return Scaffold(
@@ -398,46 +500,75 @@ class _HabitsScreenState extends State<HabitsScreen> {
       ),
       body: Column(
         children: [
-          // Tab bar
           if (_groups.isNotEmpty)
             _TabBar(
               groups: _groups,
               selectedGroupId: _selectedGroupId,
               onSelect: (id) => setState(() => _selectedGroupId = id),
+              onCreateGroup: _createGroup,
             ),
-          // Content
           Expanded(
             child: _selectedGroupId == null
-                ? _SemuaView(
-                    groups: _groups,
-                    allHabits: _allHabits,
+                ? _EditModeView(
+                    flatItems: _flatItems,
+                    groupHabits: _groupHabits,
+                    expanded: _expanded,
                     repo: _repo,
-                    doneCount: doneCount,
-                    bestStreak: bestStreak,
                     onTap: _markDone,
-                    onLongPress: _showActions,
+                    onMoreTap: _showHabitActions,
+                    onToggleExpand: (id) => setState(
+                        () => _expanded[id] = !(_expanded[id] ?? true)),
+                    onGroupActions: _showGroupActions,
                     onDelete: (h) async {
                       await _safeCancel(h.id);
                       await _repo.delete(h.id);
                       _load();
                     },
-                    onRename: _renameGroup,
-                    onDeleteGroup: _deleteGroup,
-                    onCreateGroup: _createGroup,
+                    onReloaded: _load,
                   )
                 : _GroupView(
-                    group: _groups.firstWhere((g) => g.id == _selectedGroupId),
-                    habits: _repo.habitsInGroup(_selectedGroupId),
+                    group: _groups.firstWhere(
+                        (g) => g.id == _selectedGroupId),
+                    habits: _groupHabits[_selectedGroupId] ?? [],
                     repo: _repo,
                     onTap: _markDone,
-                    onLongPress: _showActions,
-                    onReorder: (oldIdx, newIdx) =>
-                        _onReorder(_selectedGroupId!, oldIdx, newIdx),
-                    onRename: _renameGroup,
-                    onDeleteGroup: _deleteGroup,
+                    onMoreTap: _showHabitActions,
+                    onReorder: (o, n) =>
+                        _onGroupReorder(_selectedGroupId!, o, n),
+                    onDelete: (h) async {
+                      await _safeCancel(h.id);
+                      await _repo.delete(h.id);
+                      _load();
+                    },
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showGroupActions(HabitGroup g) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Ubah nama & emoji'),
+              onTap: () { Navigator.pop(ctx); _renameGroup(g); },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded,
+                  color: Theme.of(context).colorScheme.error),
+              title: const Text('Hapus rutinitas'),
+              onTap: () { Navigator.pop(ctx); _deleteGroup(g); },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -450,11 +581,13 @@ class _TabBar extends StatelessWidget {
     required this.groups,
     required this.selectedGroupId,
     required this.onSelect,
+    required this.onCreateGroup,
   });
 
   final List<HabitGroup> groups;
   final String? selectedGroupId;
   final void Function(String?) onSelect;
+  final VoidCallback onCreateGroup;
 
   @override
   Widget build(BuildContext context) {
@@ -475,6 +608,25 @@ class _TabBar extends StatelessWidget {
               selected: selectedGroupId == g.id,
               onTap: () => onSelect(g.id),
             ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Center(
+              child: GestureDetector(
+                onTap: onCreateGroup,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceHigh,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: const Icon(Icons.add_rounded,
+                      size: 18, color: AppTheme.muted),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -499,7 +651,7 @@ class _Tab extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: selected
@@ -525,131 +677,262 @@ class _Tab extends StatelessWidget {
   }
 }
 
-// ─── Semua view ───────────────────────────────────────────────────────────────
+// ─── Flat view (Semua) ────────────────────────────────────────────────────────
 
-class _SemuaView extends StatelessWidget {
-  const _SemuaView({
-    required this.groups,
-    required this.allHabits,
+class _FlatView extends StatelessWidget {
+  const _FlatView({
+    required this.flatItems,
+    required this.groupHabits,
+    required this.expanded,
     required this.repo,
     required this.doneCount,
+    required this.total,
     required this.bestStreak,
     required this.onTap,
-    required this.onLongPress,
-    required this.onDelete,
-    required this.onRename,
-    required this.onDeleteGroup,
+    required this.onMoreTap,
+    required this.onToggleExpand,
+    required this.onGroupActions,
+    required this.onReorder,
     required this.onCreateGroup,
+    required this.onDelete,
   });
 
-  final List<HabitGroup> groups;
-  final List<Habit> allHabits;
+  final List<dynamic> flatItems;
+  final Map<String, List<Habit>> groupHabits;
+  final Map<String, bool> expanded;
   final HabitRepository repo;
   final int doneCount;
+  final int total;
   final int bestStreak;
   final void Function(Habit) onTap;
-  final void Function(Habit) onLongPress;
-  final Future<void> Function(Habit) onDelete;
-  final Future<void> Function(HabitGroup) onRename;
-  final Future<void> Function(HabitGroup) onDeleteGroup;
+  final void Function(Habit) onMoreTap;
+  final void Function(String groupId) onToggleExpand;
+  final void Function(HabitGroup) onGroupActions;
+  final void Function(int, int) onReorder;
   final VoidCallback onCreateGroup;
+  final Future<void> Function(Habit) onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final ungrouped = allHabits.where((h) => h.groupId == null).toList();
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      children: [
-        if (allHabits.isNotEmpty)
-          _TodayHeader(
-            done: doneCount,
-            total: allHabits.length,
-            bestStreak: bestStreak,
+    // Build a display list: each flat item is one "visual row" in the
+    // ReorderableListView. Groups render their children inline but are a
+    // single draggable unit.
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: total > 0
+                ? _TodayHeader(
+                    done: doneCount,
+                    total: total,
+                    bestStreak: bestStreak)
+                : _EmptyState(onCreateGroup: onCreateGroup),
           ),
-        for (final group in groups) ...[
-          const SizedBox(height: 20),
-          _GroupHeader(
-            group: group,
-            onRename: () => onRename(group),
-            onDelete: () => onDeleteGroup(group),
-          ),
-          const SizedBox(height: 8),
-          for (final habit in repo.habitsInGroup(group.id))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _SwipeToDelete(
-                habit: habit,
-                onDelete: () => onDelete(habit),
-                child: HabitCard(
-                  habit: habit,
-                  isDone: repo.isCompletedToday(habit.id),
-                  streak: repo.getStreak(habit.id),
-                  onTap: () => onTap(habit),
-                  onLongPress: () => onLongPress(habit),
-                ),
-              ),
-            ),
-        ],
-        if (ungrouped.isNotEmpty) ...[
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              '📋  Tanpa rutinitas',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        SliverReorderableList(
+          itemCount: flatItems.length,
+          onReorder: onReorder,
+          itemBuilder: (ctx, i) {
+            final item = flatItems[i];
+            if (item is Habit) {
+              return ReorderableDelayedDragStartListener(
+                key: ValueKey('flat_h_${item.id}'),
+                index: i,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: _SwipeToDelete(
+                    habit: item,
+                    onDelete: () => onDelete(item),
+                    child: HabitCard(
+                      habit: item,
+                      isDone: repo.isCompletedToday(item.id),
+                      streak: repo.getStreak(item.id),
+                      onTap: () => onTap(item),
+                      onMoreTap: () => onMoreTap(item),
+                    ),
                   ),
-            ),
-          ),
-          for (final habit in ungrouped)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _SwipeToDelete(
-                habit: habit,
-                onDelete: () => onDelete(habit),
-                child: HabitCard(
-                  habit: habit,
-                  isDone: repo.isCompletedToday(habit.id),
-                  streak: repo.getStreak(habit.id),
-                  onTap: () => onTap(habit),
-                  onLongPress: () => onLongPress(habit),
+                ),
+              );
+            }
+
+            // HabitGroup
+            final group = item as HabitGroup;
+            final habits = groupHabits[group.id] ?? [];
+            final isExpanded = expanded[group.id] ?? true;
+
+            return ReorderableDelayedDragStartListener(
+              key: ValueKey('flat_g_${group.id}'),
+              index: i,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _GroupBlock(
+                  group: group,
+                  habits: habits,
+                  isExpanded: isExpanded,
+                  repo: repo,
+                  onToggleExpand: () => onToggleExpand(group.id),
+                  onGroupActions: () => onGroupActions(group),
+                  onHabitTap: onTap,
+                  onHabitMoreTap: onMoreTap,
+                  onHabitDelete: onDelete,
                 ),
               ),
-            ),
-        ],
-        if (allHabits.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 48),
-            child: Column(
-              children: [
-                Icon(Icons.auto_awesome_outlined,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.outlineVariant),
-                const SizedBox(height: 12),
-                Text('Belum ada kebiasaan',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  'Tap + untuk menambah kebiasaan pertamamu',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
-            ),
+            );
+          },
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _NewGroupButton(onTap: onCreateGroup),
           ),
-        const SizedBox(height: 24),
-        _NewGroupButton(onTap: onCreateGroup),
-        const SizedBox(height: 16),
-        const _MascotBanner(),
+        ),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 100),
+            child: _MascotBanner(),
+          ),
+        ),
       ],
     );
   }
 }
 
-// ─── Group view (with drag reorder) ──────────────────────────────────────────
+// ─── Group block (inline inside flat list) ────────────────────────────────────
+
+class _GroupBlock extends StatelessWidget {
+  const _GroupBlock({
+    required this.group,
+    required this.habits,
+    required this.isExpanded,
+    required this.repo,
+    required this.onToggleExpand,
+    required this.onGroupActions,
+    required this.onHabitTap,
+    required this.onHabitMoreTap,
+    required this.onHabitDelete,
+  });
+
+  final HabitGroup group;
+  final List<Habit> habits;
+  final bool isExpanded;
+  final HabitRepository repo;
+  final VoidCallback onToggleExpand;
+  final VoidCallback onGroupActions;
+  final void Function(Habit) onHabitTap;
+  final void Function(Habit) onHabitMoreTap;
+  final Future<void> Function(Habit) onHabitDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final doneCount = habits.where((h) => repo.isCompletedToday(h.id)).length;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        children: [
+          // Group header
+          InkWell(
+            onTap: onToggleExpand,
+            borderRadius: BorderRadius.vertical(
+              top: const Radius.circular(16),
+              bottom: Radius.circular(isExpanded ? 0 : 16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+              child: Row(
+                children: [
+                  Text(group.emoji, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(group.name,
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  if (habits.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.habitsColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$doneCount/${habits.length}',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.habitsColor),
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onGroupActions,
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.more_vert_rounded,
+                          size: 18, color: AppTheme.muted),
+                    ),
+                  ),
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: AppTheme.muted,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Children
+          if (isExpanded && habits.isNotEmpty) ...[
+            Divider(height: 1, color: AppTheme.border),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Column(
+                children: [
+                  for (var i = 0; i < habits.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                          bottom: i < habits.length - 1 ? 8 : 0),
+                      child: _SwipeToDelete(
+                        habit: habits[i],
+                        onDelete: () => onHabitDelete(habits[i]),
+                        child: HabitCard(
+                          habit: habits[i],
+                          isDone: repo.isCompletedToday(habits[i].id),
+                          streak: repo.getStreak(habits[i].id),
+                          onTap: () => onHabitTap(habits[i]),
+                          onMoreTap: () => onHabitMoreTap(habits[i]),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          if (isExpanded && habits.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Text(
+                'Belum ada kebiasaan. Tap + atau pindahkan dari "Tanpa rutinitas".',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Group-specific view (with inner reorder) ─────────────────────────────────
 
 class _GroupView extends StatelessWidget {
   const _GroupView({
@@ -657,86 +940,69 @@ class _GroupView extends StatelessWidget {
     required this.habits,
     required this.repo,
     required this.onTap,
-    required this.onLongPress,
+    required this.onMoreTap,
     required this.onReorder,
-    required this.onRename,
-    required this.onDeleteGroup,
+    required this.onDelete,
   });
 
   final HabitGroup group;
   final List<Habit> habits;
   final HabitRepository repo;
   final void Function(Habit) onTap;
-  final void Function(Habit) onLongPress;
-  final void Function(int oldIndex, int newIndex) onReorder;
-  final Future<void> Function(HabitGroup) onRename;
-  final Future<void> Function(HabitGroup) onDeleteGroup;
+  final void Function(Habit) onMoreTap;
+  final void Function(int, int) onReorder;
+  final Future<void> Function(Habit) onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: _GroupHeader(
-            group: group,
-            onRename: () => onRename(group),
-            onDelete: () => onDeleteGroup(group),
+    if (habits.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'Belum ada kebiasaan di sini.\nTap + atau gunakan "Pindahkan ke rutinitas" dari Semua.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
         ),
-        Expanded(
-          child: habits.isEmpty
-              ? Center(
-                  child: Text(
-                    'Belum ada kebiasaan di rutinitas ini.\nTap + untuk menambah.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                )
-              : ReorderableListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  buildDefaultDragHandles: false,
-                  itemCount: habits.length,
-                  onReorder: onReorder,
-                  itemBuilder: (context, i) {
-                    final habit = habits[i];
-                    return Padding(
-                      key: ValueKey(habit.id),
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          ReorderableDragStartListener(
-                            index: i,
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 0, 8, 0),
-                              child: Icon(Icons.drag_handle_rounded,
-                                  color: AppTheme.muted, size: 22),
-                            ),
-                          ),
-                          Expanded(
-                            child: HabitCard(
-                              habit: habit,
-                              isDone: repo.isCompletedToday(habit.id),
-                              streak: repo.getStreak(habit.id),
-                              onTap: () => onTap(habit),
-                              onLongPress: () => onLongPress(habit),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-        ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: _MascotBanner(),
-        ),
-        const SizedBox(height: 80),
-      ],
+      );
+    }
+
+    return ReorderableListView.builder(
+      buildDefaultDragHandles: false,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      onReorder: onReorder,
+      itemCount: habits.length + 1, // +1 for mascot banner
+      itemBuilder: (ctx, i) {
+        if (i == habits.length) {
+          return const Padding(
+            key: ValueKey('mascot'),
+            padding: EdgeInsets.only(top: 16),
+            child: _MascotBanner(),
+          );
+        }
+        final habit = habits[i];
+        return ReorderableDelayedDragStartListener(
+          key: ValueKey('group_h_${habit.id}'),
+          index: i,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _SwipeToDelete(
+              habit: habit,
+              onDelete: () => onDelete(habit),
+              child: HabitCard(
+                habit: habit,
+                isDone: repo.isCompletedToday(habit.id),
+                streak: repo.getStreak(habit.id),
+                onTap: () => onTap(habit),
+                onMoreTap: () => onMoreTap(habit),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -760,7 +1026,7 @@ class _TodayHeader extends StatelessWidget {
     final pct = total > 0 ? done / total : 0.0;
     final allDone = total > 0 && done == total;
     return Container(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.surfaceDark,
@@ -792,10 +1058,9 @@ class _TodayHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  '$done/$total',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                ),
+                Text('$done/$total',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -813,9 +1078,10 @@ class _TodayHeader extends StatelessWidget {
                   bestStreak > 0
                       ? '🔥 Beruntun terbaik $bestStreak hari'
                       : 'Centang kebiasaan untuk mulai streak',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -826,66 +1092,32 @@ class _TodayHeader extends StatelessWidget {
   }
 }
 
-class _GroupHeader extends StatelessWidget {
-  const _GroupHeader({
-    required this.group,
-    required this.onRename,
-    required this.onDelete,
-  });
-
-  final HabitGroup group;
-  final VoidCallback onRename;
-  final VoidCallback onDelete;
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onCreateGroup});
+  final VoidCallback onCreateGroup;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(group.emoji, style: const TextStyle(fontSize: 16)),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            group.name,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
+        children: [
+          Icon(Icons.auto_awesome_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.outlineVariant),
+          const SizedBox(height: 12),
+          Text('Belum ada kebiasaan',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Tap + untuk menambah, atau buat rutinitas dulu.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.more_horiz_rounded, size: 20),
-          color: AppTheme.muted,
-          visualDensity: VisualDensity.compact,
-          onPressed: () => showModalBottomSheet(
-            context: context,
-            builder: (ctx) => SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 8),
-                  ListTile(
-                    leading: const Icon(Icons.edit_rounded),
-                    title: const Text('Ubah nama & emoji'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      onRename();
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.delete_outline_rounded,
-                        color: Theme.of(context).colorScheme.error),
-                    title: const Text('Hapus rutinitas'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      onDelete();
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -905,7 +1137,8 @@ class _NewGroupButton extends StatelessWidget {
           label: const Text('Buat rutinitas baru'),
           style: TextButton.styleFrom(
             foregroundColor: AppTheme.muted,
-            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            textStyle:
+                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ),
         const Expanded(child: Divider(color: AppTheme.border)),
@@ -924,8 +1157,8 @@ class _MascotBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.habitsColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: AppTheme.habitsColor.withValues(alpha: 0.3)),
+        border:
+            Border.all(color: AppTheme.habitsColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -961,7 +1194,7 @@ class _SwipeToDelete extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Dismissible(
-      key: ValueKey('dismiss_${habit.id}'),
+      key: ValueKey('swipe_${habit.id}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -972,26 +1205,23 @@ class _SwipeToDelete extends StatelessWidget {
         ),
         child: Icon(Icons.delete_outline_rounded, color: cs.onError),
       ),
-      confirmDismiss: (_) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Hapus kebiasaan?'),
-            content: Text('${habit.name} akan dihapus permanen.'),
-            actions: [
-              TextButton(
+      confirmDismiss: (_) => showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Hapus kebiasaan?'),
+          content: Text('${habit.name} akan dihapus permanen.'),
+          actions: [
+            TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(backgroundColor: cs.error),
-                child: const Text('Hapus'),
-              ),
-            ],
-          ),
-        );
-      },
+                child: const Text('Batal')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: cs.error),
+              child: const Text('Hapus'),
+            ),
+          ],
+        ),
+      ),
       onDismissed: (_) => onDelete(),
       child: child,
     );
@@ -1018,7 +1248,9 @@ class _RetireSheet extends StatelessWidget {
           Text(habit.name, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
-            streak > 0 ? '$streak hari berturut-turut' : 'Belum ada streak',
+            streak > 0
+                ? '$streak hari berturut-turut'
+                : 'Belum ada streak',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: streak > 0 ? cs.primary : cs.onSurfaceVariant,
                   fontWeight:
@@ -1027,11 +1259,12 @@ class _RetireSheet extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Kebiasaan ini akan dihapus dari daftar aktif dan disimpan sebagai medali pencapaian.',
+            'Kebiasaan ini akan dihapus dari daftar aktif dan disimpan sebagai medali.',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 28),
           FilledButton(
@@ -1044,6 +1277,477 @@ class _RetireSheet extends StatelessWidget {
             child: const Text('Batal'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Edit mode view ───────────────────────────────────────────────────────────
+
+class _EditModeView extends StatefulWidget {
+  const _EditModeView({
+    required this.flatItems,
+    required this.groupHabits,
+    required this.expanded,
+    required this.repo,
+    required this.onTap,
+    required this.onMoreTap,
+    required this.onToggleExpand,
+    required this.onGroupActions,
+    required this.onDelete,
+    required this.onReloaded,
+  });
+
+  final List<dynamic> flatItems;
+  final Map<String, List<Habit>> groupHabits;
+  final Map<String, bool> expanded;
+  final HabitRepository repo;
+  final void Function(Habit) onTap;
+  final void Function(Habit) onMoreTap;
+  final void Function(String) onToggleExpand;
+  final void Function(HabitGroup) onGroupActions;
+  final Future<void> Function(Habit) onDelete;
+  final VoidCallback onReloaded;
+
+  @override
+  State<_EditModeView> createState() => _EditModeViewState();
+}
+
+class _EditModeViewState extends State<_EditModeView> {
+  bool _isDragging = false;
+  bool _draggingHabit = false;
+
+  Future<void> _handleDrop(Object item,
+      {int? flatIndex, String? intoGroupId, int? groupPos}) async {
+    if (item is Habit) {
+      final oldGroupId = item.groupId;
+
+      if (intoGroupId != null) {
+        item.groupId = intoGroupId;
+        await widget.repo.save(item);
+        final gh = widget.repo.habitsInGroup(intoGroupId);
+        gh.removeWhere((h) => h.id == item.id);
+        final pos = (groupPos ?? gh.length).clamp(0, gh.length);
+        gh.insert(pos, item);
+        await widget.repo.reorderHabitsInGroup(gh);
+        if (oldGroupId != intoGroupId) {
+          await widget.repo.autoSortNewItem(intoGroupId, item.id);
+        }
+      } else {
+        item.groupId = null;
+        await widget.repo.save(item);
+        final flat = widget.repo.getFlatList();
+        final cur = flat.indexWhere((f) => f is Habit && f.id == item.id);
+        if (cur != -1) flat.removeAt(cur);
+        int idx = flatIndex ?? flat.length;
+        if (cur != -1 && cur < idx) idx--;
+        flat.insert(idx.clamp(0, flat.length), item);
+        await widget.repo.reorderFlatList(flat);
+      }
+    } else if (item is HabitGroup) {
+      final flat = widget.repo.getFlatList();
+      final cur = flat.indexWhere((f) => f is HabitGroup && f.id == item.id);
+      if (cur != -1) flat.removeAt(cur);
+      int idx = flatIndex ?? flat.length;
+      if (cur != -1 && cur < idx) idx--;
+      flat.insert(idx.clamp(0, flat.length), item);
+      await widget.repo.reorderFlatList(flat);
+    }
+
+    widget.onReloaded();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = MediaQuery.of(context).size.width;
+    final rows = <Widget>[];
+
+
+    rows.add(_DropZone(
+      active: _isDragging,
+      onDrop: (item) => _handleDrop(item, flatIndex: 0),
+    ));
+
+    for (var i = 0; i < widget.flatItems.length; i++) {
+      final item = widget.flatItems[i];
+
+      if (item is Habit) {
+        rows.add(LongPressDraggable<Object>(
+          data: item,
+          delay: const Duration(milliseconds: 350),
+          onDragStarted: () =>
+              setState(() { _isDragging = true; _draggingHabit = true; }),
+          onDragEnd: (_) =>
+              setState(() { _isDragging = false; _draggingHabit = false; }),
+          onDraggableCanceled: (_, __) =>
+              setState(() { _isDragging = false; _draggingHabit = false; }),
+          feedback: _DragFeedback(
+            width: sw - 32,
+            child: HabitCard(
+              habit: item,
+              isDone: widget.repo.isCompletedToday(item.id),
+              streak: widget.repo.getStreak(item.id),
+              onTap: () {},
+            ),
+          ),
+          childWhenDragging: _DragGhost(height: 64),
+          child: HabitCard(
+            habit: item,
+            isDone: widget.repo.isCompletedToday(item.id),
+            streak: widget.repo.getStreak(item.id),
+            onTap: () => widget.onTap(item),
+            onMoreTap: () => widget.onMoreTap(item),
+          ),
+        ));
+      } else if (item is HabitGroup) {
+        final habits = widget.groupHabits[item.id] ?? [];
+        final isExpanded = widget.expanded[item.id] ?? true;
+        rows.add(_EditGroupBlock(
+          group: item,
+          habits: habits,
+          isExpanded: isExpanded,
+          isDragging: _isDragging,
+          draggingHabit: _draggingHabit,
+          repo: widget.repo,
+          screenWidth: sw,
+          onToggleExpand: () => widget.onToggleExpand(item.id),
+          onGroupActions: () => widget.onGroupActions(item),
+          onHabitTap: widget.onTap,
+          onHabitMoreTap: widget.onMoreTap,
+          onHabitDelete: widget.onDelete,
+          onGroupDragStart: () =>
+              setState(() { _isDragging = true; _draggingHabit = false; }),
+          onGroupDragEnd: () =>
+              setState(() { _isDragging = false; _draggingHabit = false; }),
+          onHabitDragStart: () =>
+              setState(() { _isDragging = true; _draggingHabit = true; }),
+          onHabitDragEnd: () =>
+              setState(() { _isDragging = false; _draggingHabit = false; }),
+          onDropIntoGroup: (dropped, pos) =>
+              _handleDrop(dropped, intoGroupId: item.id, groupPos: pos),
+        ));
+      }
+
+      rows.add(_DropZone(
+        active: _isDragging,
+        onDrop: (dropped) => _handleDrop(dropped, flatIndex: i + 1),
+      ));
+    }
+
+    rows.add(const SizedBox(height: 16));
+    rows.add(const _DragHint());
+    rows.add(const SizedBox(height: 12));
+    rows.add(const _MascotBanner());
+    rows.add(const SizedBox(height: 80));
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      children: rows,
+    );
+  }
+}
+
+// ─── Edit group block ─────────────────────────────────────────────────────────
+
+class _EditGroupBlock extends StatelessWidget {
+  const _EditGroupBlock({
+    required this.group,
+    required this.habits,
+    required this.isExpanded,
+    required this.isDragging,
+    required this.draggingHabit,
+    required this.repo,
+    required this.screenWidth,
+    required this.onToggleExpand,
+    required this.onGroupActions,
+    required this.onHabitTap,
+    required this.onHabitMoreTap,
+    required this.onHabitDelete,
+    required this.onGroupDragStart,
+    required this.onGroupDragEnd,
+    required this.onHabitDragStart,
+    required this.onHabitDragEnd,
+    required this.onDropIntoGroup,
+  });
+
+  final HabitGroup group;
+  final List<Habit> habits;
+  final bool isExpanded;
+  final bool isDragging;
+  final bool draggingHabit;
+  final HabitRepository repo;
+  final double screenWidth;
+  final VoidCallback onToggleExpand;
+  final VoidCallback onGroupActions;
+  final void Function(Habit) onHabitTap;
+  final void Function(Habit) onHabitMoreTap;
+  final Future<void> Function(Habit) onHabitDelete;
+  final VoidCallback onGroupDragStart;
+  final VoidCallback onGroupDragEnd;
+  final VoidCallback onHabitDragStart;
+  final VoidCallback onHabitDragEnd;
+  final void Function(Object item, int pos) onDropIntoGroup;
+
+  Widget _groupFeedback() => Container(
+        width: screenWidth - 32,
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.habitsColor),
+        ),
+        child: Row(
+          children: [
+            Text(group.emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
+            Text(group.name,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Colors.white)),
+          ],
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final doneCount =
+        habits.where((h) => repo.isCompletedToday(h.id)).length;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        children: [
+          // Header: long-press anywhere here to drag the whole group
+          LongPressDraggable<Object>(
+            data: group,
+            delay: const Duration(milliseconds: 350),
+            onDragStarted: onGroupDragStart,
+            onDragEnd: (_) => onGroupDragEnd(),
+            onDraggableCanceled: (_, __) => onGroupDragEnd(),
+            feedback: Material(
+              color: Colors.transparent,
+              child: _groupFeedback(),
+            ),
+            childWhenDragging: _DragGhost(height: 52),
+            child: InkWell(
+              onTap: onToggleExpand,
+              borderRadius: BorderRadius.vertical(
+                top: const Radius.circular(16),
+                bottom: Radius.circular(isExpanded ? 0 : 16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                child: Row(
+                  children: [
+                    Text(group.emoji,
+                        style: const TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(group.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15)),
+                    ),
+                    if (habits.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color:
+                              AppTheme.habitsColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$doneCount/${habits.length}',
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.habitsColor),
+                        ),
+                      ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onGroupActions,
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(Icons.more_vert_rounded,
+                            size: 18, color: AppTheme.muted),
+                      ),
+                    ),
+                    Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: AppTheme.muted,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Expanded children with inner drop zones
+          if (isExpanded) ...[
+            Divider(height: 1, color: AppTheme.border),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Column(
+                children: [
+                  _DropZone(
+                    active: isDragging && draggingHabit,
+                    onDrop: (item) => onDropIntoGroup(item, 0),
+                  ),
+                  for (var j = 0; j < habits.length; j++) ...[
+                    LongPressDraggable<Object>(
+                      data: habits[j],
+                      delay: const Duration(milliseconds: 350),
+                      onDragStarted: onHabitDragStart,
+                      onDragEnd: (_) => onHabitDragEnd(),
+                      onDraggableCanceled: (_, __) => onHabitDragEnd(),
+                      feedback: _DragFeedback(
+                        width: screenWidth - 56,
+                        child: HabitCard(
+                          habit: habits[j],
+                          isDone: false,
+                          streak: 0,
+                          onTap: () {},
+                        ),
+                      ),
+                      childWhenDragging: _DragGhost(height: 64),
+                      child: HabitCard(
+                        habit: habits[j],
+                        isDone: repo.isCompletedToday(habits[j].id),
+                        streak: repo.getStreak(habits[j].id),
+                        onTap: () => onHabitTap(habits[j]),
+                        onMoreTap: () => onHabitMoreTap(habits[j]),
+                      ),
+                    ),
+                    _DropZone(
+                      active: isDragging && draggingHabit,
+                      onDrop: (item) => onDropIntoGroup(item, j + 1),
+                    ),
+                  ],
+                  if (habits.isEmpty)
+                    _DropZone(
+                      active: isDragging && draggingHabit,
+                      onDrop: (item) => onDropIntoGroup(item, 0),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Drag helpers ─────────────────────────────────────────────────────────────
+
+class _DropZone extends StatelessWidget {
+  const _DropZone({required this.active, required this.onDrop});
+
+  final bool active;
+  final void Function(Object) onDrop;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!active) return const SizedBox(height: 4);
+    return DragTarget<Object>(
+      onAcceptWithDetails: (d) => onDrop(d.data),
+      builder: (_, candidates, __) => AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: candidates.isNotEmpty ? 44 : 16,
+        margin: candidates.isNotEmpty
+            ? const EdgeInsets.symmetric(vertical: 2)
+            : EdgeInsets.zero,
+        decoration: BoxDecoration(
+          color: candidates.isNotEmpty
+              ? AppTheme.habitsColor.withValues(alpha: 0.2)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: candidates.isNotEmpty
+              ? Border.all(
+                  color: AppTheme.habitsColor.withValues(alpha: 0.6),
+                  width: 1.5)
+              : null,
+        ),
+        child: candidates.isNotEmpty
+            ? const Center(
+                child: Icon(Icons.add_rounded,
+                    color: AppTheme.habitsColor, size: 20))
+            : null,
+      ),
+    );
+  }
+}
+
+class _DragHint extends StatelessWidget {
+  const _DragHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.touch_app_rounded, size: 13, color: AppTheme.muted),
+        const SizedBox(width: 6),
+        Text(
+          'Tahan item untuk mengatur posisi',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.muted,
+                fontSize: 11,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DragFeedback extends StatelessWidget {
+  const _DragFeedback({required this.width, required this.child});
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Material(
+        elevation: 8,
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: Opacity(opacity: 0.92, child: child),
+      ),
+    );
+  }
+}
+
+class _DragGhost extends StatelessWidget {
+  const _DragGhost({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.habitsColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.habitsColor.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
       ),
     );
   }

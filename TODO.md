@@ -74,6 +74,7 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] Star mascot motivational banner at bottom of habits screen
 - [x] Compact habit cards (44px icon, streak text, 12px padding)
 - [x] Add habit screen: group picker chips replace old stacking UI
+- [x] Drag routine directly INTO an expanded stack — edit mode (Atur/Selesai) with LongPressDraggable + DragTarget zones
 - [ ] Habit history / calendar view
 - [ ] Routine streak (group-level completion streak)
 
