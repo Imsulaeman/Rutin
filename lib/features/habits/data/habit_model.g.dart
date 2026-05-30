@@ -22,9 +22,9 @@ class HabitAdapter extends TypeAdapter<Habit> {
       ..emoji = fields[2] as String
       ..scheduleDays = (fields[3] as List).cast<int>()
       ..reminderMinutes = fields[4] as int?
-      ..colorValue = (fields[5] as int?) ?? 0
-      ..groupId = fields[6] as String?
-      ..sortIndex = (fields[7] as int?) ?? 0;
+      ..colorValue = (fields[5] is int) ? fields[5] as int : 0
+      ..groupId = (fields[6] is String) ? fields[6] as String : null
+      ..sortIndex = (fields[7] is int) ? fields[7] as int : 0;
   }
 
   @override
