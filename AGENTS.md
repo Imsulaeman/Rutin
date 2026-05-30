@@ -99,6 +99,103 @@ Use this section to record significant decisions, blockers, or completions so ot
 
 ---
 
+## Pending Task — RECEIVE_BOOT_COMPLETED Reschedule
+
+**Why:** Android cancels all AlarmManager alarms on device reboot. Medicine and water reminders go silent after a restart with no error. For TB patients missing a dose is dangerous — this must be fixed.
+
+**The permission `RECEIVE_BOOT_COMPLETED` is already declared in `AndroidManifest.xml`. Do not add it again.**
+
+---
+
+### Step 1 — Medicine alarm registry in `NativeReminderScheduler.kt`
+
+Add a persistent registry of active base alarms to SharedPreferences so `BootReceiver` can reschedule without Flutter running.
+
+**New prefs file:** `"medicine_alarm_registry"` (separate from the existing `"medicine_alarm_debug"` prefs).
+
+Add these methods to the `NativeReminderScheduler` companion object:
+
+```
+persistAlarm(context, rootAlarmId, scheduledMinutes, medicineName, dosage, renotifyMinutes)
+  → writes/updates one entry in the registry JSON array
+
+removeAlarm(context, rootAlarmId)
+  → removes the entry with matching rootAlarmId from the registry
+
+rescheduleAll(context)
+  → reads the registry, for each entry calls schedule() with:
+      triggerAtMillis = nextOccurrenceMillis(scheduledMinutes)
+      isLoop = false
+```
+
+`nextOccurrenceMillis(scheduledMinutes: Int): Long` — same logic as `_nextMedicineTime` in `main.dart`:
+set today's date at HH:MM, if that time has already passed bump to tomorrow.
+
+Registry JSON format (use `org.json.JSONArray` — built into Android, no extra dependency):
+```json
+[
+  { "rootAlarmId": 12345, "scheduledMinutes": 480, "medicineName": "Amoxicillin", "dosage": "1 tablet", "renotifyMinutes": 1 },
+  ...
+]
+```
+
+**Wire up in existing methods:**
+- In `schedule()`: call `persistAlarm()` only when `isLoop == false` (base alarms only, not the re-notify loop)
+- In `cancel()`: call `removeAlarm()`
+
+---
+
+### Step 2 — New file `BootReceiver.kt`
+
+```kotlin
+package com.rutin.app
+
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
+            intent.action != "android.intent.action.QUICKBOOT_POWERON") return
+
+        // Reschedule all medicine alarms
+        NativeReminderScheduler.rescheduleAll(context)
+
+        // Reschedule water reminder if it was active
+        val waterPrefs = context.getSharedPreferences("water_settings", Context.MODE_PRIVATE)
+        if (waterPrefs.getBoolean("reminder_active", false)) {
+            val intervalMs = waterPrefs.getLong("interval_ms", 120 * 60_000L)
+            WaterAlarmReceiver.schedule(context, intervalMs)
+        }
+    }
+}
+```
+
+---
+
+### Step 3 — Register `BootReceiver` in `AndroidManifest.xml`
+
+Add inside `<application>`, alongside the other receivers:
+
+```xml
+<receiver
+    android:name=".BootReceiver"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+        <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+    </intent-filter>
+</receiver>
+```
+
+`QUICKBOOT_POWERON` covers Huawei/MIUI/OnePlus fast-boot which does not fire `BOOT_COMPLETED`.
+
+---
+
+### What NOT to do
+- Do not start a Flutter engine or launch the app at boot — registry must be native-only
+- Do not reschedule loop alarms (`isLoop=true`) at boot — only base alarms fire at the scheduled time; the loop is started by `ReminderAlarmReceiver` when the base alarm fires
+- Do not modify the Dart/Flutter side — all changes are Kotlin only
+
+---
+
 **2026-05-30 (session 13) - Codex (gpt-5)**
 - **Home today view** — replaced 3-card feature launcher with scrollable today dashboard. Background image is now a fixed hero at top; Obat / Air / Kebiasaan sections scroll below it. Each section has a label + "→ Semua" link. Obat shows per-medicine dose chips (inline tap to mark taken). Air shows compact WaterProgressWidget. Kebiasaan shows today's habits (capped at 5 + overflow link).
 - **Background fix** — initial implementation blocked the sun/atmosphere background; fixed by making the background a full-height hero sliver and pushing content sections below the fold.

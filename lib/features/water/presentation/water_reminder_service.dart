@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../data/water_model.dart';
@@ -7,13 +6,13 @@ class WaterReminderService {
   static const _channel = MethodChannel('habit_app/native_reminder');
 
   static Future<void> schedule(WaterGoal goal) async {
-    final intervalMs = kDebugMode ? 15000 : goal.reminderIntervalMinutes * 60000;
+    final intervalMs = goal.reminderIntervalMinutes * 60000;
     await _channel.invokeMethod('saveWaterSettings', {
       'startMin': goal.startTimeMinutes,
       'endMin': goal.endTimeMinutes,
       'intervalMs': intervalMs,
       'reminderActive': true,
-      'debug': kDebugMode,
+      'debug': false,
     });
     await _channel.invokeMethod('scheduleWaterAlarm', {'delayMs': intervalMs});
   }
