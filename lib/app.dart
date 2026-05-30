@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
+import 'features/habits/data/habit_model.dart';
 import 'features/habits/presentation/add_habit_screen.dart';
 import 'features/habits/presentation/habits_screen.dart';
 import 'features/home/presentation/home_screen.dart';
@@ -67,7 +68,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/habits/add',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const AddHabitScreen(),
+      builder: (_, state) => AddHabitScreen(habit: state.extra as Habit?),
     ),
   ],
 );

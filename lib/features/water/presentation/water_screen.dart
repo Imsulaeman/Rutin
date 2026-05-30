@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../data/water_model.dart';
@@ -16,7 +17,7 @@ class WaterScreen extends StatefulWidget {
 class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   final _repo = WaterRepository();
   late WaterGoal _goal;
-  int _current = 0;
+  int _currentMl = 0;
 
   @override
   void initState() {
@@ -39,38 +40,38 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
 
   void _load() {
     _goal = _repo.getGoal();
-    setState(() => _current = _repo.getTodayLog()?.glassesLogged ?? 0);
+    setState(() => _currentMl = _repo.getTodayMl());
   }
 
+  // Each pending native reminder the user confirmed = one glass.
   void _checkPendingLogs() async {
     final pending = await WaterReminderService.getPendingLogs();
     if (pending <= 0 || !mounted) return;
-    for (var i = 0; i < pending; i++) {
-      await _repo.logGlass();
-    }
-    if (mounted) setState(() => _current = _repo.getTodayLog()?.glassesLogged ?? 0);
+    await _repo.addMl(pending * _goal.glassSizeMl);
+    if (mounted) setState(() => _currentMl = _repo.getTodayMl());
   }
 
-  Future<void> _addGlass() async {
-    await _repo.logGlass();
-    setState(() => _current++);
-  }
-
-  Future<void> _removeGlass() async {
-    if (_current == 0) return;
-    await _repo.removeGlass();
-    setState(() => _current--);
-  }
-
-  Future<void> _toggleReminder(bool value) async {
-    _goal.reminderActive = value;
-    await _repo.saveGoal(_goal);
-    if (value) {
-      await WaterReminderService.schedule(_goal);
-    } else {
-      await WaterReminderService.cancel();
-    }
-    setState(() {});
+  Future<void> _addMl(int amount) async {
+    HapticFeedback.lightImpact();
+    await _repo.addMl(amount);
+    setState(() => _currentMl = _repo.getTodayMl());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('+$amount ml ditambahkan'),
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: 'Urungkan',
+            textColor: AppTheme.waterColor,
+            onPressed: () async {
+              await _repo.removeMl(amount);
+              if (mounted) setState(() => _currentMl = _repo.getTodayMl());
+            },
+          ),
+        ),
+      );
   }
 
   void _openSettings() {
@@ -84,6 +85,8 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
           await _repo.saveGoal(_goal);
           if (_goal.reminderActive) {
             await WaterReminderService.schedule(_goal);
+          } else {
+            await WaterReminderService.cancel();
           }
           setState(() {});
         },
@@ -91,30 +94,28 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
     );
   }
 
-  String _fmtTime(int minutes) {
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final goal = _goal.goalGlasses;
-    final isDone = _current >= goal;
-    final totalMl = _current * _goal.glassSizeMl;
     final targetMl = _goal.dailyTargetMl;
+    final pct = targetMl > 0 ? (_currentMl / targetMl).clamp(0.0, 1.0) : 0.0;
+    final pctInt = (pct * 100).round();
+    final isDone = _currentMl >= targetMl;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Custom header row
+            // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 8, 0),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
               child: Row(
                 children: [
-                  Text('Air', style: Theme.of(context).textTheme.headlineMedium),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    onPressed: () => Navigator.maybePop(context),
+                  ),
+                  const Spacer(),
+                  Text('Air', style: Theme.of(context).textTheme.titleLarge),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.tune_rounded),
@@ -127,88 +128,108 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Hero row: big ml (left) + arc (right)
+                    // Mascot + speech bubble
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        Image.asset('assets/water_drop_mascot.webp', height: 76),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TweenAnimationBuilder<int>(
-                                tween: IntTween(begin: 0, end: totalMl),
-                                duration: const Duration(milliseconds: 500),
-                                curve: Curves.easeOutCubic,
-                                builder: (_, v, __) => Text(
-                                  _fmtMl(v),
-                                  style: const TextStyle(
-                                    fontSize: 56,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -2.0,
-                                    color: AppTheme.waterColor,
-                                    height: 1,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              const Text(
-                                'ml',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF6AB7F5),
-                                  height: 1,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Target harian: $targetMl ml',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceHigh,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              isDone
+                                  ? 'Target tercapai! Mantap 🎉'
+                                  : 'Tetap semangat! Kamu hebat 💙',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        WaterProgressWidget(
-                          current: _current,
-                          goal: goal,
-                          size: 100,
-                          strokeWidth: 9,
-                          trackColor: AppTheme.waterColor.withOpacity(0.15),
-                          fillColor: AppTheme.waterColor,
                         ),
                       ],
                     ),
 
-                    if (isDone) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: AppTheme.waterColor.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          'Target hari ini tercapai!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: AppTheme.waterColor,
-                          ),
+                    const SizedBox(height: 32),
+
+                    // Hero ring
+                    Center(
+                      child: WaterProgressWidget(
+                        current: _currentMl,
+                        goal: targetMl,
+                        size: 240,
+                        strokeWidth: 16,
+                        trackColor: AppTheme.waterColor.withOpacity(0.15),
+                        fillColor: AppTheme.waterColor,
+                        center: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TweenAnimationBuilder<int>(
+                                  tween: IntTween(begin: 0, end: _currentMl),
+                                  duration: const Duration(milliseconds: 500),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (_, v, __) => Text(
+                                    _fmtMl(v),
+                                    style: const TextStyle(
+                                      fontSize: 46,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -1.5,
+                                      color: Colors.white,
+                                      height: 1,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    'ml',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.waterColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'dari ${_fmtMl(targetMl)} ml',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '$pctInt%',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.waterColor,
+                                height: 1,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
 
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
-                    // Add glass pill button
+                    // Primary add button (one glass)
                     FilledButton(
-                      onPressed: _addGlass,
+                      onPressed: () => _addMl(_goal.glassSizeMl),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppTheme.waterColor,
                         minimumSize: const Size(double.infinity, 56),
@@ -222,45 +243,65 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                       ),
                       child: Text('+ ${_goal.glassSizeMl} ml'),
                     ),
+
                     const SizedBox(height: 12),
 
-                    // Remove glass link
-                    TextButton(
-                      onPressed: _current > 0 ? _removeGlass : null,
-                      child: const Text('Kurangi satu gelas'),
-                    ),
-
-                    const SizedBox(height: 32),
-                    const Divider(),
-                    const SizedBox(height: 20),
-
-                    // Reminder toggle
+                    // Quick-add chips
                     Row(
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Pengingat',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Setiap ${_goal.reminderIntervalMinutes} menit  ·  '
-                                '${_fmtTime(_goal.startTimeMinutes)} – ${_fmtTime(_goal.endTimeMinutes)}',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
+                        _QuickAddChip(
+                          amount: 100,
+                          icon: Icons.local_cafe_rounded,
+                          onTap: () => _addMl(100),
                         ),
-                        Switch(
-                          value: _goal.reminderActive,
-                          onChanged: _toggleReminder,
-                          activeThumbColor: AppTheme.waterColor,
-                          activeTrackColor: AppTheme.waterColor.withAlpha(100),
+                        const SizedBox(width: 12),
+                        _QuickAddChip(
+                          amount: 250,
+                          icon: Icons.local_drink_rounded,
+                          onTap: () => _addMl(250),
+                        ),
+                        const SizedBox(width: 12),
+                        _QuickAddChip(
+                          amount: 500,
+                          icon: Icons.water_drop_rounded,
+                          onTap: () => _addMl(500),
                         ),
                       ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Daily goal row
+                    InkWell(
+                      onTap: _openSettings,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceHigh,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Target harian',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${_fmtMl(targetMl)} ml',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.edit_rounded,
+                                size: 18, color: AppTheme.muted),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -275,11 +316,67 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   static String _fmtMl(int ml) {
     if (ml >= 1000) {
       return ml.toString().replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (m) => '${m[1]},',
-      );
+            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+            (m) => '${m[1]},',
+          );
     }
     return ml.toString();
+  }
+}
+
+// ─── Quick-add chip ───────────────────────────────────────────────────────────
+
+class _QuickAddChip extends StatefulWidget {
+  const _QuickAddChip({
+    required this.amount,
+    required this.icon,
+    required this.onTap,
+  });
+  final int amount;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  State<_QuickAddChip> createState() => _QuickAddChipState();
+}
+
+class _QuickAddChipState extends State<_QuickAddChip> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _down = true),
+        onTapCancel: () => setState(() => _down = false),
+        onTapUp: (_) => setState(() => _down = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _down ? 0.95 : 1,
+          duration: const Duration(milliseconds: 110),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceHigh,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Icon(widget.icon, color: AppTheme.waterColor, size: 22),
+                const SizedBox(height: 6),
+                Text(
+                  '+${widget.amount} ml',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -299,6 +396,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
   late int _glassSizeMl;
   late int _startHour;
   late int _endHour;
+  late bool _reminderActive;
 
   static const _glassSizes = [150, 200, 250, 300, 350, 500];
 
@@ -309,6 +407,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
     _glassSizeMl = widget.goal.glassSizeMl;
     _startHour = widget.goal.startTimeMinutes ~/ 60;
     _endHour = widget.goal.endTimeMinutes ~/ 60;
+    _reminderActive = widget.goal.reminderActive;
   }
 
   int get _glasses => (_targetL * 1000 / _glassSizeMl).ceil();
@@ -323,7 +422,8 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
       ..dailyTargetMl = (_targetL * 1000).round()
       ..glassSizeMl = _glassSizeMl
       ..startTimeMinutes = _startHour * 60
-      ..endTimeMinutes = _endHour * 60;
+      ..endTimeMinutes = _endHour * 60
+      ..reminderActive = _reminderActive;
     await widget.onSave(widget.goal);
     if (mounted) Navigator.pop(context);
   }
@@ -409,7 +509,33 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          // Reminder toggle (moved here to keep the main screen clean)
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Pengingat',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Setiap $_intervalMin menit dalam rentang aktif',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _reminderActive,
+                onChanged: (v) => setState(() => _reminderActive = v),
+                activeThumbColor: AppTheme.waterColor,
+                activeTrackColor: AppTheme.waterColor.withAlpha(100),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
             '$_glasses gelas/hari  ·  pengingat setiap $_intervalMin menit',
             textAlign: TextAlign.center,

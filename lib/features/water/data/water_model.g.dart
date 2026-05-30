@@ -63,17 +63,20 @@ class WaterLogAdapter extends TypeAdapter<WaterLog> {
     };
     return WaterLog()
       ..date = fields[0] as String
-      ..glassesLogged = fields[1] as int;
+      ..glassesLogged = (fields[1] as int?) ?? 0
+      ..mlLogged = (fields[2] as int?) ?? 0;
   }
 
   @override
   void write(BinaryWriter writer, WaterLog obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
-      ..write(obj.glassesLogged);
+      ..write(obj.glassesLogged)
+      ..writeByte(2)
+      ..write(obj.mlLogged);
   }
 
   @override

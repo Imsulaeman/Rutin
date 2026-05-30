@@ -29,41 +29,25 @@ class WaterRepository {
     );
   }
 
-  Future<void> removeGlass() async {
-    final today = AppDateUtils.todayString();
-    final existing = _logs.values
-        .toList()
-        .asMap()
-        .entries
-        .cast<MapEntry<int, WaterLog>?>()
-        .firstWhere(
-          (e) => e?.value.date == today,
-          orElse: () => null,
-        );
-    if (existing != null && existing.value.glassesLogged > 0) {
-      existing.value.glassesLogged--;
-      await existing.value.save();
+  int getTodayMl() => getTodayLog()?.mlLogged ?? 0;
+
+  Future<void> addMl(int amount) async {
+    final log = getTodayLog();
+    if (log != null) {
+      log.mlLogged += amount;
+      await log.save();
+    } else {
+      await _logs.add(WaterLog()
+        ..date = AppDateUtils.todayString()
+        ..mlLogged = amount);
     }
   }
 
-  Future<void> logGlass() async {
-    final today = AppDateUtils.todayString();
-    final existing = _logs.values
-        .toList()
-        .asMap()
-        .entries
-        .cast<MapEntry<int, WaterLog>?>()
-        .firstWhere(
-          (e) => e?.value.date == today,
-          orElse: () => null,
-        );
-    if (existing != null) {
-      existing.value.glassesLogged++;
-      await existing.value.save();
-    } else {
-      await _logs.add(WaterLog()
-        ..date = today
-        ..glassesLogged = 1);
+  Future<void> removeMl(int amount) async {
+    final log = getTodayLog();
+    if (log != null && log.mlLogged > 0) {
+      log.mlLogged = (log.mlLogged - amount).clamp(0, log.mlLogged);
+      await log.save();
     }
   }
 }

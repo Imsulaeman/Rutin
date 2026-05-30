@@ -34,9 +34,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final _waterRepo = WaterRepository();
   final _habitRepo = HabitRepository();
 
-  int _waterCurrent = 0;
-  int _waterGoal    = 8;
-  int _glassSizeMl  = 250;
+  int _waterMl       = 0;
+  int _waterTargetMl = 2000;
   int _habitsDue    = 0;
   int _habitsDone   = 0;
 
@@ -85,9 +84,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final today    = all.where((h) => h.scheduleDays.contains(weekday)).toList();
 
     setState(() {
-      _waterCurrent = logToday?.glassesLogged ?? 0;
-      _waterGoal    = goal.goalGlasses;
-      _glassSizeMl  = goal.glassSizeMl;
+      _waterMl       = logToday?.mlLogged ?? 0;
+      _waterTargetMl = goal.dailyTargetMl;
       _habitsDue    = today.length;
       _habitsDone   = today.where((h) => _habitRepo.isCompletedToday(h.id)).length;
     });
@@ -126,7 +124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final medicines = ref.watch(medicineRepositoryProvider).getAll();
     final nextMed   = _nextMedicine(medicines);
-    final waterPct  = _waterGoal > 0 ? (_waterCurrent / _waterGoal).clamp(0.0, 1.0) : 0.0;
+    final waterPct  = _waterTargetMl > 0 ? (_waterMl / _waterTargetMl).clamp(0.0, 1.0) : 0.0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Dark background → light status-bar icons.
@@ -201,9 +199,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           start: 0.22,
                           end: 0.7,
                           child: _WaterCard(
-                            current: _waterCurrent,
-                            goal: _waterGoal,
-                            glassSizeMl: _glassSizeMl,
+                            currentMl: _waterMl,
+                            targetMl: _waterTargetMl,
                             pct: waterPct,
                             onTap: () => context.go('/water'),
                           ),
@@ -505,16 +502,14 @@ class _MedicineCard extends StatelessWidget {
 
 class _WaterCard extends StatelessWidget {
   const _WaterCard({
-    required this.current,
-    required this.goal,
-    required this.glassSizeMl,
+    required this.currentMl,
+    required this.targetMl,
     required this.pct,
     required this.onTap,
   });
 
-  final int current;
-  final int goal;
-  final int glassSizeMl;
+  final int currentMl;
+  final int targetMl;
   final double pct;
   final VoidCallback onTap;
 
@@ -524,7 +519,7 @@ class _WaterCard extends StatelessWidget {
       gradient: _waterGradient,
       icon: Icons.water_drop_rounded,
       title: 'Air',
-      subtitle: '${current * glassSizeMl} / ${goal * glassSizeMl} ml',
+      subtitle: '$currentMl / $targetMl ml',
       onTap: onTap,
       trailing: _PercentRing(progress: pct),
     );

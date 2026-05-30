@@ -59,15 +59,23 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] Skip day without breaking streak (handled by scheduleDays — only selected days count)
 - [x] Archive habit → replaced with Medal system (long-press → "Jadikan Medali")
 - [x] Habits list screen
+- [x] Water tracker: ml-based (addMl/removeMl), undo snackbar, quick-add chips
+- [x] Snackbar text color fixed (white on dark background)
+- [x] colorValue LateInitializationError fix on new habit save
 
-## Feature: Routine Stacking
-- [x] Routine + RoutineLog data models
-- [ ] RoutineRepository
-- [ ] Create routine (name, anchor type, habit sequence)
-- [ ] Sequential flow UI - one habit at a time
-- [ ] Auto-prompt next habit on completion
-- [ ] Routine streak separate from habit streak
-- [ ] Routine progress (e.g. "2 of 4 done")
+## Feature: Habit Groups (Routine Stacking)
+- [x] HabitGroup model (typeId 11) — first-class named group with emoji + sortIndex
+- [x] Habit.groupId + Habit.sortIndex replace linked-list stacking fields
+- [x] HabitRepository: getGroups, habitsInGroup, reorderHabitsInGroup, deleteGroup
+- [x] Habits screen: scrollable tab bar (Semua + one tab per group)
+- [x] Drag-to-reorder within group tab (long-press drag handle)
+- [x] Create group inline (──── + Buat rutinitas baru)
+- [x] Rename / delete group via ··· menu on group header
+- [x] Star mascot motivational banner at bottom of habits screen
+- [x] Compact habit cards (44px icon, streak text, 12px padding)
+- [x] Add habit screen: group picker chips replace old stacking UI
+- [ ] Habit history / calendar view
+- [ ] Routine streak (group-level completion streak)
 
 ## Feature: Home / Today View
 - [ ] Combine routines + standalone habits + water progress

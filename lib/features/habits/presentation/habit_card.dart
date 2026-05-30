@@ -3,16 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
 
-// Star count milestones: 3/7/14/30/60 days
-int _starsForStreak(int streak) {
-  if (streak >= 60) return 5;
-  if (streak >= 30) return 4;
-  if (streak >= 14) return 3;
-  if (streak >= 7)  return 2;
-  if (streak >= 3)  return 1;
-  return 0;
-}
-
 class HabitCard extends StatelessWidget {
   const HabitCard({
     super.key,
@@ -33,41 +23,38 @@ class HabitCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Card(
-      color: isDone ? AppTheme.habitsColor.withOpacity(0.12) : null,
+      color: isDone ? AppTheme.habitsColor.withValues(alpha: 0.12) : AppTheme.surfaceDark,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isDone
-              ? AppTheme.habitsColor.withOpacity(0.3)
+              ? AppTheme.habitsColor.withValues(alpha: 0.35)
               : AppTheme.border,
           width: 1,
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: isDone
-                      ? AppTheme.habitsColor.withOpacity(0.2)
+                      ? AppTheme.habitsColor.withValues(alpha: 0.2)
                       : AppTheme.surfaceHigh,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(
-                    habit.emoji,
-                    style: const TextStyle(fontSize: 24),
-                  ),
+                  child: Text(habit.emoji, style: const TextStyle(fontSize: 22)),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,45 +63,30 @@ class HabitCard extends StatelessWidget {
                       habit.name,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 5),
-                    _StarRow(streak: streak),
+                    const SizedBox(height: 2),
+                    Text(
+                      streak > 0 ? '$streak hari beruntun 🔥' : 'Mulai hari ini',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: streak > 0
+                                ? AppTheme.streakColor
+                                : cs.onSurfaceVariant,
+                          ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Icon(
-                isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-                size: 28,
+                isDone
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked,
+                size: 24,
                 color: isDone ? AppTheme.habitsColor : cs.outlineVariant,
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _StarRow extends StatelessWidget {
-  const _StarRow({required this.streak});
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    final filled = _starsForStreak(streak);
-    return Row(
-      children: List.generate(5, (i) {
-        return Padding(
-          padding: const EdgeInsets.only(right: 2),
-          child: Icon(
-            i < filled ? Icons.star_rounded : Icons.star_outline_rounded,
-            size: 14,
-            color: i < filled
-                ? AppTheme.streakColor
-                : AppTheme.muted.withOpacity(0.4),
-          ),
-        );
-      }),
     );
   }
 }

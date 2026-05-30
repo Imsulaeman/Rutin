@@ -28,7 +28,7 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 
 See `TODO.md` for full task list with statuses.
 
-**Phase:** Medicine alarm ✅ complete. Water reminder ✅ complete. Habits MVP ✅ complete. Next: Habit skip day / archive, or Routine stacking.  
+**Phase:** Medicine alarm ✅ complete. Water reminder ✅ complete (ml-based). Habits ✅ complete with groups + drag reorder. Next: habit history view or group-level streaks.  
 **App name:** Rutin
 
 ## Tech Stack

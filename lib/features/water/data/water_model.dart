@@ -36,6 +36,11 @@ class WaterLog extends HiveObject {
   @HiveField(0)
   late String date; // "2026-05-25"
 
+  // Legacy: superseded by mlLogged. Kept so field index 1 is never reused;
+  // no longer the source of truth.
   @HiveField(1)
-  late int glassesLogged;
+  int glassesLogged = 0;
+
+  @HiveField(2)
+  int mlLogged = 0;
 }

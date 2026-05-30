@@ -38,6 +38,7 @@ void _registerHiveAdapters() {
     ..registerAdapter(WaterLogAdapter())
     ..registerAdapter(HabitAdapter())
     ..registerAdapter(HabitLogAdapter())
+    ..registerAdapter(HabitGroupAdapter())
     ..registerAdapter(MedalAdapter())
     ..registerAdapter(RoutineAdapter())
     ..registerAdapter(RoutineLogAdapter())
@@ -53,6 +54,7 @@ Future<void> _openHiveBoxes() async {
     Hive.openBox<WaterLog>('water_logs'),
     Hive.openBox<Habit>('habits'),
     Hive.openBox<HabitLog>('habit_logs'),
+    Hive.openBox<HabitGroup>('habit_groups'),
     Hive.openBox<Medal>('medals'),
     Hive.openBox<Routine>('routines'),
     Hive.openBox<RoutineLog>('routine_logs'),

@@ -11,6 +11,7 @@ class WaterProgressWidget extends StatelessWidget {
     this.fillColor,
     this.size = 180,
     this.strokeWidth = 16,
+    this.center,
   });
 
   final int current;
@@ -19,6 +20,10 @@ class WaterProgressWidget extends StatelessWidget {
   final Color? fillColor;
   final double size;
   final double strokeWidth;
+
+  /// Optional widget shown at the ring's center. Defaults to the
+  /// glass-count label when null.
+  final Widget? center;
 
   @override
   Widget build(BuildContext context) {
@@ -47,26 +52,27 @@ class WaterProgressWidget extends StatelessWidget {
                   strokeWidth: strokeWidth,
                 ),
               ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$current',
-                    style: TextStyle(
-                      fontSize: size * 0.244,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1.5,
-                      color: resolvedFill,
-                      height: 1,
-                    ),
+              center ??
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$current',
+                        style: TextStyle(
+                          fontSize: size * 0.244,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.5,
+                          color: resolvedFill,
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'dari $goal gelas',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'dari $goal gelas',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
             ],
           ),
         );

@@ -5,12 +5,59 @@ import 'habit_model.dart';
 class HabitRepository {
   Box<Habit> get _habits => Hive.box<Habit>('habits');
   Box<HabitLog> get _logs => Hive.box<HabitLog>('habit_logs');
+  Box<HabitGroup> get _groups => Hive.box<HabitGroup>('habit_groups');
 
-  List<Habit> getAll() => _habits.values.toList();
+  // ─── Groups ───
+
+  List<HabitGroup> getGroups() {
+    final list = _groups.values.toList();
+    list.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+    return list;
+  }
+
+  Future<void> saveGroup(HabitGroup group) => _groups.put(group.id, group);
+
+  Future<void> deleteGroup(String id) async {
+    for (final h in _habits.values.where((h) => h.groupId == id).toList()) {
+      h.groupId = null;
+      await _habits.put(h.id, h);
+    }
+    await _groups.delete(id);
+  }
+
+  Future<void> reorderGroups(List<HabitGroup> ordered) async {
+    for (var i = 0; i < ordered.length; i++) {
+      ordered[i].sortIndex = i;
+      await _groups.put(ordered[i].id, ordered[i]);
+    }
+  }
+
+  // ─── Habits ───
+
+  List<Habit> getAll() {
+    final list = _habits.values.toList();
+    list.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+    return list;
+  }
+
+  List<Habit> habitsInGroup(String? groupId) {
+    final list = _habits.values.where((h) => h.groupId == groupId).toList();
+    list.sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
+    return list;
+  }
 
   Future<void> save(Habit habit) => _habits.put(habit.id, habit);
 
   Future<void> delete(String id) => _habits.delete(id);
+
+  Future<void> reorderHabitsInGroup(List<Habit> ordered) async {
+    for (var i = 0; i < ordered.length; i++) {
+      ordered[i].sortIndex = i;
+      await _habits.put(ordered[i].id, ordered[i]);
+    }
+  }
+
+  // ─── Logs ───
 
   bool isCompletedToday(String habitId) {
     final today = AppDateUtils.todayString();
