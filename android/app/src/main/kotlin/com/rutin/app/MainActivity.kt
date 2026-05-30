@@ -1,19 +1,37 @@
 package com.rutin.app
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
+import android.content.Intent
+import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import io.flutter.embedding.engine.FlutterEngine
+import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val channelName = "habit_app/native_reminder"
+    private val sleepChannelName = "rutin/sleep"
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getStringExtra("route") == "/wakeup-game") {
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                MethodChannel(messenger, sleepChannelName).invokeMethod("launchGame", null)
+            }
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        setupSleepChannel(flutterEngine)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
@@ -118,6 +136,14 @@ class MainActivity : FlutterActivity() {
                         vibratePattern(timings, amplitudes)
                         result.success(null)
                     }
+                    "playChime" -> {
+                        val mp = MediaPlayer.create(applicationContext, R.raw.notif_chime)
+                        mp?.apply {
+                            setOnCompletionListener { release() }
+                            start()
+                        }
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -163,5 +189,85 @@ class MainActivity : FlutterActivity() {
             @Suppress("DEPRECATION")
             vib.vibrate(timings, -1)
         }
+    }
+
+    private fun setupSleepChannel(flutterEngine: FlutterEngine) {
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, sleepChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startService" -> {
+                        SleepModeService.start(applicationContext)
+                        result.success(null)
+                    }
+                    "stopService" -> {
+                        SleepModeService.stop(applicationContext)
+                        result.success(null)
+                    }
+                    "isRunning" -> {
+                        result.success(SleepModeService.isRunning(applicationContext))
+                    }
+                    "isAccessibilityGranted" -> {
+                        val am = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
+                        val enabled = am.getEnabledAccessibilityServiceList(
+                            AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+                        ).any { it.id.contains("RutinAccessibilityService") }
+                        result.success(enabled)
+                    }
+                    "openAccessibilitySettings" -> {
+                        startActivity(
+                            Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                        )
+                        result.success(null)
+                    }
+                    "openBatteryOptimization" -> {
+                        val intent = Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:$packageName")
+                        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                        runCatching { startActivity(intent) }
+                        result.success(null)
+                    }
+                    "saveSleepSettings" -> {
+                        val sleepStart = call.argument<Int>("sleepStartMin") ?: 1260
+                        val wakeStart = call.argument<Int>("wakeWindowStart") ?: 300
+                        val wakeEnd = call.argument<Int>("wakeWindowEnd") ?: 600
+                        applicationContext.getSharedPreferences(
+                            "sleep_settings_native", Context.MODE_PRIVATE
+                        ).edit()
+                            .putInt("sleep_start_min", sleepStart)
+                            .putInt("wake_window_start", wakeStart)
+                            .putInt("wake_window_end", wakeEnd)
+                            .apply()
+                        result.success(null)
+                    }
+                    "setGameActive" -> {
+                        val active = call.arguments as? Boolean ?: false
+                        applicationContext.getSharedPreferences(
+                            SleepModeService.PREFS, Context.MODE_PRIVATE
+                        ).edit()
+                            .putBoolean("game_active", active)
+                            .apply()
+                        if (!active) {
+                            // Also clear dismissed flag when game closes
+                            applicationContext.getSharedPreferences(
+                                SleepModeService.PREFS, Context.MODE_PRIVATE
+                            ).edit().putBoolean("game_dismissed_normally", false).apply()
+                        }
+                        result.success(null)
+                    }
+                    "setGameDismissedNormally" -> {
+                        val value = call.arguments as? Boolean ?: true
+                        applicationContext.getSharedPreferences(
+                            SleepModeService.PREFS, Context.MODE_PRIVATE
+                        ).edit()
+                            .putBoolean("game_dismissed_normally", value)
+                            .apply()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 }

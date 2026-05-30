@@ -63,6 +63,7 @@ Future<void> _openHiveBoxes() async {
     Hive.openBox<RoutineLog>('routine_logs'),
     Hive.openBox<TBTreatmentProfile>('tb_profiles'),
     Hive.openBox<SleepSettings>('sleep_settings'),
+    Hive.openBox<int>('morning_streaks'),
   ]);
 }
 

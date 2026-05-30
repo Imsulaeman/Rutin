@@ -13,6 +13,8 @@ import 'features/medicine/presentation/medicine_archive_screen.dart';
 import 'features/medicine/presentation/medicine_history_screen.dart';
 import 'features/medicine/presentation/medicine_list_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
+import 'features/sleep/presentation/sleep_settings_screen.dart';
+import 'features/sleep/presentation/wakeup_game_screen.dart';
 import 'features/water/presentation/water_screen.dart';
 
 final _rootNavigatorKey    = GlobalKey<NavigatorState>();
@@ -81,6 +83,16 @@ final appRouter = GoRouter(
       path: '/habits/add',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (_, state) => AddHabitScreen(habit: state.extra as Habit?),
+    ),
+    GoRoute(
+      path: '/sleep-settings',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const SleepSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/wakeup-game',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const WakeupGameScreen(),
     ),
   ],
 );
@@ -255,10 +267,47 @@ class _Tab extends StatelessWidget {
   }
 }
 
+// ─── Native→Flutter game launch listener ─────────────────────────────────────
+
+class _LaunchGameListener extends StatefulWidget {
+  const _LaunchGameListener({required this.child});
+  final Widget child;
+  @override
+  State<_LaunchGameListener> createState() => _LaunchGameListenerState();
+}
+
+class _LaunchGameListenerState extends State<_LaunchGameListener> {
+  static const _ch = MethodChannel('rutin/sleep');
+
+  @override
+  void initState() {
+    super.initState();
+    _ch.setMethodCallHandler((call) async {
+      if (call.method == 'launchGame') {
+        appRouter.push('/wakeup-game');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
 // ─── App ─────────────────────────────────────────────────────────────────────
 
 class HabitApp extends StatelessWidget {
   const HabitApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _LaunchGameListener(
+      child: _AppRouter(),
+    );
+  }
+}
+
+class _AppRouter extends StatelessWidget {
+  const _AppRouter();
 
   @override
   Widget build(BuildContext context) {
@@ -280,3 +329,4 @@ class HabitApp extends StatelessWidget {
     );
   }
 }
+

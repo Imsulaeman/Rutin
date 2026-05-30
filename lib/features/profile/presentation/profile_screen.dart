@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../habits/data/habit_repository.dart';
@@ -45,6 +46,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: CustomScrollView(
         slivers: [
           _buildHeader(context),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(Icons.bedtime_rounded,
+                      color: Color(0xFF7C3AED)),
+                  title: const Text('Mode Tidur',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Pengaturan & game bangun pagi'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/sleep-settings'),
+                ),
+              ),
+            ),
+          ),
           if (_list.isEmpty)
             _buildEmpty(context)
           else

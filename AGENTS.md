@@ -196,6 +196,295 @@ Add inside `<application>`, alongside the other receivers:
 
 ---
 
+## Sleep Mode — Full Feature Plan (4 Codex Sessions)
+
+**What this is:** A wake-up gate. When the phone is unlocked during the morning window (5–10AM) after sleep mode was active, a mini-game launches full-screen. The user must play (or wait 15s for emergency skip) before the phone is usable. The game rotates daily. This is the app's MOAT.
+
+**Data model:** `SleepSettings` (typeId: 9) already exists in Hive. Fields: `sleepModeEnabled`, `sleepModeStartMinutes`, `wakeWindowStartMinutes`, `wakeWindowEndMinutes`, `accessibilityGranted`.
+
+**Morning streak:** Add a new Hive box `"morning_streaks"` using a simple `Box<int>` keyed by date string `"yyyy-MM-dd"` storing value `1` when game completed that day. Streak = consecutive days with value `1`.
+
+---
+
+### Session A — Sleep Settings Screen (Flutter only)
+
+**File to create:** `lib/features/sleep/presentation/sleep_settings_screen.dart`
+**Route:** `/sleep-settings` — add to `app.dart` as full-screen route above shell
+
+**UI sections:**
+1. **Toggle** — "Mode Tidur" on/off switch. When turned on, check if `AccessibilityService` is granted:
+   - If not granted → show inline banner: "Untuk pengalaman terbaik, aktifkan Accessibility Service." with button "Aktifkan" → opens `Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)` via `url_launcher` or a MethodChannel
+   - If granted → just enable
+2. **Jam tidur** — time picker for `sleepModeStartMinutes` (default 21:00)
+3. **Jendela bangun** — two time pickers: start (default 05:00) and end (default 10:00)
+4. **Accessibility status row** — shows "Diizinkan ✓" or "Belum diizinkan" with a grant button
+5. **Battery optimization row** — button that opens battery optimization settings for the app (`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`)
+
+Save all changes to Hive `SleepSettings` on every picker change (no save button needed).
+
+**Access from:** Settings sheet or home screen header menu (wherever the gear/menu is).
+
+---
+
+### Session B — Wake-up Game Screen (Flutter only)
+
+**File to create:** `lib/features/sleep/presentation/wakeup_game_screen.dart`
+
+**Entry point:** This screen is launched by the native `WakeUpTriggerReceiver` (built in Session C). For now, also add a **"Test Game"** button on the sleep settings screen so it can be tested without the native service.
+
+**Daily game selection:**
+```dart
+int _todayGameIndex() {
+  final now = DateTime.now();
+  final seed = now.year * 10000 + now.month * 100 + now.day;
+  return Random(seed).nextInt(6); // 0–5
+}
+```
+Same game all day. Different every day.
+
+**Emergency skip:** After 15 seconds, a small `TextButton("Lewati →")` fades in at bottom-right. Tapping it logs the skip and dismisses.
+
+**On game completion:**
+- Play `notif_chime.ogg` via `AudioPlayer` or `SystemSound`
+- Show a 2-second celebration overlay (confetti or pulsing circle)
+- Increment morning streak in Hive
+- Log `game_completed` event to Firebase Analytics
+- Dismiss screen → phone unlocks
+
+**Morning streak display:** Show "Hari ke-N 🔥" at the top of the game screen.
+
+---
+
+#### The 6 Games (all in same file as private widgets)
+
+**Game 0 — Sequence Memory**
+- 4 colored squares (pink, blue, green, amber — match app palette)
+- Computer lights them up in sequence (1 per second)
+- User taps same sequence
+- 3 rounds: sequence length 3, 4, 5
+- Wrong tap → gentle shake + restart round (infinite tries, no fail state)
+- All 3 rounds correct → complete
+
+**Game 1 — Word Unscramble**
+- Pick word from daily seed: `['RUTIN','SEHAT','OBAT','PAGI','TIDUR','DISIPLIN','SEMANGAT','KONSISTEN','KEBIASAAN','TUBUH']`
+- Show scrambled letters as tappable chips in a row
+- Tap chip → moves to answer row in order
+- Tap placed chip → returns to pool
+- When answer matches → complete
+- Show word meaning below on completion
+
+**Game 2 — Tap Rhythm**
+- 10 circles fall from top, one at a time, ~1.5 seconds each
+- A green "tap zone" bar at the bottom (20% height)
+- Tap anywhere when circle is in zone → hit (green flash)
+- Miss (circle leaves zone untapped) → miss counter
+- Get 7/10 hits → complete
+- Use `AnimationController` per circle, sequential
+
+**Game 3 — Tile Puzzle (8-puzzle)**
+- 3×3 grid, tiles 1–8 + one empty space
+- Tap tile adjacent to empty space → slides
+- Solved when tiles 1–8 in order left-to-right, top-to-bottom
+- Generate a random but **solvable** shuffle (check parity — an 8-puzzle is solvable if number of inversions + row of blank from bottom is even)
+- Seed shuffle with today's date for daily consistency
+
+**Game 4 — Daily Quiz**
+- 3 questions from a hardcoded bank of 20 health/motivation questions (Indonesian)
+- Select 3 using daily seed
+- 4 options each, one correct
+- Get 2/3 correct → complete (fail = restart from Q1, infinite tries)
+- Sample questions:
+  - "Berapa liter air yang direkomendasikan per hari?" → 2 liter ✓
+  - "Apa kepanjangan dari OAT?" → Obat Anti Tuberkulosis ✓
+  - "Vitamin apa yang diproduksi tubuh dari sinar matahari?" → Vitamin D ✓
+  - (fill remaining 17 with general wellness/health questions)
+
+**Game 5 — Connect the Dots**
+- 8 numbered dots placed pseudo-randomly on screen (seeded by date)
+- User draws a path connecting 1→2→3→...→8 by dragging
+- Use `CustomPainter` + `GestureDetector` onPanUpdate
+- Dot "snaps" highlighted when finger is within 30px
+- Line drawn behind finger
+- All 8 connected in order → complete
+- Dots positioned so lines don't cross too awkwardly (pre-generate good layouts, pick by seed)
+
+---
+
+### Session C — Native Sleep Detection Service (Kotlin only)
+
+**Files to create:**
+- `android/.../SleepModeService.kt` — foreground service
+- `android/.../WakeUpTriggerReceiver.kt` — listens for `ACTION_USER_PRESENT`
+- `android/.../SleepModeChannel.kt` — MethodChannel bridge
+
+**SleepModeService:**
+- Runs as foreground service with persistent notification "Mode tidur aktif" + action "Saya masih terjaga" (pauses detection 30 min)
+- Tracks `lastInteractionMs` (updated by `ACTION_USER_PRESENT` + Accessibility events)
+- Polls every 5 min: check 3-case sleep logic from `docs/ARCHITECTURE.md`
+- When sleep mode triggers → writes `"sleep_active": true` to SharedPreferences
+- When `ACTION_USER_PRESENT` fires during wake window + sleep was active → launches `WakeUpGameScreen` via Flutter intent
+- MethodChannel `"rutin/sleep"` methods: `startService`, `stopService`, `isRunning`
+
+**WakeUpTriggerReceiver:**
+- Registered dynamically by `SleepModeService` (not in manifest — avoids always-on)
+- On `ACTION_USER_PRESENT`:
+  - Read `SleepSettings` from Hive via shared prefs mirror OR just check SharedPreferences `"sleep_active"` flag
+  - Check current time is within wake window
+  - If both true → launch `WakeUpGameScreen`
+
+**AndroidManifest additions:**
+- `<service android:name=".SleepModeService" android:foregroundServiceType="health" android:exported="false" />`
+
+**Wire up from Flutter:**
+In `sleep_settings_screen.dart`, when toggle turned on → `MethodChannel("rutin/sleep").invokeMethod("startService")`. When turned off → `stopService`.
+
+---
+
+### Session D — AccessibilityService (Kotlin only)
+
+**Files to create:**
+- `android/.../RutinAccessibilityService.kt`
+- `android/app/src/main/res/xml/accessibility_service_config.xml`
+
+**Config XML:**
+```xml
+<accessibility-service
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewClicked"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds"
+    android:canRetrieveWindowContent="false"
+    android:notificationTimeout="100" />
+```
+
+**RutinAccessibilityService:**
+- On `TYPE_WINDOW_STATE_CHANGED`: if `WakeUpGameScreen` is active and user navigated away → `performGlobalAction(GLOBAL_ACTION_BACK)` to return
+- On any `AccessibilityEvent` during sleep hours → update `lastInteractionMs` in SharedPreferences (used by `SleepModeService` detection)
+- When `WakeUpGameScreen` is dismissed normally (game complete or skip) → set a flag `"game_dismissed_normally": true` so the service doesn't force-return
+
+**AndroidManifest:**
+```xml
+<service
+    android:name=".RutinAccessibilityService"
+    android:exported="true"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService"/>
+    </intent-filter>
+    <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/accessibility_service_config"/>
+</service>
+```
+
+---
+
+### Build order
+Session A → B → C → D. Each session is independently testable.
+Session B has a "Test Game" button so games work before native service exists.
+Session C wires the native trigger to Session B's screen.
+Session D adds the home-button intercept on top of Session C.
+
+---
+
+## Pending Task — Custom Notification Sounds + Vibration
+
+**Sound files are already placed at:**
+- `android/app/src/main/res/raw/notif_chime.ogg` → use for water + habit notifications
+- `android/app/src/main/res/raw/ringtone.ogg` → use for medicine alarm
+
+**Do not touch Flutter/Dart files. All changes are Kotlin only.**
+
+---
+
+### Critical Android constraint
+`NotificationChannel` sound can only be set when the channel is **first created**. If the channel already exists on the device, `setSound()` is ignored. To force the new sound, each channel ID must change. Use `_v2` suffix:
+- `water_reminder_native` → `water_reminder_v2`
+- `habit_reminder` → `habit_reminder_v2`
+- `medicine_alarm` → `medicine_alarm_v2`
+
+Also delete the old channels to clean up orphans:
+```kotlin
+nm.deleteNotificationChannel("water_reminder_native")  // in WaterAlarmReceiver
+nm.deleteNotificationChannel("habit_reminder")          // in HabitAlarmReceiver
+nm.deleteNotificationChannel("medicine_alarm")          // in ReminderAlarmReceiver
+```
+
+---
+
+### How to set custom sound on a NotificationChannel (API 26+)
+
+Required imports: `android.content.ContentResolver`, `android.media.AudioAttributes`, `android.net.Uri`
+
+**For water + habit notifications** (notif_chime.ogg, USAGE_NOTIFICATION):
+```kotlin
+val soundUri = Uri.parse(
+    "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.notif_chime}"
+)
+val audioAttrs = AudioAttributes.Builder()
+    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+    .build()
+channel.setSound(soundUri, audioAttrs)
+channel.enableVibration(true)
+channel.vibrationPattern = longArrayOf(0, 250)
+```
+
+**For medicine alarm** (ringtone.ogg, USAGE_ALARM — plays through silent mode):
+```kotlin
+val soundUri = Uri.parse(
+    "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.ringtone}"
+)
+val audioAttrs = AudioAttributes.Builder()
+    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+    .setUsage(AudioAttributes.USAGE_ALARM)
+    .build()
+channel.setSound(soundUri, audioAttrs)
+channel.enableVibration(true)
+channel.vibrationPattern = longArrayOf(0, 400, 200, 400, 200, 400)
+```
+
+---
+
+### Files to modify
+
+**`WaterAlarmReceiver.kt`**
+- Change `CHANNEL_ID = "water_reminder_native"` → `"water_reminder_v2"`
+- In `showNotification()`, before `nm.createNotificationChannel(channel)`:
+  - Delete old channel: `nm.deleteNotificationChannel("water_reminder_native")`
+  - Apply sound + vibration from snippet above (notif_chime, USAGE_NOTIFICATION)
+
+**`HabitAlarmReceiver.kt`**
+- Change `CHANNEL_ID = "habit_reminder"` → `"habit_reminder_v2"`
+- In the channel creation block:
+  - Delete old channel: `nm.deleteNotificationChannel("habit_reminder")`
+  - Apply sound + vibration (notif_chime, USAGE_NOTIFICATION)
+
+**`ReminderAlarmReceiver.kt`**
+- Change `channelId = "medicine_alarm"` → `"medicine_alarm_v2"`
+- In the channel creation block:
+  - Delete old channel: `nm.deleteNotificationChannel("medicine_alarm")`
+  - Apply sound + vibration (ringtone, USAGE_ALARM)
+  - Keep existing `setBypassDnd(true)` and `lockscreenVisibility` — do not remove
+
+---
+
+### What NOT to do
+- Do not change notification text, priorities, or full-screen intent logic
+- Do not touch `NotificationCompat.Builder` calls — only the `NotificationChannel` setup changes
+- Do not add sound to `NotificationCompat.Builder` directly — channel-level sound is sufficient on API 26+
+- For API < 26, `NotificationCompat.Builder.setSound()` would be needed, but minSdk covers this — skip it
+
+---
+
+**2026-05-30 (session 14) - Claude (claude-sonnet-4-6)**
+- **Sleep Mode — all 4 sessions shipped:**
+- **Session A** — `lib/features/sleep/presentation/sleep_settings_screen.dart`: toggle (start/stop SleepModeService via rutin/sleep channel), sleep time picker (sleepModeStartMinutes), wake window pickers (start/end), accessibility status row (isAccessibilityGranted → opens ACTION_ACCESSIBILITY_SETTINGS), battery optimization row (opens ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS). Settings mirrored to native SharedPrefs via `saveSleepSettings`. Route: `/sleep-settings`. Test Game button → `/wakeup-game`.
+- **Session B** — `lib/features/sleep/presentation/wakeup_game_screen.dart`: daily game picker selects from `[0, 2]` only (seed = year*10000+month*100+day). Morning streak from `morning_streaks` Hive box (Box<int>). 15s emergency skip (`Lewati →` TextButton). Game 0 = Sequence Memory (3 rounds len 3/4/5, shake on wrong, all correct → complete). Game 2 = Tap Rhythm (10 circles, zone at bottom ~22% height, 7/10 hits → complete). On complete: native chime via `playChime` MethodChannel, 2s celebration overlay (animated scale + check icon), increment streak, Firebase `game_completed`, pop. `_LaunchGameListener` in `app.dart` listens for native→Flutter `launchGame` MethodChannel call to push `/wakeup-game` from any state. `morning_streaks` box opened in `main.dart`.
+- **Session C** — `SleepModeService.kt`: foreground service (`health` type), sticky, polls every 5 min for 3-case sleep logic (idle>60min, audio-stopped>15min, audio-on>2h). Sets `sleep_active` flag. "Saya masih terjaga" notification action pauses 30 min. Registers `WakeUpTriggerReceiver` dynamically for ACTION_USER_PRESENT. `WakeUpTriggerReceiver.kt`: checks sleep_active + wake window (from `sleep_settings_native` SharedPrefs) → clears flag, sets `launch_game_at`, starts MainActivity with route extra. MainActivity.onNewIntent routes Flutter to `/wakeup-game` via MethodChannel call `launchGame`. `setupSleepChannel` added to MainActivity for all rutin/sleep methods: startService, stopService, isRunning, isAccessibilityGranted, openAccessibilitySettings, openBatteryOptimization, saveSleepSettings, setGameActive, setGameDismissedNormally. `playChime` added to `habit_app/native_reminder` channel (MediaPlayer.create → R.raw.notif_chime).
+- **Session D** — `RutinAccessibilityService.kt`: updates `last_interaction_ms` on every event. On TYPE_WINDOW_STATE_CHANGED: if `game_active` && !`game_dismissed_normally` && package ≠ com.rutin.app → performGlobalAction(GLOBAL_ACTION_BACK). `accessibility_service_config.xml` created. Both services registered in AndroidManifest.
+- **Verified:** `dart analyze` — only pre-existing info lints. `gradlew app:compileDebugKotlin --no-daemon` → BUILD SUCCESSFUL.
+- **End-to-end test** (sleep detect → USER_PRESENT → game launch) requires physical device — cannot be verified here.
+
 **2026-05-30 (session 13) - Codex (gpt-5)**
 - **Home today view** — replaced 3-card feature launcher with scrollable today dashboard. Background image is now a fixed hero at top; Obat / Air / Kebiasaan sections scroll below it. Each section has a label + "→ Semua" link. Obat shows per-medicine dose chips (inline tap to mark taken). Air shows compact WaterProgressWidget. Kebiasaan shows today's habits (capped at 5 + overflow link).
 - **Background fix** — initial implementation blocked the sun/atmosphere background; fixed by making the background a full-height hero sliver and pushing content sections below the fold.

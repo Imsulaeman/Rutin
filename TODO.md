@@ -112,18 +112,18 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [ ] PDF adherence report
 - [ ] Share via Android share sheet
 
-## Feature: Sleep Mode + Wake-up Routine Lock
+## Feature: Sleep Mode + Wake-up Game Gate
 - [x] SleepSettings data model
-- [ ] Foreground service monitor
-- [ ] `ACTION_USER_PRESENT` receiver
-- [ ] AccessibilityService intercept flow
-- [ ] Audio detection
-- [ ] Sleep mode logic per architecture doc
-- [ ] Manual override
-- [ ] Wake-up window
-- [ ] Full-screen routine lock screen
-- [ ] Graceful degradation if accessibility denied
-- [ ] Restart after reboot
+- [x] **Session A** — Sleep settings screen (Flutter): toggle, sleep time, wake window, accessibility guidance, battery optimization prompt
+- [x] **Session B** — Wake-up game screen (Flutter): daily-rotating games, emergency skip after 15s, morning streak, completion celebration + sound
+  - [x] Game 0: Sequence Memory (3 rounds, colored tiles)
+  - [ ] Game 1: Word Unscramble (Indonesian health words)
+  - [x] Game 2: Tap Rhythm (10 falling circles, hit 7/10)
+  - [ ] Game 3: Tile Puzzle (3×3 8-puzzle, daily seed)
+  - [ ] Game 4: Daily Quiz (3 questions, 20-question bank, get 2/3)
+  - [ ] Game 5: Connect the Dots (8 dots, draw path in order)
+- [x] **Session C** — Native sleep detection service (Kotlin): foreground service, 3-case logic, ACTION_USER_PRESENT receiver, MethodChannel bridge, launches game screen
+- [x] **Session D** — AccessibilityService (Kotlin): home button intercept during game, touch tracking for sleep detection, XML config
 
 ## Feature: Localization
 - [x] `flutter_localizations` + `intl`

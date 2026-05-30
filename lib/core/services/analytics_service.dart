@@ -19,6 +19,9 @@ class AnalyticsService {
 
   static Future<void> habitAdded() => _log('habit_added');
 
+  // Sleep / game
+  static Future<void> gameCompleted() => _log('game_completed');
+
   // Water
   static Future<void> waterAdded(int ml) =>
       _log('water_added', {'ml': ml});

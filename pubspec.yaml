@@ -36,6 +36,7 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
+    - assets/sound/
     - assets/home_background.webp
     - assets/home_sun.webp
     - assets/home_foreground.webp
