@@ -100,6 +100,17 @@ Use this section to record significant decisions, blockers, or completions so ot
 
 ---
 
+**2026-05-30 (session 9) - Claude (claude-opus-4-8 / claude-sonnet-4-6)**
+Refinement pass across Home, Water, Obat, Kebiasaan:
+- **Time chip on habit card** — when a habit has a reminder, the card shows a small clock + `HH:MM` in habits-purple (mirrors Obat). Feeds the existing auto-sort-by-time.
+- **Back navigation consistency** — Water back arrow now `context.go('/')` (was a no-op `maybePop` in the shell). Added a back arrow to the Obat header → Home. Added a back arrow + `centerTitle` to the Kebiasaan AppBar → Home.
+- **Live updates** — Home and Habits screens now listen to their Hive boxes (`water_logs`/`habits`/`habit_logs` on Home; `habits`/`habit_groups`/`habit_logs` on Habits) via stored `ValueListenable`s added/removed symmetrically. Adding water/a habit reflects instantly without a manual refresh. `_load()` guarded with `mounted`.
+- **Group delete from tab** — long-press a group tab pill → actions sheet (rename / Hapus rutinitas).
+- **Two-option stack delete** — `_deleteGroup` now asks: "Hapus rutinitas saja" (habits → ungrouped) vs "Hapus beserta kebiasaannya" (habits deleted too, reminders cancelled). Empty groups skip straight to a simple confirm. New repo method `deleteGroupWithHabits` returns deleted ids for reminder cancellation.
+- **Swipe-to-delete restored** — re-wrapped habit cards in `_SwipeToDelete` inside the drag view (both flat + inside stacks); the wrapper had been dropped during the drag rewrite. Whole stacks are now swipe-to-delete too (Dismissible → two-option dialog, `confirmDismiss` returns false since we delete + reload ourselves).
+- **Unfold-after-move** — dropping a stack (or a habit into a stack) calls `onEnsureExpanded` so the moved stack expands, making the whole-stack move obvious.
+- **Dead code removed** — `_FlatView`, `_GroupBlock`, `_NewGroupButton`, `_onFlatReorder` (all orphaned when the flat view became the always-on `_EditModeView`). Restored `_GroupView` + `_TodayHeader` which an over-broad delete had caught; `_TodayHeader` is now rendered at the top of `_EditModeView`.
+
 **2026-05-27 (session 6) - Claude (claude-sonnet-4-6)**
 - Full UI/UX redesign across all 9 files (Impeccable pass). No logic changes — visual layer only.
 - `AppTheme`: warm `surfaceContainerLow` scaffold bg, `CardThemeData` 0-elevation with 1px `outlineVariant` border, tight letter-spacing text hierarchy, 52px `FilledButton`, floating SnackBar with 12px radius.

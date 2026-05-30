@@ -17,12 +17,25 @@ class HabitRepository {
 
   Future<void> saveGroup(HabitGroup group) => _groups.put(group.id, group);
 
+  /// Delete the group only; its habits become ungrouped (groupId = null).
   Future<void> deleteGroup(String id) async {
     for (final h in _habits.values.where((h) => h.groupId == id).toList()) {
       h.groupId = null;
       await _habits.put(h.id, h);
     }
     await _groups.delete(id);
+  }
+
+  /// Delete the group AND every habit inside it. Returns the deleted habit ids
+  /// so callers can cancel their reminders.
+  Future<List<String>> deleteGroupWithHabits(String id) async {
+    final ids = <String>[];
+    for (final h in _habits.values.where((h) => h.groupId == id).toList()) {
+      ids.add(h.id);
+      await _habits.delete(h.id);
+    }
+    await _groups.delete(id);
+    return ids;
   }
 
   Future<void> reorderGroups(List<HabitGroup> ordered) async {

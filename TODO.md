@@ -74,7 +74,15 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] Star mascot motivational banner at bottom of habits screen
 - [x] Compact habit cards (44px icon, streak text, 12px padding)
 - [x] Add habit screen: group picker chips replace old stacking UI
-- [x] Drag routine directly INTO an expanded stack — edit mode (Atur/Selesai) with LongPressDraggable + DragTarget zones
+- [x] Drag routine directly INTO an expanded stack — implicit long-press drag with DragTarget drop zones (no edit-mode button)
+- [x] Categorized emoji picker (6 tabs) — tap to pick, used by habit + group dialogs
+- [x] Time chip on habit card when reminder set (mirrors Obat)
+- [x] Back arrows → Home on Water/Obat/Kebiasaan; centered Kebiasaan title
+- [x] Live updates via Hive box listeners (Home + Habits) — no manual refresh
+- [x] Delete group from tab (long-press → rename/delete)
+- [x] Two-option stack delete (stack only → ungroup, or stack + habits)
+- [x] Swipe-to-delete restored on habit cards + whole stacks
+- [x] Stack unfolds after being moved
 - [ ] Habit history / calendar view
 - [ ] Routine streak (group-level completion streak)
 

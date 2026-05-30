@@ -179,7 +179,16 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
       padding: const EdgeInsets.fromLTRB(20, 10, 16, 0),
       child: Row(
         children: [
-          const SizedBox(width: 40),
+          _Pressable(
+            scale: 0.85,
+            onTap: () => context.go('/'),
+            child: const SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(Icons.arrow_back_rounded,
+                  color: Colors.white, size: 24),
+            ),
+          ),
           const Expanded(
             child: Text(
               'Obat',

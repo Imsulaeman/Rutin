@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
@@ -39,13 +41,33 @@ class _HabitsScreenState extends State<HabitsScreen> {
   // null = flat/Semua view; non-null = group-specific tab
   String? _selectedGroupId;
 
+  late final ValueListenable<Box<Habit>> _habitsL;
+  late final ValueListenable<Box<HabitGroup>> _groupsL;
+  late final ValueListenable<Box<HabitLog>> _logsL;
+
   @override
   void initState() {
     super.initState();
+    // Reflect any data change (add/edit/delete/log) instantly.
+    _habitsL = Hive.box<Habit>('habits').listenable();
+    _groupsL = Hive.box<HabitGroup>('habit_groups').listenable();
+    _logsL = Hive.box<HabitLog>('habit_logs').listenable();
+    _habitsL.addListener(_load);
+    _groupsL.addListener(_load);
+    _logsL.addListener(_load);
     _load();
   }
 
+  @override
+  void dispose() {
+    _habitsL.removeListener(_load);
+    _groupsL.removeListener(_load);
+    _logsL.removeListener(_load);
+    super.dispose();
+  }
+
   void _load() {
+    if (!mounted) return;
     setState(() {
       _flatItems = _repo.getFlatList();
       _groupHabits = {
@@ -427,42 +449,90 @@ class _HabitsScreenState extends State<HabitsScreen> {
     }
   }
 
-  Future<void> _deleteGroup(HabitGroup group) async {
-    final ok = await showDialog<bool>(
+  /// Returns true if the group was deleted (either mode), false if cancelled.
+  /// 'only' → habits move to "Tanpa rutinitas"; 'all' → habits deleted too.
+  Future<bool> _deleteGroup(HabitGroup group) async {
+    final habitCount =
+        _groupHabits[group.id]?.length ?? _repo.habitsInGroup(group.id).length;
+
+    // No habits → simple confirm, nothing to keep.
+    if (habitCount == 0) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Hapus "${group.name}"?'),
+          content: const Text('Rutinitas ini akan dihapus.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Batal')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error),
+              child: const Text('Hapus'),
+            ),
+          ],
+        ),
+      );
+      if (ok == true) {
+        await _repo.deleteGroup(group.id);
+        _load();
+        return true;
+      }
+      return false;
+    }
+
+    final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Hapus "${group.name}"?'),
-        content: const Text(
-            'Kebiasaan di rutinitas ini akan dipindah ke "Tanpa rutinitas".'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Rutinitas ini punya $habitCount kebiasaan. Mau diapakan?',
+              style: Theme.of(ctx).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(ctx, 'only'),
+              child: const Text('Hapus rutinitas saja'),
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, 'all'),
+              style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(ctx).colorScheme.error),
+              child: const Text('Hapus beserta kebiasaannya'),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(ctx, null),
               child: const Text('Batal')),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
-            child: const Text('Hapus'),
-          ),
         ],
       ),
     );
-    if (ok == true) {
+
+    if (choice == 'only') {
       await _repo.deleteGroup(group.id);
       _load();
+      return true;
+    } else if (choice == 'all') {
+      final deletedIds = await _repo.deleteGroupWithHabits(group.id);
+      for (final id in deletedIds) {
+        await _safeCancel(id);
+      }
+      _load();
+      return true;
     }
+    return false;
   }
 
   // ─── Reorder ──────────────────────────────────────────────────────────────
-
-  Future<void> _onFlatReorder(int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) newIndex--;
-    final items = [..._flatItems];
-    final item = items.removeAt(oldIndex);
-    items.insert(newIndex, item);
-    await _repo.reorderFlatList(items);
-    _load();
-  }
 
   Future<void> _onGroupReorder(
       String groupId, int oldIndex, int newIndex) async {
@@ -487,7 +557,12 @@ class _HabitsScreenState extends State<HabitsScreen> {
       backgroundColor: AppTheme.bgDark,
       appBar: AppBar(
         title: const Text('Kebiasaan'),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.go('/'),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
@@ -506,6 +581,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               selectedGroupId: _selectedGroupId,
               onSelect: (id) => setState(() => _selectedGroupId = id),
               onCreateGroup: _createGroup,
+              onGroupActions: _showGroupActions,
             ),
           Expanded(
             child: _selectedGroupId == null
@@ -514,17 +590,24 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     groupHabits: _groupHabits,
                     expanded: _expanded,
                     repo: _repo,
+                    total: all.length,
+                    doneCount: doneCount,
+                    bestStreak: bestStreak,
                     onTap: _markDone,
                     onMoreTap: _showHabitActions,
                     onToggleExpand: (id) => setState(
                         () => _expanded[id] = !(_expanded[id] ?? true)),
                     onGroupActions: _showGroupActions,
+                    onGroupDelete: _deleteGroup,
                     onDelete: (h) async {
                       await _safeCancel(h.id);
                       await _repo.delete(h.id);
                       _load();
                     },
                     onReloaded: _load,
+                    onEnsureExpanded: (id) =>
+                        setState(() => _expanded[id] = true),
+                    onCreateGroup: _createGroup,
                   )
                 : _GroupView(
                     group: _groups.firstWhere(
@@ -582,12 +665,14 @@ class _TabBar extends StatelessWidget {
     required this.selectedGroupId,
     required this.onSelect,
     required this.onCreateGroup,
+    required this.onGroupActions,
   });
 
   final List<HabitGroup> groups;
   final String? selectedGroupId;
   final void Function(String?) onSelect;
   final VoidCallback onCreateGroup;
+  final void Function(HabitGroup) onGroupActions;
 
   @override
   Widget build(BuildContext context) {
@@ -607,6 +692,7 @@ class _TabBar extends StatelessWidget {
               label: '${g.emoji}  ${g.name}',
               selected: selectedGroupId == g.id,
               onTap: () => onSelect(g.id),
+              onLongPress: () => onGroupActions(g),
             ),
           Padding(
             padding: const EdgeInsets.only(left: 4),
@@ -638,11 +724,13 @@ class _Tab extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.onLongPress,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -650,6 +738,7 @@ class _Tab extends StatelessWidget {
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -677,420 +766,6 @@ class _Tab extends StatelessWidget {
   }
 }
 
-// ─── Flat view (Semua) ────────────────────────────────────────────────────────
-
-class _FlatView extends StatelessWidget {
-  const _FlatView({
-    required this.flatItems,
-    required this.groupHabits,
-    required this.expanded,
-    required this.repo,
-    required this.doneCount,
-    required this.total,
-    required this.bestStreak,
-    required this.onTap,
-    required this.onMoreTap,
-    required this.onToggleExpand,
-    required this.onGroupActions,
-    required this.onReorder,
-    required this.onCreateGroup,
-    required this.onDelete,
-  });
-
-  final List<dynamic> flatItems;
-  final Map<String, List<Habit>> groupHabits;
-  final Map<String, bool> expanded;
-  final HabitRepository repo;
-  final int doneCount;
-  final int total;
-  final int bestStreak;
-  final void Function(Habit) onTap;
-  final void Function(Habit) onMoreTap;
-  final void Function(String groupId) onToggleExpand;
-  final void Function(HabitGroup) onGroupActions;
-  final void Function(int, int) onReorder;
-  final VoidCallback onCreateGroup;
-  final Future<void> Function(Habit) onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    // Build a display list: each flat item is one "visual row" in the
-    // ReorderableListView. Groups render their children inline but are a
-    // single draggable unit.
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: total > 0
-                ? _TodayHeader(
-                    done: doneCount,
-                    total: total,
-                    bestStreak: bestStreak)
-                : _EmptyState(onCreateGroup: onCreateGroup),
-          ),
-        ),
-        SliverReorderableList(
-          itemCount: flatItems.length,
-          onReorder: onReorder,
-          itemBuilder: (ctx, i) {
-            final item = flatItems[i];
-            if (item is Habit) {
-              return ReorderableDelayedDragStartListener(
-                key: ValueKey('flat_h_${item.id}'),
-                index: i,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: _SwipeToDelete(
-                    habit: item,
-                    onDelete: () => onDelete(item),
-                    child: HabitCard(
-                      habit: item,
-                      isDone: repo.isCompletedToday(item.id),
-                      streak: repo.getStreak(item.id),
-                      onTap: () => onTap(item),
-                      onMoreTap: () => onMoreTap(item),
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            // HabitGroup
-            final group = item as HabitGroup;
-            final habits = groupHabits[group.id] ?? [];
-            final isExpanded = expanded[group.id] ?? true;
-
-            return ReorderableDelayedDragStartListener(
-              key: ValueKey('flat_g_${group.id}'),
-              index: i,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: _GroupBlock(
-                  group: group,
-                  habits: habits,
-                  isExpanded: isExpanded,
-                  repo: repo,
-                  onToggleExpand: () => onToggleExpand(group.id),
-                  onGroupActions: () => onGroupActions(group),
-                  onHabitTap: onTap,
-                  onHabitMoreTap: onMoreTap,
-                  onHabitDelete: onDelete,
-                ),
-              ),
-            );
-          },
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: _NewGroupButton(onTap: onCreateGroup),
-          ),
-        ),
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 100),
-            child: _MascotBanner(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─── Group block (inline inside flat list) ────────────────────────────────────
-
-class _GroupBlock extends StatelessWidget {
-  const _GroupBlock({
-    required this.group,
-    required this.habits,
-    required this.isExpanded,
-    required this.repo,
-    required this.onToggleExpand,
-    required this.onGroupActions,
-    required this.onHabitTap,
-    required this.onHabitMoreTap,
-    required this.onHabitDelete,
-  });
-
-  final HabitGroup group;
-  final List<Habit> habits;
-  final bool isExpanded;
-  final HabitRepository repo;
-  final VoidCallback onToggleExpand;
-  final VoidCallback onGroupActions;
-  final void Function(Habit) onHabitTap;
-  final void Function(Habit) onHabitMoreTap;
-  final Future<void> Function(Habit) onHabitDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final doneCount = habits.where((h) => repo.isCompletedToday(h.id)).length;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        children: [
-          // Group header
-          InkWell(
-            onTap: onToggleExpand,
-            borderRadius: BorderRadius.vertical(
-              top: const Radius.circular(16),
-              bottom: Radius.circular(isExpanded ? 0 : 16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-              child: Row(
-                children: [
-                  Text(group.emoji, style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(group.name,
-                        style: Theme.of(context).textTheme.titleMedium),
-                  ),
-                  if (habits.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppTheme.habitsColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$doneCount/${habits.length}',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.habitsColor),
-                      ),
-                    ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onGroupActions,
-                    child: const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Icon(Icons.more_vert_rounded,
-                          size: 18, color: AppTheme.muted),
-                    ),
-                  ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: AppTheme.muted,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Children
-          if (isExpanded && habits.isNotEmpty) ...[
-            Divider(height: 1, color: AppTheme.border),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: Column(
-                children: [
-                  for (var i = 0; i < habits.length; i++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                          bottom: i < habits.length - 1 ? 8 : 0),
-                      child: _SwipeToDelete(
-                        habit: habits[i],
-                        onDelete: () => onHabitDelete(habits[i]),
-                        child: HabitCard(
-                          habit: habits[i],
-                          isDone: repo.isCompletedToday(habits[i].id),
-                          streak: repo.getStreak(habits[i].id),
-                          onTap: () => onHabitTap(habits[i]),
-                          onMoreTap: () => onHabitMoreTap(habits[i]),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-          if (isExpanded && habits.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Text(
-                'Belum ada kebiasaan. Tap + atau pindahkan dari "Tanpa rutinitas".',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Group-specific view (with inner reorder) ─────────────────────────────────
-
-class _GroupView extends StatelessWidget {
-  const _GroupView({
-    required this.group,
-    required this.habits,
-    required this.repo,
-    required this.onTap,
-    required this.onMoreTap,
-    required this.onReorder,
-    required this.onDelete,
-  });
-
-  final HabitGroup group;
-  final List<Habit> habits;
-  final HabitRepository repo;
-  final void Function(Habit) onTap;
-  final void Function(Habit) onMoreTap;
-  final void Function(int, int) onReorder;
-  final Future<void> Function(Habit) onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    if (habits.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            'Belum ada kebiasaan di sini.\nTap + atau gunakan "Pindahkan ke rutinitas" dari Semua.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ),
-      );
-    }
-
-    return ReorderableListView.builder(
-      buildDefaultDragHandles: false,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-      onReorder: onReorder,
-      itemCount: habits.length + 1, // +1 for mascot banner
-      itemBuilder: (ctx, i) {
-        if (i == habits.length) {
-          return const Padding(
-            key: ValueKey('mascot'),
-            padding: EdgeInsets.only(top: 16),
-            child: _MascotBanner(),
-          );
-        }
-        final habit = habits[i];
-        return ReorderableDelayedDragStartListener(
-          key: ValueKey('group_h_${habit.id}'),
-          index: i,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _SwipeToDelete(
-              habit: habit,
-              onDelete: () => onDelete(habit),
-              child: HabitCard(
-                habit: habit,
-                isDone: repo.isCompletedToday(habit.id),
-                streak: repo.getStreak(habit.id),
-                onTap: () => onTap(habit),
-                onMoreTap: () => onMoreTap(habit),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ─── Shared widgets ───────────────────────────────────────────────────────────
-
-class _TodayHeader extends StatelessWidget {
-  const _TodayHeader({
-    required this.done,
-    required this.total,
-    required this.bestStreak,
-  });
-
-  final int done;
-  final int total;
-  final int bestStreak;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final pct = total > 0 ? done / total : 0.0;
-    final allDone = total > 0 && done == total;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 52,
-            height: 52,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: pct),
-                  duration: const Duration(milliseconds: 600),
-                  curve: Curves.easeOutCubic,
-                  builder: (_, v, __) => SizedBox(
-                    width: 52,
-                    height: 52,
-                    child: CircularProgressIndicator(
-                      value: v,
-                      strokeWidth: 5,
-                      backgroundColor: AppTheme.surfaceHigh,
-                      valueColor: AlwaysStoppedAnimation(
-                        allDone ? AppTheme.streakColor : AppTheme.habitsColor,
-                      ),
-                    ),
-                  ),
-                ),
-                Text('$done/$total',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  allDone ? 'Semua selesai! 🎉' : 'Selesai hari ini',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  bestStreak > 0
-                      ? '🔥 Beruntun terbaik $bestStreak hari'
-                      : 'Centang kebiasaan untuk mulai streak',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: cs.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onCreateGroup});
@@ -1122,30 +797,6 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _NewGroupButton extends StatelessWidget {
-  const _NewGroupButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: AppTheme.border)),
-        TextButton.icon(
-          onPressed: onTap,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Buat rutinitas baru'),
-          style: TextButton.styleFrom(
-            foregroundColor: AppTheme.muted,
-            textStyle:
-                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-        ),
-        const Expanded(child: Divider(color: AppTheme.border)),
-      ],
-    );
-  }
-}
 
 class _MascotBanner extends StatelessWidget {
   const _MascotBanner();
@@ -1290,24 +941,36 @@ class _EditModeView extends StatefulWidget {
     required this.groupHabits,
     required this.expanded,
     required this.repo,
+    required this.total,
+    required this.doneCount,
+    required this.bestStreak,
     required this.onTap,
     required this.onMoreTap,
     required this.onToggleExpand,
     required this.onGroupActions,
+    required this.onGroupDelete,
     required this.onDelete,
     required this.onReloaded,
+    required this.onEnsureExpanded,
+    required this.onCreateGroup,
   });
 
   final List<dynamic> flatItems;
   final Map<String, List<Habit>> groupHabits;
   final Map<String, bool> expanded;
   final HabitRepository repo;
+  final int total;
+  final int doneCount;
+  final int bestStreak;
   final void Function(Habit) onTap;
   final void Function(Habit) onMoreTap;
   final void Function(String) onToggleExpand;
   final void Function(HabitGroup) onGroupActions;
+  final Future<bool> Function(HabitGroup) onGroupDelete;
   final Future<void> Function(Habit) onDelete;
   final VoidCallback onReloaded;
+  final void Function(String groupId) onEnsureExpanded;
+  final VoidCallback onCreateGroup;
 
   @override
   State<_EditModeView> createState() => _EditModeViewState();
@@ -1333,6 +996,7 @@ class _EditModeViewState extends State<_EditModeView> {
         if (oldGroupId != intoGroupId) {
           await widget.repo.autoSortNewItem(intoGroupId, item.id);
         }
+        widget.onEnsureExpanded(intoGroupId); // show where it landed
       } else {
         item.groupId = null;
         await widget.repo.save(item);
@@ -1352,6 +1016,7 @@ class _EditModeViewState extends State<_EditModeView> {
       if (cur != -1 && cur < idx) idx--;
       flat.insert(idx.clamp(0, flat.length), item);
       await widget.repo.reorderFlatList(flat);
+      widget.onEnsureExpanded(item.id); // unfold so the whole stack is visible
     }
 
     widget.onReloaded();
@@ -1362,6 +1027,13 @@ class _EditModeViewState extends State<_EditModeView> {
     final sw = MediaQuery.of(context).size.width;
     final rows = <Widget>[];
 
+    if (widget.total > 0) {
+      rows.add(_TodayHeader(
+        done: widget.doneCount,
+        total: widget.total,
+        bestStreak: widget.bestStreak,
+      ));
+    }
 
     rows.add(_DropZone(
       active: _isDragging,
@@ -1391,40 +1063,65 @@ class _EditModeViewState extends State<_EditModeView> {
             ),
           ),
           childWhenDragging: _DragGhost(height: 64),
-          child: HabitCard(
+          child: _SwipeToDelete(
             habit: item,
-            isDone: widget.repo.isCompletedToday(item.id),
-            streak: widget.repo.getStreak(item.id),
-            onTap: () => widget.onTap(item),
-            onMoreTap: () => widget.onMoreTap(item),
+            onDelete: () => widget.onDelete(item),
+            child: HabitCard(
+              habit: item,
+              isDone: widget.repo.isCompletedToday(item.id),
+              streak: widget.repo.getStreak(item.id),
+              onTap: () => widget.onTap(item),
+              onMoreTap: () => widget.onMoreTap(item),
+            ),
           ),
         ));
       } else if (item is HabitGroup) {
         final habits = widget.groupHabits[item.id] ?? [];
         final isExpanded = widget.expanded[item.id] ?? true;
-        rows.add(_EditGroupBlock(
-          group: item,
-          habits: habits,
-          isExpanded: isExpanded,
-          isDragging: _isDragging,
-          draggingHabit: _draggingHabit,
-          repo: widget.repo,
-          screenWidth: sw,
-          onToggleExpand: () => widget.onToggleExpand(item.id),
-          onGroupActions: () => widget.onGroupActions(item),
-          onHabitTap: widget.onTap,
-          onHabitMoreTap: widget.onMoreTap,
-          onHabitDelete: widget.onDelete,
-          onGroupDragStart: () =>
-              setState(() { _isDragging = true; _draggingHabit = false; }),
-          onGroupDragEnd: () =>
-              setState(() { _isDragging = false; _draggingHabit = false; }),
-          onHabitDragStart: () =>
-              setState(() { _isDragging = true; _draggingHabit = true; }),
-          onHabitDragEnd: () =>
-              setState(() { _isDragging = false; _draggingHabit = false; }),
-          onDropIntoGroup: (dropped, pos) =>
-              _handleDrop(dropped, intoGroupId: item.id, groupPos: pos),
+        rows.add(Dismissible(
+          key: ValueKey('group_dismiss_${item.id}'),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(right: 20),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.error,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.onError),
+          ),
+          // We handle the delete (with its own dialog) ourselves and reload,
+          // so always return false to keep Dismissible from removing the row.
+          confirmDismiss: (_) async {
+            await widget.onGroupDelete(item);
+            return false;
+          },
+          child: _EditGroupBlock(
+            group: item,
+            habits: habits,
+            isExpanded: isExpanded,
+            isDragging: _isDragging,
+            draggingHabit: _draggingHabit,
+            repo: widget.repo,
+            screenWidth: sw,
+            onToggleExpand: () => widget.onToggleExpand(item.id),
+            onGroupActions: () => widget.onGroupActions(item),
+            onHabitTap: widget.onTap,
+            onHabitMoreTap: widget.onMoreTap,
+            onHabitDelete: widget.onDelete,
+            onGroupDragStart: () =>
+                setState(() { _isDragging = true; _draggingHabit = false; }),
+            onGroupDragEnd: () =>
+                setState(() { _isDragging = false; _draggingHabit = false; }),
+            onHabitDragStart: () =>
+                setState(() { _isDragging = true; _draggingHabit = true; }),
+            onHabitDragEnd: () =>
+                setState(() { _isDragging = false; _draggingHabit = false; }),
+            onDropIntoGroup: (dropped, pos) =>
+                _handleDrop(dropped, intoGroupId: item.id, groupPos: pos),
+          ),
         ));
       }
 
@@ -1432,6 +1129,10 @@ class _EditModeViewState extends State<_EditModeView> {
         active: _isDragging,
         onDrop: (dropped) => _handleDrop(dropped, flatIndex: i + 1),
       ));
+    }
+
+    if (widget.flatItems.isEmpty) {
+      rows.add(_EmptyState(onCreateGroup: widget.onCreateGroup));
     }
 
     rows.add(const SizedBox(height: 16));
@@ -1623,12 +1324,16 @@ class _EditGroupBlock extends StatelessWidget {
                         ),
                       ),
                       childWhenDragging: _DragGhost(height: 64),
-                      child: HabitCard(
+                      child: _SwipeToDelete(
                         habit: habits[j],
-                        isDone: repo.isCompletedToday(habits[j].id),
-                        streak: repo.getStreak(habits[j].id),
-                        onTap: () => onHabitTap(habits[j]),
-                        onMoreTap: () => onHabitMoreTap(habits[j]),
+                        onDelete: () => onHabitDelete(habits[j]),
+                        child: HabitCard(
+                          habit: habits[j],
+                          isDone: repo.isCompletedToday(habits[j].id),
+                          streak: repo.getStreak(habits[j].id),
+                          onTap: () => onHabitTap(habits[j]),
+                          onMoreTap: () => onHabitMoreTap(habits[j]),
+                        ),
                       ),
                     ),
                     _DropZone(
@@ -1748,6 +1453,164 @@ class _DragGhost extends StatelessWidget {
           color: AppTheme.habitsColor.withValues(alpha: 0.3),
           width: 1.5,
         ),
+      ),
+    );
+  }
+}
+
+class _GroupView extends StatelessWidget {
+  const _GroupView({
+    required this.group,
+    required this.habits,
+    required this.repo,
+    required this.onTap,
+    required this.onMoreTap,
+    required this.onReorder,
+    required this.onDelete,
+  });
+
+  final HabitGroup group;
+  final List<Habit> habits;
+  final HabitRepository repo;
+  final void Function(Habit) onTap;
+  final void Function(Habit) onMoreTap;
+  final void Function(int, int) onReorder;
+  final Future<void> Function(Habit) onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    if (habits.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'Belum ada kebiasaan di sini.\nTap + atau gunakan "Pindahkan ke rutinitas" dari Semua.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ),
+      );
+    }
+
+    return ReorderableListView.builder(
+      buildDefaultDragHandles: false,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      onReorder: onReorder,
+      itemCount: habits.length + 1, // +1 for mascot banner
+      itemBuilder: (ctx, i) {
+        if (i == habits.length) {
+          return const Padding(
+            key: ValueKey('mascot'),
+            padding: EdgeInsets.only(top: 16),
+            child: _MascotBanner(),
+          );
+        }
+        final habit = habits[i];
+        return ReorderableDelayedDragStartListener(
+          key: ValueKey('group_h_${habit.id}'),
+          index: i,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _SwipeToDelete(
+              habit: habit,
+              onDelete: () => onDelete(habit),
+              child: HabitCard(
+                habit: habit,
+                isDone: repo.isCompletedToday(habit.id),
+                streak: repo.getStreak(habit.id),
+                onTap: () => onTap(habit),
+                onMoreTap: () => onMoreTap(habit),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Shared widgets ───────────────────────────────────────────────────────────
+
+class _TodayHeader extends StatelessWidget {
+  const _TodayHeader({
+    required this.done,
+    required this.total,
+    required this.bestStreak,
+  });
+
+  final int done;
+  final int total;
+  final int bestStreak;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final pct = total > 0 ? done / total : 0.0;
+    final allDone = total > 0 && done == total;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 52,
+            height: 52,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: pct),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, v, __) => SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: CircularProgressIndicator(
+                      value: v,
+                      strokeWidth: 5,
+                      backgroundColor: AppTheme.surfaceHigh,
+                      valueColor: AlwaysStoppedAnimation(
+                        allDone ? AppTheme.streakColor : AppTheme.habitsColor,
+                      ),
+                    ),
+                  ),
+                ),
+                Text('$done/$total',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  allDone ? 'Semua selesai! 🎉' : 'Selesai hari ini',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  bestStreak > 0
+                      ? '🔥 Beruntun terbaik $bestStreak hari'
+                      : 'Centang kebiasaan untuk mulai streak',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../data/water_model.dart';
@@ -112,7 +113,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back_rounded),
-                    onPressed: () => Navigator.maybePop(context),
+                    onPressed: () => context.go('/'),
                   ),
                   const Spacer(),
                   Text('Air', style: Theme.of(context).textTheme.titleLarge),

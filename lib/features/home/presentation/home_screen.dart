@@ -1,15 +1,20 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hive_flutter/hive_flutter.dart';
+
 import '../../../main.dart';
 import '../../../shared/providers/providers.dart';
+import '../../habits/data/habit_model.dart';
 import '../../habits/data/habit_repository.dart';
 import '../../medicine/data/medicine_model.dart';
+import '../../water/data/water_model.dart';
 import '../../water/data/water_repository.dart';
 
 // ─── Palette (sampled from preview/02_today_dashboard) ──────────────────────────
@@ -44,6 +49,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // Ambient loop: drives star twinkle + sun bob in the night scene.
   late final AnimationController _ambient;
 
+  late final ValueListenable<Box<WaterLog>> _waterLogsL;
+  late final ValueListenable<Box<Habit>> _habitsL;
+  late final ValueListenable<Box<HabitLog>> _habitLogsL;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +65,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 3200),
     )..repeat(reverse: true);
+    // Live-update the dashboard when water/habit data changes elsewhere.
+    _waterLogsL = Hive.box<WaterLog>('water_logs').listenable();
+    _habitsL = Hive.box<Habit>('habits').listenable();
+    _habitLogsL = Hive.box<HabitLog>('habit_logs').listenable();
+    _waterLogsL.addListener(_load);
+    _habitsL.addListener(_load);
+    _habitLogsL.addListener(_load);
     _load();
     _entrance.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -65,6 +81,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void dispose() {
+    _waterLogsL.removeListener(_load);
+    _habitsL.removeListener(_load);
+    _habitLogsL.removeListener(_load);
     WidgetsBinding.instance.removeObserver(this);
     _entrance.dispose();
     _ambient.dispose();
@@ -77,6 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _load() {
+    if (!mounted) return;
     final goal     = _waterRepo.getGoal();
     final logToday = _waterRepo.getTodayLog();
     final weekday  = DateTime.now().weekday;

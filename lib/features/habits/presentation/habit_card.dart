@@ -73,6 +73,25 @@ class HabitCard extends StatelessWidget {
                                 : cs.onSurfaceVariant,
                           ),
                     ),
+                    if (habit.reminderMinutes != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.access_time_rounded,
+                              size: 11, color: AppTheme.habitsColor),
+                          const SizedBox(width: 3),
+                          Text(
+                            _fmtTime(habit.reminderMinutes!),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.habitsColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -100,5 +119,11 @@ class HabitCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _fmtTime(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
   }
 }
