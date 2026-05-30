@@ -1,6 +1,6 @@
 # TODO
 
-Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
+Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 
 ---
 
@@ -37,7 +37,7 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [x] Confirm first app boot on device
 
 ## Project Scaffold
-- [x] `flutter create` with package name `com.ilham.habit_app`
+- [x] `flutter create` with package name `com.rutin.app` (renamed from `com.ilham.habit_app`)
 - [x] Set up folder structure per `docs/ARCHITECTURE.md`
 - [x] Add packages to `pubspec.yaml`
 - [x] Configure Hive adapters
@@ -100,8 +100,8 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [ ] Routine streak
 
 ## Feature: Home / Today View
-- [ ] Combine routines + standalone habits + water progress
-- [ ] At-a-glance done / pending / missed
+- [x] Combine routines + standalone habits + water progress
+- [x] At-a-glance done / pending / missed
 - [ ] TB treatment countdown
 
 ## Feature: TB Treatment Mode
@@ -148,9 +148,18 @@ Status: `[ ]` todo · `[x]` done · `[-]` in progress · `[~]` blocked
 - [ ] Obsidian / Second Brain integration
 - [ ] Home screen widget
 
+## Feature: Analytics + Infrastructure
+- [x] Firebase Analytics setup (`com.rutin.app`)
+- [x] Key events: medicine_taken, medicine_added, medicine_archived, medicine_deleted, habit_completed, habit_added, water_added
+- [x] Medicine archive / unarchive flow (swipe right = arsipkan, history preserved)
+- [x] Multi-dose support (unlimited times per medicine in add flow)
+- [ ] RECEIVE_BOOT_COMPLETED reschedule (medicine + water alarms after reboot)
+- [ ] Accounts / cloud backup (Phase 2 — Supabase, Google/Apple/email auth)
+
 ## Polish / ADA Ready
 - [ ] Onboarding flow
 - [x] App name: Rutin
+- [x] Package name: `com.rutin.app`
 - [ ] App icon
 - [ ] Splash screen
 - [x] Empty states

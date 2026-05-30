@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../core/services/analytics_service.dart';
+import '../../../core/services/haptics_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/habit_model.dart';
 import '../data/habit_repository.dart';
@@ -21,7 +22,6 @@ const _groupTemplates = [
   ('📚', 'Belajar'),
   ('🧘', 'Meditasi'),
 ];
-
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -71,8 +71,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     setState(() {
       _flatItems = _repo.getFlatList();
       _groupHabits = {
-        for (final g in _repo.getGroups())
-          g.id: _repo.habitsInGroup(g.id),
+        for (final g in _repo.getGroups()) g.id: _repo.habitsInGroup(g.id),
       };
       // Validate selected group still exists
       if (_selectedGroupId != null &&
@@ -82,30 +81,34 @@ class _HabitsScreenState extends State<HabitsScreen> {
     });
   }
 
-  List<HabitGroup> get _groups =>
-      _flatItems.whereType<HabitGroup>().toList();
+  List<HabitGroup> get _groups => _flatItems.whereType<HabitGroup>().toList();
 
   List<Habit> get _allHabits => [
-        ..._flatItems.whereType<Habit>(),
-        for (final habits in _groupHabits.values) ...habits,
-      ];
+    ..._flatItems.whereType<Habit>(),
+    for (final habits in _groupHabits.values) ...habits,
+  ];
 
   // ─── Habit actions ────────────────────────────────────────────────────────
 
   Future<void> _safeCancel(String id) async {
-    try { await HabitReminderService.cancel(id); } catch (_) {}
+    try {
+      await HabitReminderService.cancel(id);
+    } catch (_) {}
   }
 
   Future<void> _markDone(Habit habit) async {
     if (_repo.isCompletedToday(habit.id)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Sudah dilakukan hari ini'),
-        duration: Duration(seconds: 1),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sudah dilakukan hari ini'),
+          duration: Duration(seconds: 1),
+        ),
+      );
       return;
     }
     await _repo.markDone(habit.id);
-    HapticFeedback.mediumImpact();
+    AnalyticsService.habitCompleted(habit.name);
+    HapticsService.success();
     _updateMedal(habit);
     setState(() {});
   }
@@ -155,8 +158,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete_outline_rounded,
-                  color: Theme.of(context).colorScheme.error),
+              leading: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
               title: const Text('Hapus'),
               onTap: () async {
                 Navigator.pop(ctx);
@@ -182,8 +187,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text('Pindahkan ke',
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              child: Text(
+                'Pindahkan ke',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
             ),
             if (habit.groupId != null)
               ListTile(
@@ -231,12 +238,14 @@ class _HabitsScreenState extends State<HabitsScreen> {
         content: Text('${habit.name} akan dihapus permanen.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error),
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
             child: const Text('Hapus'),
           ),
         ],
@@ -264,13 +273,15 @@ class _HabitsScreenState extends State<HabitsScreen> {
         await _medals.save(existing);
       }
     } else {
-      await _medals.save(Medal()
-        ..id = DateTime.now().millisecondsSinceEpoch.toString()
-        ..name = habit.name
-        ..emoji = habit.emoji
-        ..peakStreak = streak
-        ..awardedAt = DateTime.now()
-        ..type = 'habit');
+      await _medals.save(
+        Medal()
+          ..id = DateTime.now().millisecondsSinceEpoch.toString()
+          ..name = habit.name
+          ..emoji = habit.emoji
+          ..peakStreak = streak
+          ..awardedAt = DateTime.now()
+          ..type = 'habit',
+      );
     }
 
     await _safeCancel(habit.id);
@@ -278,9 +289,11 @@ class _HabitsScreenState extends State<HabitsScreen> {
     _load();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${habit.emoji} ${habit.name} dijadikan medali!'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${habit.emoji} ${habit.name} dijadikan medali!'),
+        ),
+      );
     }
   }
 
@@ -300,10 +313,12 @@ class _HabitsScreenState extends State<HabitsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Template',
-                    style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
-                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                        )),
+                Text(
+                  'Template',
+                  style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
@@ -342,8 +357,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           border: Border.all(color: AppTheme.border),
                         ),
                         child: Center(
-                          child: Text(emoji,
-                              style: const TextStyle(fontSize: 26)),
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 26),
+                          ),
                         ),
                       ),
                     ),
@@ -354,7 +371,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         autofocus: true,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                            labelText: 'Nama rutinitas'),
+                          labelText: 'Nama rutinitas',
+                        ),
                       ),
                     ),
                   ],
@@ -364,11 +382,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Buat')),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Buat'),
+            ),
           ],
         ),
       ),
@@ -404,10 +424,12 @@ class _HabitsScreenState extends State<HabitsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Template',
-                    style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
-                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                        )),
+                Text(
+                  'Template',
+                  style: Theme.of(ctx).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
@@ -446,8 +468,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
                           border: Border.all(color: AppTheme.border),
                         ),
                         child: Center(
-                          child: Text(emoji,
-                              style: const TextStyle(fontSize: 26)),
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 26),
+                          ),
                         ),
                       ),
                     ),
@@ -458,7 +482,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                         autofocus: true,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                            labelText: 'Nama rutinitas'),
+                          labelText: 'Nama rutinitas',
+                        ),
                       ),
                     ),
                   ],
@@ -468,11 +493,13 @@ class _HabitsScreenState extends State<HabitsScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Gabungkan')),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Gabungkan'),
+            ),
           ],
         ),
       ),
@@ -497,8 +524,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
     await _repo.save(dragged);
 
     final flat = _repo.getFlatList()
-      ..removeWhere((item) =>
-          item is Habit && (item.id == target.id || item.id == dragged.id));
+      ..removeWhere(
+        (item) =>
+            item is Habit && (item.id == target.id || item.id == dragged.id),
+      );
     flat.insert(targetIndex.clamp(0, flat.length), group);
     await _repo.reorderFlatList(flat);
     await _repo.reorderHabitsInGroup([target, dragged]);
@@ -532,8 +561,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     border: Border.all(color: AppTheme.border),
                   ),
                   child: Center(
-                    child: Text(emoji,
-                        style: const TextStyle(fontSize: 26)),
+                    child: Text(emoji, style: const TextStyle(fontSize: 26)),
                   ),
                 ),
               ),
@@ -543,19 +571,22 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   controller: nameCtrl,
                   autofocus: true,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration:
-                      const InputDecoration(labelText: 'Nama rutinitas'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nama rutinitas',
+                  ),
                 ),
               ),
             ],
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Simpan')),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Simpan'),
+            ),
           ],
         ),
       ),
@@ -585,12 +616,14 @@ class _HabitsScreenState extends State<HabitsScreen> {
           content: const Text('Rutinitas ini akan dihapus.'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error),
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
               child: const Text('Hapus'),
             ),
           ],
@@ -625,15 +658,17 @@ class _HabitsScreenState extends State<HabitsScreen> {
             FilledButton(
               onPressed: () => Navigator.pop(ctx, 'all'),
               style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(ctx).colorScheme.error),
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+              ),
               child: const Text('Hapus beserta kebiasaannya'),
             ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, null),
-              child: const Text('Batal')),
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Batal'),
+          ),
         ],
       ),
     );
@@ -656,7 +691,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
   // ─── Reorder ──────────────────────────────────────────────────────────────
 
   Future<void> _onGroupReorder(
-      String groupId, int oldIndex, int newIndex) async {
+    String groupId,
+    int oldIndex,
+    int newIndex,
+  ) async {
     if (newIndex > oldIndex) newIndex--;
     final habits = <Habit>[...(_groupHabits[groupId] ?? [])];
     final habit = habits.removeAt(oldIndex);
@@ -672,7 +710,9 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final all = _allHabits;
     final doneCount = all.where((h) => _repo.isCompletedToday(h.id)).length;
     final bestStreak = all.fold<int>(
-        0, (b, h) => _repo.getStreak(h.id) > b ? _repo.getStreak(h.id) : b);
+      0,
+      (b, h) => _repo.getStreak(h.id) > b ? _repo.getStreak(h.id) : b,
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.bgDark,
@@ -716,7 +756,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     onTap: _markDone,
                     onMoreTap: _showHabitActions,
                     onToggleExpand: (id) => setState(
-                        () => _expanded[id] = !(_expanded[id] ?? true)),
+                      () => _expanded[id] = !(_expanded[id] ?? true),
+                    ),
                     onGroupActions: _showGroupActions,
                     onGroupDelete: _deleteGroup,
                     onDelete: (h) async {
@@ -730,8 +771,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                     onCreateGroupFromPair: _createGroupFromPair,
                   )
                 : _GroupView(
-                    group: _groups.firstWhere(
-                        (g) => g.id == _selectedGroupId),
+                    group: _groups.firstWhere((g) => g.id == _selectedGroupId),
                     habits: _groupHabits[_selectedGroupId] ?? [],
                     repo: _repo,
                     onTap: _markDone,
@@ -761,13 +801,21 @@ class _HabitsScreenState extends State<HabitsScreen> {
             ListTile(
               leading: const Icon(Icons.edit_rounded),
               title: const Text('Ubah nama & emoji'),
-              onTap: () { Navigator.pop(ctx); _renameGroup(g); },
+              onTap: () {
+                Navigator.pop(ctx);
+                _renameGroup(g);
+              },
             ),
             ListTile(
-              leading: Icon(Icons.delete_outline_rounded,
-                  color: Theme.of(context).colorScheme.error),
+              leading: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
               title: const Text('Hapus rutinitas'),
-              onTap: () { Navigator.pop(ctx); _deleteGroup(g); },
+              onTap: () {
+                Navigator.pop(ctx);
+                _deleteGroup(g);
+              },
             ),
             const SizedBox(height: 8),
           ],
@@ -821,14 +869,19 @@ class _TabBar extends StatelessWidget {
                 onTap: onCreateGroup,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceHigh,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppTheme.border),
                   ),
-                  child: const Icon(Icons.add_rounded,
-                      size: 18, color: AppTheme.muted),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    size: 18,
+                    color: AppTheme.muted,
+                  ),
                 ),
               ),
             ),
@@ -886,7 +939,6 @@ class _Tab extends StatelessWidget {
   }
 }
 
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -896,26 +948,29 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Column(
         children: [
-          Icon(Icons.auto_awesome_outlined,
-              size: 48,
-              color: Theme.of(context).colorScheme.outlineVariant),
+          Icon(
+            Icons.auto_awesome_outlined,
+            size: 48,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
           const SizedBox(height: 12),
-          Text('Belum ada kebiasaan',
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Belum ada kebiasaan',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 4),
           Text(
             'Tap + untuk menambah kebiasaan, lalu buat rutinitas dari tab Semua.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
     );
   }
 }
-
 
 class _MascotBanner extends StatelessWidget {
   const _MascotBanner();
@@ -927,8 +982,7 @@ class _MascotBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.habitsColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppTheme.habitsColor.withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.habitsColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -936,9 +990,9 @@ class _MascotBanner extends StatelessWidget {
             child: Text(
               'Langkah kecil setiap hari\nmembawa perubahan besar ✨',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    height: 1.4,
-                  ),
+                color: Colors.white,
+                height: 1.4,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -982,8 +1036,9 @@ class _SwipeToDelete extends StatelessWidget {
           content: Text('${habit.name} akan dihapus permanen.'),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Batal'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: FilledButton.styleFrom(backgroundColor: cs.error),
@@ -1018,23 +1073,19 @@ class _RetireSheet extends StatelessWidget {
           Text(habit.name, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
-            streak > 0
-                ? '$streak hari berturut-turut'
-                : 'Belum ada streak',
+            streak > 0 ? '$streak hari berturut-turut' : 'Belum ada streak',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: streak > 0 ? cs.primary : cs.onSurfaceVariant,
-                  fontWeight:
-                      streak > 0 ? FontWeight.w600 : FontWeight.w400,
-                ),
+              color: streak > 0 ? cs.primary : cs.onSurfaceVariant,
+              fontWeight: streak > 0 ? FontWeight.w600 : FontWeight.w400,
+            ),
           ),
           const SizedBox(height: 20),
           Text(
             'Kebiasaan ini akan dihapus dari daftar aktif dan disimpan sebagai medali.',
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: cs.onSurfaceVariant),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 28),
           FilledButton(
@@ -1089,7 +1140,8 @@ class _EditModeView extends StatefulWidget {
   final Future<void> Function(Habit) onDelete;
   final VoidCallback onReloaded;
   final void Function(String groupId) onEnsureExpanded;
-  final Future<void> Function(Habit dragged, Habit target) onCreateGroupFromPair;
+  final Future<void> Function(Habit dragged, Habit target)
+  onCreateGroupFromPair;
 
   @override
   State<_EditModeView> createState() => _EditModeViewState();
@@ -1099,8 +1151,12 @@ class _EditModeViewState extends State<_EditModeView> {
   bool _isDragging = false;
   bool _draggingHabit = false;
 
-  Future<void> _handleDrop(Object item,
-      {int? flatIndex, String? intoGroupId, int? groupPos}) async {
+  Future<void> _handleDrop(
+    Object item, {
+    int? flatIndex,
+    String? intoGroupId,
+    int? groupPos,
+  }) async {
     if (item is Habit) {
       final oldGroupId = item.groupId;
 
@@ -1157,112 +1213,138 @@ class _EditModeViewState extends State<_EditModeView> {
     final rows = <Widget>[];
 
     if (widget.total > 0) {
-      rows.add(_TodayHeader(
-        done: widget.doneCount,
-        total: widget.total,
-        bestStreak: widget.bestStreak,
-      ));
+      rows.add(
+        _TodayHeader(
+          done: widget.doneCount,
+          total: widget.total,
+          bestStreak: widget.bestStreak,
+        ),
+      );
     }
 
-    rows.add(_DropZone(
-      active: _isDragging,
-      onDrop: (item) => _handleDrop(item, flatIndex: 0),
-    ));
+    rows.add(
+      _DropZone(
+        active: _isDragging,
+        onDrop: (item) => _handleDrop(item, flatIndex: 0),
+      ),
+    );
 
     for (var i = 0; i < widget.flatItems.length; i++) {
       final item = widget.flatItems[i];
 
       if (item is Habit) {
-        rows.add(LongPressDraggable<Object>(
-          data: item,
-          delay: const Duration(milliseconds: 350),
-          onDragStarted: () =>
-              setState(() { _isDragging = true; _draggingHabit = true; }),
-          onDragEnd: (_) =>
-              setState(() { _isDragging = false; _draggingHabit = false; }),
-          onDraggableCanceled: (_, __) =>
-              setState(() { _isDragging = false; _draggingHabit = false; }),
-          feedback: _DragFeedback(
-            width: sw - 32,
-            child: HabitCard(
-              habit: item,
-              isDone: widget.repo.isCompletedToday(item.id),
-              streak: widget.repo.getStreak(item.id),
-              onTap: () {},
-            ),
-          ),
-          childWhenDragging: _DragGhost(height: 64),
-          child: _SwipeToDelete(
-            habit: item,
-            onDelete: () => widget.onDelete(item),
-            child: _UngroupedHabitDropTarget(
-              active: _isDragging && _draggingHabit,
-              target: item,
-              onAcceptHabit: _handleMergeDrop,
+        rows.add(
+          LongPressDraggable<Object>(
+            data: item,
+            delay: const Duration(milliseconds: 350),
+            onDragStarted: () => setState(() {
+              _isDragging = true;
+              _draggingHabit = true;
+            }),
+            onDragEnd: (_) => setState(() {
+              _isDragging = false;
+              _draggingHabit = false;
+            }),
+            onDraggableCanceled: (_, _) => setState(() {
+              _isDragging = false;
+              _draggingHabit = false;
+            }),
+            feedback: _DragFeedback(
+              width: sw - 32,
               child: HabitCard(
                 habit: item,
                 isDone: widget.repo.isCompletedToday(item.id),
                 streak: widget.repo.getStreak(item.id),
-                onTap: () => widget.onTap(item),
-                onMoreTap: () => widget.onMoreTap(item),
+                onTap: () {},
+              ),
+            ),
+            childWhenDragging: _DragGhost(height: 64),
+            child: _SwipeToDelete(
+              habit: item,
+              onDelete: () => widget.onDelete(item),
+              child: _UngroupedHabitDropTarget(
+                active: _isDragging && _draggingHabit,
+                target: item,
+                onAcceptHabit: _handleMergeDrop,
+                child: HabitCard(
+                  habit: item,
+                  isDone: widget.repo.isCompletedToday(item.id),
+                  streak: widget.repo.getStreak(item.id),
+                  onTap: () => widget.onTap(item),
+                  onMoreTap: () => widget.onMoreTap(item),
+                ),
               ),
             ),
           ),
-        ));
+        );
       } else if (item is HabitGroup) {
         final habits = widget.groupHabits[item.id] ?? [];
         final isExpanded = widget.expanded[item.id] ?? true;
-        rows.add(Dismissible(
-          key: ValueKey('group_dismiss_${item.id}'),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.only(right: 20),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.error,
-              borderRadius: BorderRadius.circular(16),
+        rows.add(
+          Dismissible(
+            key: ValueKey('group_dismiss_${item.id}'),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.error,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.onError,
+              ),
             ),
-            child: Icon(Icons.delete_outline_rounded,
-                color: Theme.of(context).colorScheme.onError),
+            // We handle the delete (with its own dialog) ourselves and reload,
+            // so always return false to keep Dismissible from removing the row.
+            confirmDismiss: (_) async {
+              await widget.onGroupDelete(item);
+              return false;
+            },
+            child: _EditGroupBlock(
+              group: item,
+              habits: habits,
+              isExpanded: isExpanded,
+              isDragging: _isDragging,
+              draggingHabit: _draggingHabit,
+              repo: widget.repo,
+              screenWidth: sw,
+              onToggleExpand: () => widget.onToggleExpand(item.id),
+              onGroupActions: () => widget.onGroupActions(item),
+              onHabitTap: widget.onTap,
+              onHabitMoreTap: widget.onMoreTap,
+              onHabitDelete: widget.onDelete,
+              onGroupDragStart: () => setState(() {
+                _isDragging = true;
+                _draggingHabit = false;
+              }),
+              onGroupDragEnd: () => setState(() {
+                _isDragging = false;
+                _draggingHabit = false;
+              }),
+              onHabitDragStart: () => setState(() {
+                _isDragging = true;
+                _draggingHabit = true;
+              }),
+              onHabitDragEnd: () => setState(() {
+                _isDragging = false;
+                _draggingHabit = false;
+              }),
+              onDropIntoGroup: (dropped, pos) =>
+                  _handleDrop(dropped, intoGroupId: item.id, groupPos: pos),
+            ),
           ),
-          // We handle the delete (with its own dialog) ourselves and reload,
-          // so always return false to keep Dismissible from removing the row.
-          confirmDismiss: (_) async {
-            await widget.onGroupDelete(item);
-            return false;
-          },
-          child: _EditGroupBlock(
-            group: item,
-            habits: habits,
-            isExpanded: isExpanded,
-            isDragging: _isDragging,
-            draggingHabit: _draggingHabit,
-            repo: widget.repo,
-            screenWidth: sw,
-            onToggleExpand: () => widget.onToggleExpand(item.id),
-            onGroupActions: () => widget.onGroupActions(item),
-            onHabitTap: widget.onTap,
-            onHabitMoreTap: widget.onMoreTap,
-            onHabitDelete: widget.onDelete,
-            onGroupDragStart: () =>
-                setState(() { _isDragging = true; _draggingHabit = false; }),
-            onGroupDragEnd: () =>
-                setState(() { _isDragging = false; _draggingHabit = false; }),
-            onHabitDragStart: () =>
-                setState(() { _isDragging = true; _draggingHabit = true; }),
-            onHabitDragEnd: () =>
-                setState(() { _isDragging = false; _draggingHabit = false; }),
-            onDropIntoGroup: (dropped, pos) =>
-                _handleDrop(dropped, intoGroupId: item.id, groupPos: pos),
-          ),
-        ));
+        );
       }
 
-      rows.add(_DropZone(
-        active: _isDragging,
-        onDrop: (dropped) => _handleDrop(dropped, flatIndex: i + 1),
-      ));
+      rows.add(
+        _DropZone(
+          active: _isDragging,
+          onDrop: (dropped) => _handleDrop(dropped, flatIndex: i + 1),
+        ),
+      );
     }
 
     if (widget.flatItems.isEmpty) {
@@ -1324,31 +1406,32 @@ class _EditGroupBlock extends StatelessWidget {
   final void Function(Object item, int pos) onDropIntoGroup;
 
   Widget _groupFeedback() => Container(
-        width: screenWidth - 32,
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceDark,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.habitsColor),
+    width: screenWidth - 32,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    decoration: BoxDecoration(
+      color: AppTheme.surfaceDark,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppTheme.habitsColor),
+    ),
+    child: Row(
+      children: [
+        Text(group.emoji, style: const TextStyle(fontSize: 18)),
+        const SizedBox(width: 10),
+        Text(
+          group.name,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            color: Colors.white,
+          ),
         ),
-        child: Row(
-          children: [
-            Text(group.emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 10),
-            Text(group.name,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: Colors.white)),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final doneCount =
-        habits.where((h) => repo.isCompletedToday(h.id)).length;
+    final doneCount = habits.where((h) => repo.isCompletedToday(h.id)).length;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -1365,7 +1448,7 @@ class _EditGroupBlock extends StatelessWidget {
             delay: const Duration(milliseconds: 350),
             onDragStarted: onGroupDragStart,
             onDragEnd: (_) => onGroupDragEnd(),
-            onDraggableCanceled: (_, __) => onGroupDragEnd(),
+            onDraggableCanceled: (_, _) => onGroupDragEnd(),
             feedback: Material(
               color: Colors.transparent,
               child: _groupFeedback(),
@@ -1381,30 +1464,34 @@ class _EditGroupBlock extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
                 child: Row(
                   children: [
-                    Text(group.emoji,
-                        style: const TextStyle(fontSize: 16)),
+                    Text(group.emoji, style: const TextStyle(fontSize: 16)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(group.name,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15)),
+                      child: Text(
+                        group.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                     if (habits.isNotEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
-                          color:
-                              AppTheme.habitsColor.withValues(alpha: 0.15),
+                          color: AppTheme.habitsColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           '$doneCount/${habits.length}',
                           style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.habitsColor),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.habitsColor,
+                          ),
                         ),
                       ),
                     const SizedBox(width: 4),
@@ -1413,8 +1500,11 @@ class _EditGroupBlock extends StatelessWidget {
                       onTap: onGroupActions,
                       child: const Padding(
                         padding: EdgeInsets.all(8),
-                        child: Icon(Icons.more_vert_rounded,
-                            size: 18, color: AppTheme.muted),
+                        child: Icon(
+                          Icons.more_vert_rounded,
+                          size: 18,
+                          color: AppTheme.muted,
+                        ),
                       ),
                     ),
                     Icon(
@@ -1447,7 +1537,7 @@ class _EditGroupBlock extends StatelessWidget {
                       delay: const Duration(milliseconds: 350),
                       onDragStarted: onHabitDragStart,
                       onDragEnd: (_) => onHabitDragEnd(),
-                      onDraggableCanceled: (_, __) => onHabitDragEnd(),
+                      onDraggableCanceled: (_, _) => onHabitDragEnd(),
                       feedback: _DragFeedback(
                         width: screenWidth - 56,
                         child: HabitCard(
@@ -1503,7 +1593,7 @@ class _DropZone extends StatelessWidget {
     if (!active) return const SizedBox(height: 4);
     return DragTarget<Object>(
       onAcceptWithDetails: (d) => onDrop(d.data),
-      builder: (_, candidates, __) => AnimatedContainer(
+      builder: (_, candidates, _) => AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         height: candidates.isNotEmpty ? 44 : 16,
         margin: candidates.isNotEmpty
@@ -1517,13 +1607,18 @@ class _DropZone extends StatelessWidget {
           border: candidates.isNotEmpty
               ? Border.all(
                   color: AppTheme.habitsColor.withValues(alpha: 0.6),
-                  width: 1.5)
+                  width: 1.5,
+                )
               : null,
         ),
         child: candidates.isNotEmpty
             ? const Center(
-                child: Icon(Icons.add_rounded,
-                    color: AppTheme.habitsColor, size: 20))
+                child: Icon(
+                  Icons.add_rounded,
+                  color: AppTheme.habitsColor,
+                  size: 20,
+                ),
+              )
             : null,
       ),
     );
@@ -1625,10 +1720,9 @@ class _DragHint extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           'Tahan item untuk mengatur posisi',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.muted,
-                fontSize: 11,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppTheme.muted, fontSize: 11),
         ),
       ],
     );
@@ -1704,8 +1798,8 @@ class _GroupView extends StatelessWidget {
             'Belum ada kebiasaan di sini.\nTap + atau gunakan "Pindahkan ke rutinitas" dari Semua.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
@@ -1786,7 +1880,7 @@ class _TodayHeader extends StatelessWidget {
                   tween: Tween(begin: 0, end: pct),
                   duration: const Duration(milliseconds: 600),
                   curve: Curves.easeOutCubic,
-                  builder: (_, v, __) => SizedBox(
+                  builder: (_, v, _) => SizedBox(
                     width: 52,
                     height: 52,
                     child: CircularProgressIndicator(
@@ -1799,9 +1893,13 @@ class _TodayHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text('$done/$total',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w700)),
+                Text(
+                  '$done/$total',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1819,10 +1917,9 @@ class _TodayHeader extends StatelessWidget {
                   bestStreak > 0
                       ? '🔥 Beruntun terbaik $bestStreak hari'
                       : 'Centang kebiasaan untuk mulai streak',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: cs.onSurfaceVariant),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ],
             ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/analytics_service.dart';
+import '../../../core/services/haptics_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/water_model.dart';
 import '../data/water_repository.dart';
@@ -54,8 +55,9 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _addMl(int amount) async {
-    HapticFeedback.lightImpact();
+    HapticsService.tap();
     await _repo.addMl(amount);
+    AnalyticsService.waterAdded(amount);
     if (!mounted) return;
     setState(() {
       _currentMl = _repo.getTodayMl();
@@ -66,6 +68,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   Future<void> _undoLastAdd() async {
     final amount = _undoAmountMl;
     if (amount == null) return;
+    HapticsService.success();
     await _repo.removeMl(amount);
     if (!mounted) return;
     setState(() {
@@ -136,20 +139,25 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Image.asset('assets/water_drop_mascot.webp', height: 76),
+                        Image.asset(
+                          'assets/water_drop_mascot.webp',
+                          height: 76,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             decoration: BoxDecoration(
                               color: AppTheme.surfaceHigh,
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
                               isDone
-                                  ? 'Target tercapai! Mantap 🎉'
-                                  : 'Tetap semangat! Kamu hebat 💙',
+                                  ? 'Target tercapai! Mantap!'
+                                  : 'Tetap semangat! Kamu hebat.',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
@@ -166,7 +174,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                         goal: targetMl,
                         size: 240,
                         strokeWidth: 16,
-                        trackColor: AppTheme.waterColor.withOpacity(0.15),
+                        trackColor: AppTheme.waterColor.withValues(alpha: 0.15),
                         fillColor: AppTheme.waterColor,
                         center: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -180,7 +188,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                                   tween: IntTween(begin: 0, end: _currentMl),
                                   duration: const Duration(milliseconds: 500),
                                   curve: Curves.easeOutCubic,
-                                  builder: (_, v, __) => Text(
+                                  builder: (_, v, _) => Text(
                                     _fmtMl(v),
                                     style: const TextStyle(
                                       fontSize: 46,
@@ -246,10 +254,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
 
                     if (_undoAmountMl != null) ...[
                       const SizedBox(height: 12),
-                      _UndoBar(
-                        amountMl: _undoAmountMl!,
-                        onUndo: _undoLastAdd,
-                      ),
+                      _UndoBar(amountMl: _undoAmountMl!, onUndo: _undoLastAdd),
                     ],
 
                     const SizedBox(height: 12),
@@ -285,7 +290,9 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 16),
+                          horizontal: 18,
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.surfaceHigh,
                           borderRadius: BorderRadius.circular(16),
@@ -305,8 +312,11 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(Icons.edit_rounded,
-                                size: 18, color: AppTheme.muted),
+                            const Icon(
+                              Icons.edit_rounded,
+                              size: 18,
+                              color: AppTheme.muted,
+                            ),
                           ],
                         ),
                       ),
@@ -324,15 +334,15 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
   static String _fmtMl(int ml) {
     if (ml >= 1000) {
       return ml.toString().replaceAllMapped(
-            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (m) => '${m[1]},',
-          );
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
     }
     return ml.toString();
   }
 }
 
-// ─── Quick-add chip ───────────────────────────────────────────────────────────
+// Quick-add chip
 
 class _QuickAddChip extends StatefulWidget {
   const _QuickAddChip({
@@ -358,7 +368,10 @@ class _QuickAddChipState extends State<_QuickAddChip> {
         onTapDown: (_) => setState(() => _down = true),
         onTapCancel: () => setState(() => _down = false),
         onTapUp: (_) => setState(() => _down = false),
-        onTap: widget.onTap,
+        onTap: () {
+          HapticsService.softTap();
+          widget.onTap();
+        },
         child: AnimatedScale(
           scale: _down ? 0.95 : 1,
           duration: const Duration(milliseconds: 110),
@@ -388,13 +401,10 @@ class _QuickAddChipState extends State<_QuickAddChip> {
   }
 }
 
-// ─── Settings bottom sheet ────────────────────────────────────────────────────
+// Settings bottom sheet
 
 class _UndoBar extends StatelessWidget {
-  const _UndoBar({
-    required this.amountMl,
-    required this.onUndo,
-  });
+  const _UndoBar({required this.amountMl, required this.onUndo});
 
   final int amountMl;
   final Future<void> Function() onUndo;
@@ -406,14 +416,15 @@ class _UndoBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceHigh,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.waterColor.withOpacity(0.28),
-        ),
+        border: Border.all(color: AppTheme.waterColor.withValues(alpha: 0.28)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_rounded,
-              color: AppTheme.waterColor, size: 20),
+          const Icon(
+            Icons.check_circle_rounded,
+            color: AppTheme.waterColor,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -421,10 +432,7 @@ class _UndoBar extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
-          TextButton(
-            onPressed: onUndo,
-            child: const Text('Urungkan'),
-          ),
+          TextButton(onPressed: onUndo, child: const Text('Urungkan')),
         ],
       ),
     );
@@ -482,7 +490,11 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 32),
+        24,
+        24,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -490,11 +502,11 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
           Text('Pengaturan Air', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
           Text(
-            'WHO merekomendasikan 2.0L (wanita) – 2.5L (pria) per hari. '
-            'Di iklim panas seperti Indonesia, tambahkan 0.5–1.0L.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+            'WHO merekomendasikan 2.0L (wanita) - 2.5L (pria) per hari. '
+            'Di iklim panas seperti Indonesia, tambahkan 0.5-1.0L.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
           Row(
@@ -523,7 +535,9 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
               DropdownButton<int>(
                 value: _glassSizeMl,
                 items: _glassSizes
-                    .map((s) => DropdownMenuItem(value: s, child: Text('${s}ml')))
+                    .map(
+                      (s) => DropdownMenuItem(value: s, child: Text('${s}ml')),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _glassSizeMl = v!),
               ),
@@ -537,9 +551,12 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
               DropdownButton<int>(
                 value: _startHour,
                 items: List.generate(24, (i) => i)
-                    .map((h) => DropdownMenuItem(
+                    .map(
+                      (h) => DropdownMenuItem(
                         value: h,
-                        child: Text('${h.toString().padLeft(2, '0')}:00')))
+                        child: Text('${h.toString().padLeft(2, '0')}:00'),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _startHour = v!),
               ),
@@ -550,9 +567,12 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
                 value: _endHour,
                 items: List.generate(24, (i) => i)
                     .where((h) => h > _startHour)
-                    .map((h) => DropdownMenuItem(
+                    .map(
+                      (h) => DropdownMenuItem(
                         value: h,
-                        child: Text('${h.toString().padLeft(2, '0')}:00')))
+                        child: Text('${h.toString().padLeft(2, '0')}:00'),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _endHour = v!),
               ),
@@ -566,8 +586,10 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Pengingat',
-                        style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Pengingat',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       'Setiap $_intervalMin menit dalam rentang aktif',
@@ -586,7 +608,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
           ),
           const SizedBox(height: 12),
           Text(
-            '$_glasses gelas/hari  ·  pengingat setiap $_intervalMin menit',
+            '$_glasses gelas/hari - pengingat setiap $_intervalMin menit',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),

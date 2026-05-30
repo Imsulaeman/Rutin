@@ -18,7 +18,8 @@ class MedicineHistoryScreen extends ConsumerStatefulWidget {
   const MedicineHistoryScreen({super.key});
 
   @override
-  ConsumerState<MedicineHistoryScreen> createState() => _MedicineHistoryScreenState();
+  ConsumerState<MedicineHistoryScreen> createState() =>
+      _MedicineHistoryScreenState();
 }
 
 class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
@@ -36,7 +37,7 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(medicineRepositoryProvider);
-    final medicines = repo.getAll();
+    final medicines = repo.getAllIncludingInactive();
     final days = _daysForMonth(_month);
     final selectedDoses = _dosesForDay(medicines, _selectedDay);
 
@@ -49,7 +50,7 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
       ),
       body: ValueListenableBuilder<Box<MedicineLog>>(
         valueListenable: Hive.box<MedicineLog>('medicine_logs').listenable(),
-        builder: (context, _, __) {
+        builder: (context, _, _) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
@@ -95,11 +96,12 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
                       itemCount: days.length,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 7,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 7,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
                       itemBuilder: (context, index) {
                         final day = days[index];
                         if (day == null) return const SizedBox.shrink();
@@ -109,7 +111,9 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
                           onTap: () => setState(() => _selectedDay = day),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: selected ? Colors.white.withValues(alpha: 0.12) : const Color(0xFF0F1524),
+                              color: selected
+                                  ? Colors.white.withValues(alpha: 0.12)
+                                  : const Color(0xFF0F1524),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: selected ? Colors.white54 : _surfaceLine,
@@ -295,7 +299,10 @@ class _SelectedDayCard extends StatelessWidget {
             )
           else
             for (int i = 0; i < doses.length; i++) ...[
-              _HistoryDoseTile(dose: doses[i], status: _historyStatus(repo, doses[i])),
+              _HistoryDoseTile(
+                dose: doses[i],
+                status: _historyStatus(repo, doses[i]),
+              ),
               if (i != doses.length - 1) const SizedBox(height: 12),
             ],
         ],
@@ -382,7 +389,10 @@ class _HistoryDoseTile extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -410,7 +420,8 @@ List<DateTime?> _daysForMonth(DateTime month) {
   final leading = firstDay.weekday % 7;
   return [
     for (int i = 0; i < leading; i++) null,
-    for (int day = 1; day <= daysInMonth; day++) DateTime(month.year, month.month, day),
+    for (int day = 1; day <= daysInMonth; day++)
+      DateTime(month.year, month.month, day),
   ];
 }
 
@@ -430,7 +441,11 @@ List<_HistoryDose> _dosesForDay(List<Medicine> medicines, DateTime day) {
   return doses;
 }
 
-String _dayState(MedicineRepository repo, List<Medicine> medicines, DateTime day) {
+String _dayState(
+  MedicineRepository repo,
+  List<Medicine> medicines,
+  DateTime day,
+) {
   final doses = _dosesForDay(medicines, day);
   if (doses.isEmpty) return 'empty';
 
@@ -450,6 +465,15 @@ String _dayState(MedicineRepository repo, List<Medicine> medicines, DateTime day
 String _historyStatus(MedicineRepository repo, _HistoryDose dose) {
   if (repo.isTaken(dose.medicine.id, dose.scheduled)) return 'taken';
   final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final doseDay = DateTime(
+    dose.scheduled.year,
+    dose.scheduled.month,
+    dose.scheduled.day,
+  );
+  // Past days with no log entry = no data, not missed.
+  // Only today's overdue doses count as missed.
+  if (doseDay.isBefore(today)) return 'upcoming';
   if (dose.scheduled.isAfter(now)) return 'upcoming';
   return 'missed';
 }
@@ -477,12 +501,38 @@ String _fmtClock(DateTime dateTime) {
 }
 
 String _monthLabel(DateTime month) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
   return '${months[month.month - 1]} ${month.year}';
 }
 
 String _dayLabel(DateTime day) {
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
   return '${days[day.weekday % 7]}, ${day.day} ${months[day.month - 1]} ${day.year}';
 }

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../core/services/analytics_service.dart';
+import '../../../core/services/haptics_service.dart';
 import '../../../shared/providers/providers.dart';
 import '../../notifications/alarm_service.dart';
 import '../data/medicine_model.dart';
@@ -14,8 +16,8 @@ const _surface = Color(0xFF161D2E);
 const _surfaceLine = Color(0xFF222C42);
 const _medGradient = [Color(0xFFEE5A8C), Color(0xFFD93A6E)];
 const _green = Color(0xFF4CC56A);
-const _amber = Color(0xFFF4A92B);
 const _grey = Color(0xFF9AA3B2);
+const _missed = Color(0xFFF36B5B);
 
 enum _DoseBucket { now, upcoming, taken, missed }
 
@@ -147,7 +149,6 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
 
   _DoseBucket _bucketFor(MedicineRepository repo, _Dose dose) {
     if (repo.isTaken(dose.medicine.id, dose.scheduled)) return _DoseBucket.taken;
-
     final now = DateTime.now();
     final diff = now.difference(dose.scheduled);
     if (diff.inMinutes >= 60) return _DoseBucket.missed;
@@ -156,50 +157,43 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
   }
 
   Future<void> _toggle(MedicineRepository repo, _Dose dose, bool taken) async {
-    HapticFeedback.selectionClick();
+    if (taken) {
+      HapticsService.success();
+    } else {
+      HapticsService.tap();
+    }
     await repo.setTaken(dose.medicine.id, dose.scheduled, taken);
+    if (taken) AnalyticsService.medicineTaken(dose.medicine.name);
     if (mounted) setState(() {});
   }
 
-  Future<void> _confirmDelete(MedicineRepository repo, Medicine medicine) async {
-    HapticFeedback.mediumImpact();
-    final ok = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: _surface,
-            title: const Text('Hapus obat?', style: TextStyle(color: Colors.white)),
-            content: Text(
-              '${medicine.name} akan dihapus permanen.',
-              style: const TextStyle(color: _grey),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: _medGradient.last),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Hapus'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-    if (!ok) return;
-
+  Future<void> _executeDelete(MedicineRepository repo, Medicine medicine) async {
     for (final minutes in medicine.scheduleTimes) {
       await AlarmService.cancelAllForAlarm(
         AlarmService.medicineRootAlarmId(medicine.id, minutes),
       );
     }
     await repo.delete(medicine.id);
+    AnalyticsService.medicineDeleted();
+    await _refreshReminderDebug(repo, force: true);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _executeArchive(MedicineRepository repo, Medicine medicine) async {
+    for (final minutes in medicine.scheduleTimes) {
+      await AlarmService.cancelAllForAlarm(
+        AlarmService.medicineRootAlarmId(medicine.id, minutes),
+      );
+    }
+    await repo.archive(medicine.id);
+    AnalyticsService.medicineArchived();
     await _refreshReminderDebug(repo, force: true);
     if (mounted) setState(() {});
   }
 
   String? _debugTextFor(_Dose dose) {
-    final alarmId = AlarmService.medicineRootAlarmId(dose.medicine.id, dose.minute);
+    final alarmId =
+        AlarmService.medicineRootAlarmId(dose.medicine.id, dose.minute);
     final debug = _reminderDebug[alarmId];
     if (debug == null) return null;
     final baseMillis = debug['baseMillis'];
@@ -217,24 +211,41 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(medicineRepositoryProvider);
-    final doses = _todayDoses(repo);
-    final nowDoses = [for (final d in doses) if (_bucketFor(repo, d) == _DoseBucket.now) d];
-    final upcomingDoses = [
-      for (final d in doses)
-        if (_bucketFor(repo, d) == _DoseBucket.upcoming) d,
-    ];
-    final takenDoses = [for (final d in doses) if (_bucketFor(repo, d) == _DoseBucket.taken) d];
-    final missedDoses = [for (final d in doses) if (_bucketFor(repo, d) == _DoseBucket.missed) d];
+    final medicines = repo.getAll();
+    final allDoses = _todayDoses(repo);
+
+    // group doses by medicine id (order from getAll())
+    final dosesByMedicine = <String, List<_Dose>>{};
+    for (final d in allDoses) {
+      dosesByMedicine.putIfAbsent(d.medicine.id, () => []).add(d);
+    }
+
+    // counts for the slim banner
+    int nowCount = 0, takenCount = 0, missedCount = 0;
+    for (final d in allDoses) {
+      switch (_bucketFor(repo, d)) {
+        case _DoseBucket.now:
+          nowCount++;
+        case _DoseBucket.taken:
+          takenCount++;
+        case _DoseBucket.missed:
+          missedCount++;
+        case _DoseBucket.upcoming:
+          break;
+      }
+    }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         backgroundColor: _navy,
         body: SafeArea(
           bottom: false,
           child: ValueListenableBuilder<Box<Medicine>>(
             valueListenable: Hive.box<Medicine>('medicines').listenable(),
-            builder: (context, _, __) {
+            builder: (context, _, _) {
               _refreshReminderDebug(repo);
               return CustomScrollView(
                 slivers: [
@@ -261,73 +272,62 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                                 ),
                               ),
                               _HeaderButton(
-                                icon: Icons.calendar_month_rounded,
-                                onTap: () => context.push('/medicine/history'),
+                                icon: Icons.archive_outlined,
+                                onTap: () =>
+                                    context.push('/medicine/archive'),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 4),
+                              _HeaderButton(
+                                icon: Icons.calendar_month_rounded,
+                                onTap: () =>
+                                    context.push('/medicine/history'),
+                              ),
+                              const SizedBox(width: 4),
                               _HeaderButton(
                                 icon: Icons.add_rounded,
                                 onTap: () => context.push('/medicine/add'),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          _HeroSummary(
-                            nowCount: nowDoses.length,
-                            upcomingCount: upcomingDoses.length,
-                            takenCount: takenDoses.length,
-                            missedCount: missedDoses.length,
-                          ),
+                          if (allDoses.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            _DayBanner(
+                              total: allDoses.length,
+                              taken: takenCount,
+                              nowCount: nowCount,
+                              missedCount: missedCount,
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ),
-                  if (doses.isEmpty)
+                  if (medicines.isEmpty)
                     const SliverFillRemaining(
                       hasScrollBody: false,
                       child: _EmptyState(),
                     )
                   else ...[
-                    _DoseSectionSliver(
-                      title: 'Perlu diminum sekarang',
-                      subtitle: 'Yang sedang aktif dan terus diingatkan.',
-                      accent: _medGradient.first,
-                      doses: nowDoses,
-                      repo: repo,
-                      onToggle: _toggle,
-                      onDelete: _confirmDelete,
-                      debugTextFor: _debugTextFor,
-                    ),
-                    _DoseSectionSliver(
-                      title: 'Berikutnya',
-                      subtitle: 'Dosis berikutnya untuk hari ini.',
-                      accent: _amber,
-                      doses: upcomingDoses,
-                      repo: repo,
-                      onToggle: _toggle,
-                      onDelete: _confirmDelete,
-                      debugTextFor: _debugTextFor,
-                    ),
-                    _DoseSectionSliver(
-                      title: 'Sudah diminum',
-                      subtitle: 'Yang sudah selesai hari ini.',
-                      accent: _green,
-                      doses: takenDoses,
-                      repo: repo,
-                      onToggle: _toggle,
-                      onDelete: _confirmDelete,
-                      debugTextFor: _debugTextFor,
-                    ),
-                    _DoseSectionSliver(
-                      title: 'Terlewat',
-                      subtitle: 'Belum diminum lebih dari 1 jam.',
-                      accent: const Color(0xFFF36B5B),
-                      doses: missedDoses,
-                      repo: repo,
-                      onToggle: _toggle,
-                      onDelete: _confirmDelete,
-                      debugTextFor: _debugTextFor,
-                    ),
+                    for (final medicine in medicines)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                          child: _SwipeMedicine(
+                            key: ValueKey('med_${medicine.id}'),
+                            medicine: medicine,
+                            onDelete: () => _executeDelete(repo, medicine),
+                            onArchive: () => _executeArchive(repo, medicine),
+                            child: _MedicineCard(
+                              medicine: medicine,
+                              doses: dosesByMedicine[medicine.id] ?? [],
+                              bucketFor: (d) => _bucketFor(repo, d),
+                              onToggle: (dose, taken) =>
+                                  _toggle(repo, dose, taken),
+                              debugTextFor: _debugTextFor,
+                            ),
+                          ),
+                        ),
+                      ),
                     const SliverToBoxAdapter(child: SizedBox(height: 28)),
                   ],
                 ],
@@ -339,6 +339,8 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     );
   }
 }
+
+// ─── Header button ───────────────────────────────────────────────────────────
 
 class _HeaderButton extends StatelessWidget {
   const _HeaderButton({required this.icon, required this.onTap});
@@ -360,112 +362,76 @@ class _HeaderButton extends StatelessWidget {
   }
 }
 
-class _HeroSummary extends StatelessWidget {
-  const _HeroSummary({
+// ─── Slim day banner ─────────────────────────────────────────────────────────
+
+class _DayBanner extends StatelessWidget {
+  const _DayBanner({
+    required this.total,
+    required this.taken,
     required this.nowCount,
-    required this.upcomingCount,
-    required this.takenCount,
     required this.missedCount,
   });
 
+  final int total;
+  final int taken;
   final int nowCount;
-  final int upcomingCount;
-  final int takenCount;
   final int missedCount;
 
   @override
   Widget build(BuildContext context) {
+    final String statusText;
+
+    if (nowCount > 0) {
+      statusText = '$nowCount perlu diminum';
+    } else if (missedCount > 0) {
+      statusText = '$missedCount terlewat';
+    } else if (taken == total) {
+      statusText = 'Semua sudah diminum';
+    } else {
+      statusText = '$taken/$total selesai';
+    }
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFF3789F), ..._medGradient],
+          colors: [Color(0xFFF3789F), Color(0xFFEE5A8C), Color(0xFFD93A6E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: _medGradient.last.withValues(alpha: 0.4),
-            blurRadius: 26,
-            spreadRadius: -8,
-            offset: const Offset(0, 14),
+            color: const Color(0xFFD93A6E).withValues(alpha: 0.38),
+            blurRadius: 22,
+            spreadRadius: -6,
+            offset: const Offset(0, 10),
           ),
         ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Hari ini',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _todayLabel(),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.82),
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _SummaryChip(label: 'Sekarang', value: nowCount.toString())),
-              const SizedBox(width: 10),
-              Expanded(child: _SummaryChip(label: 'Berikutnya', value: upcomingCount.toString())),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _SummaryChip(label: 'Selesai', value: takenCount.toString())),
-              const SizedBox(width: 10),
-              Expanded(child: _SummaryChip(label: 'Terlewat', value: missedCount.toString())),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryChip extends StatelessWidget {
-  const _SummaryChip({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.86),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+          Text(
+            _todayLabel(),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.78),
+              fontSize: 13,
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              statusText,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -474,218 +440,163 @@ class _SummaryChip extends StatelessWidget {
   }
 }
 
-class _DoseSectionSliver extends StatelessWidget {
-  const _DoseSectionSliver({
-    required this.title,
-    required this.subtitle,
-    required this.accent,
+// ─── Per-medicine card with dose chips ───────────────────────────────────────
+
+class _MedicineCard extends StatelessWidget {
+  const _MedicineCard({
+    required this.medicine,
     required this.doses,
-    required this.repo,
+    required this.bucketFor,
     required this.onToggle,
-    required this.onDelete,
     required this.debugTextFor,
   });
 
-  final String title;
-  final String subtitle;
-  final Color accent;
+  final Medicine medicine;
   final List<_Dose> doses;
-  final MedicineRepository repo;
-  final Future<void> Function(MedicineRepository repo, _Dose dose, bool taken) onToggle;
-  final Future<void> Function(MedicineRepository repo, Medicine medicine) onDelete;
-  final String? Function(_Dose dose) debugTextFor;
+  final _DoseBucket Function(_Dose) bucketFor;
+  final Future<void> Function(_Dose dose, bool taken) onToggle;
+  final String? Function(_Dose) debugTextFor;
 
   @override
   Widget build(BuildContext context) {
-    if (doses.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-          child: _SectionShell(
-            title: title,
-            subtitle: subtitle,
-            accent: accent,
-            child: const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text(
-                'Belum ada item di bagian ini.',
-                style: TextStyle(color: _grey, fontSize: 13),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    // first debug text available across all doses (e.g. next alarm)
+    final debugText = doses
+        .map(debugTextFor)
+        .where((t) => t != null)
+        .firstOrNull;
 
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-        child: _SectionShell(
-          title: title,
-          subtitle: subtitle,
-          accent: accent,
-          child: Column(
-            children: [
-              for (int i = 0; i < doses.length; i++) ...[
-                _SwipeToDeleteMedicine(
-                  key: ValueKey(
-                    'dose_${doses[i].medicine.id}_${doses[i].minute}_${title}_$i',
-                  ),
-                  medicine: doses[i].medicine,
-                  onDelete: () => onDelete(repo, doses[i].medicine),
-                  child: _DoseTile(
-                    dose: doses[i],
-                    taken: repo.isTaken(doses[i].medicine.id, doses[i].scheduled),
-                    debugText: debugTextFor(doses[i]),
-                    onToggle: (value) => onToggle(repo, doses[i], value),
-                  ),
-                ),
-                if (i != doses.length - 1) const SizedBox(height: 12),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionShell extends StatelessWidget {
-  const _SectionShell({
-    required this.title,
-    required this.subtitle,
-    required this.accent,
-    required this.child,
-  });
-
-  final String title;
-  final String subtitle;
-  final Color accent;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _surfaceLine),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: accent,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: const TextStyle(color: _grey, fontSize: 12),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _DoseTile extends StatelessWidget {
-  const _DoseTile({
-    required this.dose,
-    required this.taken,
-    required this.debugText,
-    required this.onToggle,
-  });
-
-  final _Dose dose;
-  final bool taken;
-  final String? debugText;
-  final ValueChanged<bool> onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF0F1524),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _surfaceLine),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          dose.medicine.name,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            decoration: taken ? TextDecoration.lineThrough : null,
-                            decorationColor: _grey,
-                          ),
-                        ),
-                      ),
-                      _TimePill(label: _fmtMinute(dose.minute)),
-                    ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  medicine.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
-                  if ((dose.medicine.dosage ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      dose.medicine.dosage!,
-                      style: const TextStyle(color: _grey, fontSize: 13),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _Badge(
-                        icon: Icons.restaurant_rounded,
-                        label: MedicineMealTiming.label(dose.medicine.mealTimingKey),
-                      ),
-                      if (debugText != null)
-                        _Badge(
-                          icon: Icons.alarm_rounded,
-                          label: debugText!,
-                          foreground: _green,
-                        ),
-                    ],
-                  ),
-                ],
+                ),
               ),
+              _Badge(
+                icon: Icons.restaurant_rounded,
+                label: MedicineMealTiming.label(medicine.mealTimingKey),
+              ),
+            ],
+          ),
+          if ((medicine.dosage ?? '').isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              medicine.dosage!,
+              style: const TextStyle(color: _grey, fontSize: 13),
             ),
-            const SizedBox(width: 12),
-            _CheckCircle(
-              checked: taken,
-              onTap: () => onToggle(!taken),
+          ],
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final dose in doses)
+                _DoseChip(
+                  dose: dose,
+                  bucket: bucketFor(dose),
+                  onTap: () =>
+                      onToggle(dose, bucketFor(dose) != _DoseBucket.taken),
+                ),
+            ],
+          ),
+          if (debugText != null) ...[
+            const SizedBox(height: 8),
+            _Badge(
+              icon: Icons.alarm_rounded,
+              label: debugText,
+              foreground: _green,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Dose chip ───────────────────────────────────────────────────────────────
+
+class _DoseChip extends StatelessWidget {
+  const _DoseChip({
+    required this.dose,
+    required this.bucket,
+    required this.onTap,
+  });
+
+  final _Dose dose;
+  final _DoseBucket bucket;
+  final VoidCallback onTap;
+
+  Color get _bg => switch (bucket) {
+    _DoseBucket.taken => _green.withValues(alpha: 0.12),
+    _DoseBucket.missed => _missed.withValues(alpha: 0.12),
+    _ => const Color(0xFF1A2236),
+  };
+
+  Color get _fg => switch (bucket) {
+    _DoseBucket.taken => _green,
+    _DoseBucket.now => Colors.white,
+    _DoseBucket.missed => _missed,
+    _DoseBucket.upcoming => _grey,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final isNow = bucket == _DoseBucket.now;
+    final isTaken = bucket == _DoseBucket.taken;
+    final isMissed = bucket == _DoseBucket.missed;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          gradient:
+              isNow ? const LinearGradient(colors: _medGradient) : null,
+          color: isNow ? null : _bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isTaken
+                ? _green.withValues(alpha: 0.4)
+                : isMissed
+                    ? _missed.withValues(alpha: 0.3)
+                    : isNow
+                        ? Colors.transparent
+                        : _surfaceLine,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isTaken) ...[
+              const Icon(Icons.check_rounded, size: 13, color: _green),
+              const SizedBox(width: 4),
+            ] else if (isMissed) ...[
+              Icon(Icons.close_rounded, size: 13, color: _missed),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              _fmtMinute(dose.minute),
+              style: TextStyle(
+                color: _fg,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -693,6 +604,8 @@ class _DoseTile extends StatelessWidget {
     );
   }
 }
+
+// ─── Shared small widgets ─────────────────────────────────────────────────────
 
 class _Badge extends StatelessWidget {
   const _Badge({
@@ -732,24 +645,36 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _SwipeToDeleteMedicine extends StatelessWidget {
-  const _SwipeToDeleteMedicine({
+class _SwipeMedicine extends StatelessWidget {
+  const _SwipeMedicine({
     required super.key,
     required this.medicine,
     required this.onDelete,
+    required this.onArchive,
     required this.child,
   });
 
   final Medicine medicine;
   final Future<void> Function() onDelete;
+  final Future<void> Function() onArchive;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return Dismissible(
       key: key!,
-      direction: DismissDirection.endToStart,
+      // swipe right → archive (amber)
       background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4A92B),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: const Icon(Icons.archive_outlined, color: Colors.white),
+      ),
+      // swipe left → delete (red)
+      secondaryBackground: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
@@ -761,90 +686,76 @@ class _SwipeToDeleteMedicine extends StatelessWidget {
           color: Theme.of(context).colorScheme.onError,
         ),
       ),
-      confirmDismiss: (_) async => await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: _surface,
-              title: const Text('Hapus obat?', style: TextStyle(color: Colors.white)),
-              content: Text(
-                '${medicine.name} akan dihapus permanen.',
-                style: const TextStyle(color: _grey),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Batal'),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          return await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: _surface,
+                  title: const Text(
+                    'Arsipkan obat?',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  content: Text(
+                    '${medicine.name} disembunyikan dari daftar hari ini. Riwayat tetap tersimpan.',
+                    style: const TextStyle(color: _grey),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Batal'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFF4A92B),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Arsipkan'),
+                    ),
+                  ],
                 ),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: _medGradient.last),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Hapus'),
+              ) ??
+              false;
+        } else {
+          return await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: _surface,
+                  title: const Text(
+                    'Hapus obat?',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  content: Text(
+                    '${medicine.name} akan dihapus permanen beserta riwayatnya.',
+                    style: const TextStyle(color: _grey),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Batal'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _medGradient.last,
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Hapus'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ) ??
-          false,
-      onDismissed: (_) => onDelete(),
+              ) ??
+              false;
+        }
+      },
+      onDismissed: (direction) {
+        if (direction == DismissDirection.startToEnd) {
+          onArchive();
+        } else {
+          onDelete();
+        }
+      },
       child: child,
-    );
-  }
-}
-
-class _TimePill extends StatelessWidget {
-  const _TimePill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: _medGradient),
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _CheckCircle extends StatelessWidget {
-  const _CheckCircle({required this.checked, required this.onTap});
-
-  final bool checked;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: checked ? _green : Colors.transparent,
-          border: Border.all(
-            color: checked ? _green : _grey.withValues(alpha: 0.6),
-            width: 2,
-          ),
-        ),
-        child: Icon(
-          Icons.check_rounded,
-          size: 18,
-          color: checked ? Colors.white : _grey.withValues(alpha: 0.5),
-        ),
-      ),
     );
   }
 }
@@ -884,7 +795,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di dashboard.',
+              'Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di sini.',
               textAlign: TextAlign.center,
               style: TextStyle(color: _grey, fontSize: 13, height: 1.45),
             ),
@@ -894,6 +805,8 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 String _fmtMinute(int minutes) {
   final hour = (minutes ~/ 60).toString().padLeft(2, '0');
@@ -911,8 +824,29 @@ bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 String _todayLabel() {
-  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const days = [
+    'Minggu',
+    'Senin',
+    'Selasa',
+    'Rabu',
+    'Kamis',
+    'Jumat',
+    'Sabtu',
+  ];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
   final now = DateTime.now();
   return '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
 }

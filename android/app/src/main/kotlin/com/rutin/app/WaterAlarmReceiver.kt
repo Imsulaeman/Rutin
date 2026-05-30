@@ -1,4 +1,4 @@
-package com.ilham.habit_app
+package com.rutin.app
 
 import android.app.AlarmManager
 import android.app.NotificationChannel

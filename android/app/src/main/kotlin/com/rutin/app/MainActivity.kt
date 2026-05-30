@@ -1,5 +1,10 @@
-package com.ilham.habit_app
+package com.rutin.app
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
@@ -101,8 +106,62 @@ class MainActivity : FlutterActivity() {
                         HabitAlarmReceiver.cancel(applicationContext, notifId)
                         result.success(null)
                     }
+                    "vibrateImpact" -> {
+                        val durationMs = call.argument<Int>("durationMs") ?: 45
+                        val amplitude = call.argument<Int>("amplitude") ?: 255
+                        vibrateImpact(durationMs, amplitude)
+                        result.success(null)
+                    }
+                    "vibratePattern" -> {
+                        val timings = (call.argument<List<Int>>("timings") ?: emptyList()).map { it.toLong() }.toLongArray()
+                        val amplitudes = (call.argument<List<Int>>("amplitudes") ?: emptyList()).toIntArray()
+                        vibratePattern(timings, amplitudes)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun vibrator(): Vibrator? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            manager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+    }
+
+    private fun vibrateImpact(durationMs: Int, amplitude: Int) {
+        val vib = vibrator() ?: return
+        if (!vib.hasVibrator()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vib.vibrate(
+                VibrationEffect.createOneShot(
+                    durationMs.toLong(),
+                    amplitude.coerceIn(1, 255)
+                )
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vib.vibrate(durationMs.toLong())
+        }
+    }
+
+    private fun vibratePattern(timings: LongArray, amplitudes: IntArray) {
+        val vib = vibrator() ?: return
+        if (!vib.hasVibrator() || timings.isEmpty()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val safeAmplitudes = if (amplitudes.size == timings.size) {
+                amplitudes.map { it.coerceIn(0, 255) }.toIntArray()
+            } else {
+                IntArray(timings.size) { if (it == 0) 0 else 255 }
+            }
+            vib.vibrate(VibrationEffect.createWaveform(timings, safeAmplitudes, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vib.vibrate(timings, -1)
+        }
     }
 }

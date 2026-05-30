@@ -9,6 +9,7 @@ import 'features/habits/presentation/add_habit_screen.dart';
 import 'features/habits/presentation/habits_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/medicine/presentation/add_medicine_screen.dart';
+import 'features/medicine/presentation/medicine_archive_screen.dart';
 import 'features/medicine/presentation/medicine_history_screen.dart';
 import 'features/medicine/presentation/medicine_list_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
@@ -70,6 +71,11 @@ final appRouter = GoRouter(
       path: '/medicine/history',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (_, __) => const MedicineHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/medicine/archive',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const MedicineArchiveScreen(),
     ),
     GoRoute(
       path: '/habits/add',

@@ -21,14 +21,13 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 - Ask before any visual/design decision - never guess on UI
 - No Inter/Roboto fonts
 - Glassmorphism and gradients are allowed if used with intention and taste - not as defaults
-- GPU-safe animations only: `transform` + `opacity`, never `width`/`height`/`top`/`left`
-- Only modify what the task requires - don't "improve" adjacent code
+
 
 ## Current Status
 
 See `TODO.md` for full task list with statuses.
 
-**Phase:** Medicine alarm ✅ complete. Water reminder ✅ complete (ml-based). Habits ✅ complete with groups + drag reorder. Next: habit history view or group-level streaks.  
+**Phase:** Medicine ✅ Water ✅ Habits ✅ Home today view ✅ (hero + scrollable sections). Firebase Analytics ✅. Archive screen ✅. Package: `com.rutin.app`.
 **App name:** Rutin
 
 ## Tech Stack
@@ -99,6 +98,17 @@ All defined in `docs/ARCHITECTURE.md`. Hive typeIds:
 Use this section to record significant decisions, blockers, or completions so other agents stay in sync.
 
 ---
+
+**2026-05-30 (session 13) - Codex (gpt-5)**
+- **Home today view** — replaced 3-card feature launcher with scrollable today dashboard. Background image is now a fixed hero at top; Obat / Air / Kebiasaan sections scroll below it. Each section has a label + "→ Semua" link. Obat shows per-medicine dose chips (inline tap to mark taken). Air shows compact WaterProgressWidget. Kebiasaan shows today's habits (capped at 5 + overflow link).
+- **Background fix** — initial implementation blocked the sun/atmosphere background; fixed by making the background a full-height hero sliver and pushing content sections below the fold.
+
+**2026-05-30 (session 12) - Claude (claude-sonnet-4-6)**
+- **Multi-dose medicine workflow redesign** — replaced the 4-section bucket layout (Perlu diminum sekarang / Berikutnya / Sudah diminum / Terlewat) with per-medicine cards. Each card shows medicine name, meal timing, dosage, then a row of tappable dose chips: pink gradient = active now, green = taken, orange-red = missed, grey = upcoming. Tap a chip to toggle taken.
+- **Slim day banner** — replaced the `_HeroSummary` 4-stat grid with a single-line banner showing the most relevant status (N perlu diminum / N terlewat / Semua sudah diminum / N/M selesai).
+- **Multi-time add flow** — `AddMedicineScreen` now supports unlimited dose times per medicine. Default is 1 time; `+ Tambah waktu` adds another row; each row has an × to remove; times are de-duped and sorted on save. No model change needed — `scheduleTimes` was already `List<int>`.
+- **Swipe-to-delete** now at the medicine card level (one swipe deletes the whole medicine + all its alarms), not per individual dose.
+- Verification: `dart analyze` on both files — no issues. Device-level verification still needed (Windows Dart worker issue may block build on first attempt).
 
 **2026-05-30 (session 11) - Codex (gpt-5)**
 - **Obat workflow redesign** — the Obat tab is now a true `Hari ini` dashboard grouped into `Perlu diminum sekarang`, `Berikutnya`, `Sudah diminum`, and `Terlewat` instead of a flat medicine list.

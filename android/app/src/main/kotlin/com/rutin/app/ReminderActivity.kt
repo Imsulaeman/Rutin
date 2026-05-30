@@ -1,4 +1,4 @@
-package com.ilham.habit_app
+package com.rutin.app
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
@@ -55,7 +55,7 @@ class ReminderActivity : Activity() {
         val dosage = intent.getStringExtra("dosage").orEmpty()
         val renotifyMinutes = intent.getIntExtra("renotify_minutes", 10)
 
-        // ── Root: full-bleed pink scene with the content layered on top ──────────
+        // Root: full-bleed pink scene with the content layered on top.
         val root = FrameLayout(this)
 
         val bg = ImageView(this).apply {
@@ -82,7 +82,7 @@ class ReminderActivity : Activity() {
 
         // Frosted circular badge with a pill glyph.
         val badge = TextView(this).apply {
-            text = "💊" // 💊
+            text = "\uD83D\uDC8A" // Pill emoji.
             textSize = 34f
             gravity = Gravity.CENTER
             background = GradientDrawable().apply {
@@ -145,7 +145,7 @@ class ReminderActivity : Activity() {
         setContentView(root)
     }
 
-    // ── small UI builders ───────────────────────────────────────────────────────
+    // Small UI builders.
     private fun spacer(weight: Float) = View(this).apply {
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, 0, weight
@@ -236,7 +236,7 @@ class ReminderActivity : Activity() {
         return sla
     }
 
-    // ── bridge: queue a "taken" event for Dart to drain into Hive ────────────────
+    // Bridge: queue a "taken" event for Dart to drain into Hive.
     private fun writePendingTaken(alarmId: Int, scheduledMinutes: Int) {
         val prefs = getSharedPreferences("medicine_pending", Context.MODE_PRIVATE)
         val current = prefs.getStringSet("pending_taken", emptySet()) ?: emptySet()
@@ -256,6 +256,6 @@ class ReminderActivity : Activity() {
 
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        // Block back — the reminder must be acknowledged.
+        // Block back: the reminder must be acknowledged.
     }
 }

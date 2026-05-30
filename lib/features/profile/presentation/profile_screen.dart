@@ -30,7 +30,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final allHabits = _habits.getAll();
     final best = allHabits.isEmpty
         ? 0
-        : allHabits.map((h) => _habits.getStreak(h.id)).reduce((a, b) => a > b ? a : b);
+        : allHabits
+              .map((h) => _habits.getStreak(h.id))
+              .reduce((a, b) => a > b ? a : b);
     setState(() {
       _list = sorted;
       _bestActiveStreak = best;
@@ -50,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               sliver: SliverList.separated(
                 itemCount: _list.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, i) => _MedalCard(medal: _list[i]),
               ),
             ),
@@ -103,9 +105,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             Text(
               'Medali',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 2),
             const Text(
@@ -153,8 +155,18 @@ class _MedalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final awarded = medal.awardedAt;
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
     ];
     final dateStr =
         '${awarded.day} ${months[awarded.month - 1]} ${awarded.year}';
@@ -168,14 +180,11 @@ class _MedalCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppTheme.streakColor.withOpacity(0.15),
+                color: AppTheme.streakColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
-                child: Text(
-                  medal.emoji,
-                  style: const TextStyle(fontSize: 26),
-                ),
+                child: Text(medal.emoji, style: const TextStyle(fontSize: 26)),
               ),
             ),
             const SizedBox(width: 14),
@@ -191,9 +200,9 @@ class _MedalCard extends StatelessWidget {
                   Text(
                     '🔥 Streak terbaik: ${medal.peakStreak} hari',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.streakColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: AppTheme.streakColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(

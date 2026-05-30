@@ -1,4 +1,4 @@
-package com.ilham.habit_app
+package com.rutin.app
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -6,8 +6,8 @@ import android.content.Context
 import android.content.Intent
 
 object NativeReminderScheduler {
-    private const val ACTION_FIRE_BASE = "com.ilham.habit_app.ACTION_FIRE_REMINDER_BASE"
-    private const val ACTION_FIRE_LOOP = "com.ilham.habit_app.ACTION_FIRE_REMINDER_LOOP"
+    private const val ACTION_FIRE_BASE = "com.rutin.app.ACTION_FIRE_REMINDER_BASE"
+    private const val ACTION_FIRE_LOOP = "com.rutin.app.ACTION_FIRE_REMINDER_LOOP"
     private const val EXTRA_ROOT_ALARM_ID = "root_alarm_id"
     private const val EXTRA_SCHEDULED_MINUTES = "scheduled_minutes"
     private const val EXTRA_MEDICINE_NAME = "medicine_name"

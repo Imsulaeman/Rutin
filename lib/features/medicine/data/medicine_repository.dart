@@ -8,6 +8,22 @@ class MedicineRepository {
   List<Medicine> getAll() =>
       _medicines.values.where((m) => m.isActive).toList();
 
+  List<Medicine> getAllIncludingInactive() => _medicines.values.toList();
+
+  Future<void> archive(String id) async {
+    final medicine = _medicines.get(id);
+    if (medicine == null) return;
+    medicine.isActive = false;
+    await medicine.save();
+  }
+
+  Future<void> unarchive(String id) async {
+    final medicine = _medicines.get(id);
+    if (medicine == null) return;
+    medicine.isActive = true;
+    await medicine.save();
+  }
+
   Medicine? getById(String id) => _medicines.get(id);
 
   Future<void> save(Medicine medicine) =>

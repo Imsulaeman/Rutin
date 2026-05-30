@@ -1,4 +1,4 @@
-package com.ilham.habit_app
+package com.rutin.app
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -107,7 +107,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val body = if (!dosage.isNullOrEmpty()) "$medicineName – $dosage" else medicineName
+        val body = if (!dosage.isNullOrEmpty()) "$medicineName - $dosage" else medicineName
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)

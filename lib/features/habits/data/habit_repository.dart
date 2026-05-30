@@ -88,8 +88,12 @@ class HabitRepository {
   /// Builds the flat list (ungrouped habits + groups) sorted by sortIndex.
   List<dynamic> getFlatList() {
     final items = <(int, dynamic)>[];
-    for (final h in habitsInGroup(null)) items.add((h.sortIndex, h));
-    for (final g in getGroups()) items.add((g.sortIndex, g));
+    for (final h in habitsInGroup(null)) {
+      items.add((h.sortIndex, h));
+    }
+    for (final g in getGroups()) {
+      items.add((g.sortIndex, g));
+    }
     items.sort((a, b) => a.$1.compareTo(b.$1));
     return items.map((e) => e.$2).toList();
   }
@@ -129,9 +133,11 @@ class HabitRepository {
 
   Future<void> markDone(String habitId) async {
     if (!isCompletedToday(habitId)) {
-      await _logs.add(HabitLog()
-        ..habitId = habitId
-        ..date = AppDateUtils.todayString());
+      await _logs.add(
+        HabitLog()
+          ..habitId = habitId
+          ..date = AppDateUtils.todayString(),
+      );
     }
   }
 

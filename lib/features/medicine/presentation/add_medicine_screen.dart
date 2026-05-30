@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/analytics_service.dart';
 import '../../../features/notifications/alarm_service.dart';
 import '../../../shared/providers/providers.dart';
 import '../data/medicine_model.dart';
@@ -23,7 +24,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _dosageController = TextEditingController();
-  TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  List<TimeOfDay> _times = [const TimeOfDay(hour: 8, minute: 0)];
   String _mealTimingKey = MedicineMealTiming.bebas;
   bool _saving = false;
 
@@ -34,13 +35,21 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
     super.dispose();
   }
 
-  Future<void> _pickTime() async {
+  Future<void> _pickTime(int index) async {
     final selected = await showTimePicker(
       context: context,
-      initialTime: _selectedTime,
+      initialTime: _times[index],
     );
     if (selected == null) return;
-    setState(() => _selectedTime = selected);
+    setState(() => _times[index] = selected);
+  }
+
+  void _addTime() {
+    setState(() => _times = [..._times, const TimeOfDay(hour: 8, minute: 0)]);
+  }
+
+  void _removeTime(int index) {
+    setState(() => _times = [..._times]..removeAt(index));
   }
 
   Future<void> _save() async {
@@ -54,7 +63,8 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       ..dosage = _dosageController.text.trim().isEmpty
           ? null
           : _dosageController.text.trim()
-      ..scheduleTimes = [_selectedTime.hour * 60 + _selectedTime.minute]
+      ..scheduleTimes =
+          (_times.map((t) => t.hour * 60 + t.minute).toSet().toList()..sort())
       ..isActive = true
       ..colorValue = Colors.green.toARGB32()
       ..mealTimingKey = _mealTimingKey;
@@ -62,6 +72,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
     try {
       await repository.save(medicine);
       await _scheduleInitialAlarm(medicine);
+      AnalyticsService.medicineAdded();
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -141,47 +152,44 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
               _SectionTitle('WAKTU MINUM'),
               const SizedBox(height: 10),
               _SectionCard(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: _pickTime,
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: _medGradient.first.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(
-                          Icons.access_time_rounded,
-                          color: Colors.white,
-                        ),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _times.length; i++) ...[
+                      _TimeRow(
+                        time: _times[i],
+                        canRemove: _times.length > 1,
+                        onTap: () => _pickTime(i),
+                        onRemove: () => _removeTime(i),
                       ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      const Divider(color: _surfaceLine, height: 1),
+                    ],
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: _addTime,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            Icon(
+                              Icons.add_rounded,
+                              size: 16,
+                              color: _medGradient.first,
+                            ),
+                            const SizedBox(width: 6),
                             Text(
-                              'Jadwal dosis',
+                              'Tambah waktu',
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
+                                color: _medGradient.first,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Notifikasi akan terus muncul sampai diminum.',
-                              style: TextStyle(color: _grey, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
-                      _TimePill(label: _timeLabel(_selectedTime)),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 18),
@@ -218,11 +226,6 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
     );
   }
 
-  static String _timeLabel(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -303,28 +306,92 @@ class _TextField extends StatelessWidget {
   }
 }
 
-class _TimePill extends StatelessWidget {
-  const _TimePill({required this.label});
+class _TimeRow extends StatelessWidget {
+  const _TimeRow({
+    required this.time,
+    required this.canRemove,
+    required this.onTap,
+    required this.onRemove,
+  });
 
-  final String label;
+  final TimeOfDay time;
+  final bool canRemove;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: _medGradient),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _medGradient.first.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.access_time_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Jadwal dosis',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: _medGradient),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                _fmtTime(time),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (canRemove) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onRemove,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: _grey.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
+  }
+
+  static String _fmtTime(TimeOfDay t) {
+    final h = t.hour.toString().padLeft(2, '0');
+    final m = t.minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
 }
 
