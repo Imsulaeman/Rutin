@@ -386,6 +386,219 @@ Session D adds the home-button intercept on top of Session C.
 
 ---
 
+## Pending Task — Morning Gate Refinement
+
+**Status of initial build:** done by Codex (morning_gate_screen.dart exists, slide-to-unlock works, data loads). This task refines it.
+
+**Three problems to fix:**
+1. Visual too basic — needs dashboard-as-hero layout with big medicine + habits cards
+2. Home/back button can be bypassed — AccessibilityService logic is wrong (calls GLOBAL_ACTION_BACK instead of re-launching the app)
+3. No emergency exit — user has no way out without finishing the game
+
+---
+
+### Fix 1 — Visual redesign (Flutter only, morning_gate_screen.dart)
+
+**Layout structure (replace current layout entirely):**
+
+```
+PopScope(canPop: false)           ← blocks Flutter back button
+  Scaffold(bg: #0B0E1A)
+    SafeArea
+      Column
+        ├── _CompactHeader        ← time + streak, ~56px
+        ├── Expanded
+        │     SingleChildScrollView(padding: 16)
+        │       Column
+        │         ├── _MedicineCard   ← big hero card
+        │         ├── SizedBox(12)
+        │         └── _HabitsCard     ← big hero card
+        └── _BottomBar(padding: 16)
+              Column
+                ├── _SlideToUnlock
+                ├── SizedBox(8)
+                └── Center(_EmergencyExit)
+```
+
+---
+
+#### `_CompactHeader`
+
+Single `Padding(horizontal: 20, vertical: 12)` row:
+- **Left column (mainAxisSize.min):**
+  - Time `HH:mm` — 30pt, bold, white, live via `Timer.periodic(1 min)`
+  - Date `EEE, d MMM` — 12pt, white54 (`DateFormat('EEE, d MMM', 'id')`)
+- **Spacer**
+- **Right:** streak pill — same orange pill as `_Header` in wakeup_game_screen.dart
+
+---
+
+#### `_MedicineCard`
+
+```
+Card(color: surfaceDark, border: left 3px pink #E91E63)
+  Padding(16)
+    Column
+      Row
+        Icon(Icons.medication_rounded, color: #E91E63, size: 18)
+        SizedBox(6)
+        Text('OBAT HARI INI', style: label 11pt white54 letterSpacing 1.2)
+        Spacer
+        _CountChip(done, total, color: #E91E63)   ← e.g. "1/3"
+      SizedBox(10)
+      ...one _MedicineDoseRow per (medicine × scheduleTime)
+```
+
+`_MedicineDoseRow`:
+```
+Row
+  _StatusDot(color)     ← 10px circle: green=taken, orange=pending, red=missed
+  SizedBox(10)
+  Expanded: Text(medicine.name, 14pt white bold)
+  Text(HH:mm, 13pt white54)
+  SizedBox(8)
+  Text(dosage ?? '', 12pt white38)
+```
+
+Status logic (same as current but explicit here):
+- `taken`: MedicineLog exists for today's slot with `status == 'taken'` → green
+- `missed`: slot time has passed + no taken log → red
+- `pending`: slot time not yet passed → orange
+
+If box empty / no active medicines → `Text('Tidak ada obat hari ini', white38, centered)` inside card.
+
+---
+
+#### `_HabitsCard`
+
+```
+Card(color: surfaceDark, border: left 3px purple #7C3AED)
+  Padding(16)
+    Column
+      Row
+        Icon(Icons.auto_awesome_rounded, color: #7C3AED, size: 18)
+        SizedBox(6)
+        Text('KEBIASAAN HARI INI', label style)
+        Spacer
+        _CountChip(done, total, color: #7C3AED)
+      SizedBox(10)
+      ...one _HabitRow per habit scheduled today
+```
+
+`_HabitRow`:
+```
+Row
+  Text(habit.emoji, 20pt)
+  SizedBox(10)
+  Expanded: Text(habit.name, 14pt white)
+  Icon(done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+       color: done ? #4CC56A : white24, size: 18)
+```
+
+If no habits today → `Text('Tidak ada kebiasaan hari ini', white38, centered)`.
+
+---
+
+#### `_CountChip`
+
+Small pill: `Container(px 8/4, radius 10, color: accent.withValues(0.15), border: accent.withValues(0.3))`
+Text: `"$done/$total"`, 11pt, bold, accent color.
+
+---
+
+#### `_SlideToUnlock` (keep existing logic, restyle)
+
+- Track: full width, 60px tall, borderRadius 30, bg `surfaceHigh`, border `white12`
+- Thumb: 52px circle, gradient from purple `#7C3AED` to primary, glow shadow
+- Label: "Geser untuk mulai  →→" white38 13pt, fades out as thumb moves
+- On unlock: `HapticsService.success()`, `await context.push('/wakeup-game')`, then `Navigator.of(context).pop()`
+
+---
+
+#### `_EmergencyExit` (new)
+
+```dart
+TextButton(
+  onPressed: () async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Lewati gerbang?'),
+        content: const Text(
+          'Game pagi ini akan dilewati. Streak kamu tetap aman.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Lewati', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _ch.invokeMethod('setGameDismissedNormally', true);
+      if (mounted) Navigator.of(context).pop();
+    }
+  },
+  child: const Text('Lewati', style: TextStyle(color: Colors.white24, fontSize: 12)),
+)
+```
+
+---
+
+### Fix 2 — AccessibilityService home button intercept (Kotlin only)
+
+**File:** `android/app/src/main/kotlin/com/rutin/app/RutinAccessibilityService.kt`
+
+**Current bug:** calls `performGlobalAction(GLOBAL_ACTION_BACK)` when user leaves the app — this is a no-op on the home screen/launcher and does nothing.
+
+**Fix:** replace the `performGlobalAction` call with a re-launch intent:
+
+```kotlin
+if (gameActive && !dismissedNormally) {
+    val pkg = event.packageName?.toString() ?: return
+    if (pkg != "com.rutin.app") {
+        val launchIntent = packageManager
+            .getLaunchIntentForPackage("com.rutin.app")
+            ?.apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT }
+        if (launchIntent != null) startActivity(launchIntent)
+    }
+}
+```
+
+This re-launches MainActivity and brings the morning gate back to front. The `game_active` flag is still true so it keeps intercepting.
+
+Required import: `android.content.Intent`
+
+---
+
+### Fix 3 — PopScope (Flutter only, morning_gate_screen.dart)
+
+Wrap the `Scaffold` in `PopScope(canPop: false, child: Scaffold(...))` so the Android back gesture / back button does nothing at the Flutter level (AccessibilityService handles the home button).
+
+---
+
+### What NOT to do
+- Do not change `WakeupGameScreen`, `SleepModeService`, `WakeUpTriggerReceiver`, routes, or any other file
+- Do not add new Hive models
+- Do not rebuild the slide-to-unlock logic — just restyle it
+- The data load pattern (initState, one-time read) is fine — no need for live Hive listeners
+
+---
+
+### Verify
+- `dart analyze lib/features/sleep/presentation/morning_gate_screen.dart` — no errors
+- `gradlew app:compileDebugKotlin --no-daemon` — BUILD SUCCESSFUL
+- Test: Profile → Mode Tidur → Test Sleep Gate → gate appears → tap 'Lewati' → dialog → confirm → gate dismisses
+- Test: Profile → Mode Tidur → Test Sleep Gate → press home → app re-launches automatically
+
+---
+
 ## Pending Task — Morning Gate Screen
 
 **What this is:** A full-screen overlay that appears after the user unlocks their PIN in the morning (when sleep mode was active overnight). It shows a read-only today dashboard (medicine + habits), then a slide-to-unlock component that launches the wake-up game. After the game completes, the overlay dismisses and normal phone use resumes.
@@ -776,6 +989,12 @@ Refinement pass across Home, Water, Obat, Kebiasaan:
 - Flutter SDK 3.44.0 downloaded and setup initiated
 - Key features decided: medicine reminder, water, habits, routine stacking, TB treatment mode, sleep mode with Accessibility Service, Bahasa Indonesia default
 - Sleep mode logic specified (including audio timer edge case)
+
+---
+**2026-05-31 - Codex (gpt-5)**
+- **Partial reboot verification recorded**: user confirmed the medicine alarm still works after a device reboot, so the native `RECEIVE_BOOT_COMPLETED` restore path is working for medicine alarms on the Realme GT 2 Pro / Android 14 test device.
+- **Water still pending**: user has not yet received the reboot-restored water reminder, so water should stay unverified until that notification fires on-device.
+- **Docs synced**: updated `TODO.md` and `MANUAL_TEST_CHECKLIST.md` to reflect medicine reboot restore as verified and water reboot restore as still pending.
 
 ---
 **2026-05-31 - Codex (gpt-5)**
