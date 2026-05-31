@@ -386,6 +386,320 @@ Session D adds the home-button intercept on top of Session C.
 
 ---
 
+## Pending Task — Home Dashboard Card Improvements
+
+Three focused changes to `lib/features/home/presentation/home_screen.dart` only. No other files.
+
+---
+
+### Change 1 — `_TodayHabitRow`: add emoji, reminder time, and streak inline
+
+**Current:** check circle + name only. No emoji. No reminder time. No streak. Feels generic.
+
+**New row layout (height ~52px):**
+```
+GestureDetector(onTap)
+  Container(padding: h12/v10, bg: 0xAA0D1423, radius 16, border: _panelLine)
+    Row
+      // Emoji container
+      Container(32×32, radius 10, color: _habitColor.withValues(0.12))
+        Center: Text(habit.emoji, fontSize 17)
+      SizedBox(10)
+      // Name + optional reminder time
+      Expanded
+        Column(mainAxisSize.min, crossAxis.start)
+          Text(habit.name, 14pt bold white, lineThrough if done)
+          if habit.reminderMinutes != null:
+            SizedBox(2)
+            Row(children: [
+              Icon(Icons.alarm_rounded, size 11, color _muted)
+              SizedBox(3)
+              Text(_fmtMinute(habit.reminderMinutes!), 11pt _muted)
+            ])
+      // Streak pill (if > 0)
+      if streak > 0:
+        SizedBox(6)
+        Text('🔥 $streak', 11pt bold, color _habitColor)
+      SizedBox(10)
+      // Check circle (keep existing AnimatedContainer logic)
+      [existing check circle widget, unchanged]
+```
+
+`streak` — compute inline using `_habitRepo.getStreak(habit.id)`. Already exists on `HabitRepository`.
+
+---
+
+### Change 2 — `_HomeMedicineCard`: collapse to single compact row
+
+**Current:** full card per medicine with name header + Wrap of dose chips + meal timing text = 80–100px per medicine, too tall.
+
+**New:** one slim row per medicine showing only the most relevant dose status.
+
+Replace `_HomeMedicineCard` entirely with `_HomeMedicineRow`:
+
+```
+_HomeMedicineRow(medicine, doses, bucketFor, onTapDose)
+
+Container(padding: h14/v10, bg 0xAA0D1423, radius 14, border _panelLine)
+  Row
+    // Status dot: color reflects most urgent dose
+    Container(10×10 circle, color: _dotColor(doses, bucketFor))
+    SizedBox(10)
+    // Name
+    Expanded: Text(medicine.name, 14pt w600 white)
+    // Next/current dose time
+    Text(_nextDoseLabel(doses, bucketFor), 12pt _muted)
+    // Tap-to-take button — only if a "now" dose exists
+    if _hasNowDose(doses, bucketFor):
+      SizedBox(8)
+      GestureDetector(onTap: () => onTapDose(_nowDose))
+        Container(28×28, radius 8, color _medGradient[0].withValues(0.2))
+          Icon(Icons.check_rounded, size 16, color _medGradient[0])
+```
+
+**Helper logic:**
+```dart
+// Most urgent dot color
+Color _dotColor(doses, bucketFor) {
+  if (doses.any((d) => bucketFor(d) == _HomeDoseBucket.now)) return _medGradient[0]; // pink
+  if (doses.any((d) => bucketFor(d) == _HomeDoseBucket.missed)) return _missed;      // red
+  if (doses.every((d) => bucketFor(d) == _HomeDoseBucket.taken)) return _success;    // green
+  return _muted; // upcoming only
+}
+
+// Next dose label
+String _nextDoseLabel(doses, bucketFor) {
+  final now = doses.where((d) => bucketFor(d) == _HomeDoseBucket.now);
+  if (now.isNotEmpty) return _fmtMinute(now.first.minute);
+  final upcoming = doses.where((d) => bucketFor(d) == _HomeDoseBucket.upcoming);
+  if (upcoming.isNotEmpty) return _fmtMinute(upcoming.first.minute);
+  final allTaken = doses.every((d) => bucketFor(d) == _HomeDoseBucket.taken);
+  if (allTaken) return '✓ Selesai';
+  return 'Terlewat';
+}
+```
+
+Remove `_HomeDoseChip` widget entirely if it is no longer used.
+
+---
+
+### What NOT to do
+- Do not touch any file outside `home_screen.dart`
+- Do not change the Obat section logic, data loading, or `_HomeDoseBucket` enum
+- Do not change `_SectionCard`, `_FadeSlideIn`, the water section, or the header
+
+---
+
+## Pending Task — Water Tab: Next Reminder Time
+
+**File:** `lib/features/water/presentation/water_screen.dart` only.
+
+**What to add:** a small text line below the hero ring showing when the next water reminder fires. Updates every minute. Only shows if reminder is active.
+
+---
+
+### Computation (pure Dart, no native call needed)
+
+Add a `Timer.periodic` (1 min) in `initState`, cancelled in `dispose`, that calls `setState` to refresh the label.
+
+```dart
+String? _nextReminderLabel() {
+  if (!_goal.reminderActive) return null;
+  final now = DateTime.now();
+  final nowMin = now.hour * 60 + now.minute;
+
+  if (nowMin < _goal.startTimeMinutes) {
+    final h = _goal.startTimeMinutes ~/ 60;
+    final m = _goal.startTimeMinutes % 60;
+    return 'Pengingat mulai ${_pad(h)}:${_pad(m)}';
+  }
+  if (nowMin >= _goal.endTimeMinutes) {
+    return 'Pengingat selesai hari ini';
+  }
+
+  final elapsed = nowMin - _goal.startTimeMinutes;
+  final interval = _goal.reminderIntervalMinutes;
+  final nextSlotMin = _goal.startTimeMinutes +
+      ((elapsed / interval).ceil() * interval).toInt();
+
+  if (nextSlotMin >= _goal.endTimeMinutes) return 'Pengingat selesai hari ini';
+
+  final diff = nextSlotMin - nowMin;
+  if (diff <= 0) return 'Sebentar lagi...';
+  if (diff < 60) return 'Pengingat dalam $diff menit';
+  final h = diff ~/ 60;
+  final m = diff % 60;
+  return m == 0 ? 'Pengingat dalam ${h}j' : 'Pengingat dalam ${h}j ${m}m';
+}
+
+String _pad(int n) => n.toString().padLeft(2, '0');
+```
+
+---
+
+### Where to render
+
+Inside the hero ring `center:` widget, below the existing `'$pctInt%'` text:
+
+```dart
+if (_nextReminderLabel() != null) ...[
+  SizedBox(height: 6),
+  Text(
+    _nextReminderLabel()!,
+    textAlign: TextAlign.center,
+    style: TextStyle(
+      fontSize: 11,
+      color: AppTheme.waterColor.withValues(alpha: 0.7),
+      fontWeight: FontWeight.w600,
+    ),
+  ),
+],
+```
+
+---
+
+### What NOT to do
+- Do not change any native Kotlin files
+- Do not change the water goal model
+- Do not add a new widget — just extend the existing `_WaterScreenState`
+
+---
+
+## Pending Task — Habit Multiple Reminder Times
+
+**Goal:** allow habits to have multiple daily reminder times (same pattern as medicine), replacing the current single `reminderMinutes: int?`.
+
+**Scope:** model + add/edit screen + scheduler. Three files to modify, no new files.
+
+---
+
+### Step 1 — `lib/features/habits/data/habit_model.dart`
+
+Add a new field. Keep the old field for backward compatibility — do NOT remove `reminderMinutes`.
+
+```dart
+@HiveField(8)
+List<int> reminderTimes = []; // minutes since midnight, empty = no reminder
+```
+
+**Migration rule (apply in repository/screen, not in the adapter):**
+On first read, if `reminderTimes.isEmpty && reminderMinutes != null`, treat as `[reminderMinutes!]`.
+This means existing habits with a single reminder automatically upgrade to the list format when next saved.
+
+---
+
+### Step 2 — `lib/features/habits/data/habit_model.g.dart` (hand-edit)
+
+The `.g.dart` file cannot be regenerated (build_runner not used in this project). Edit manually:
+
+In `HabitAdapter.read()`:
+- Change `numOfFields` check: `if (numOfFields > 8)` guard before reading field 8
+- Add: `final reminderTimes = (fields[8] as List?)?.cast<int>() ?? <int>[];`
+- Set on the object: `..reminderTimes = reminderTimes`
+
+In `HabitAdapter.write()`:
+- Increment `writer.writeLength(9)` (was 8)
+- Add at end: `writer.write(obj.reminderTimes);`
+
+---
+
+### Step 3 — `lib/features/habits/presentation/add_habit_screen.dart`
+
+Replace the single reminder toggle + time picker with a multi-time list, matching `AddMedicineScreen`'s pattern exactly.
+
+**State:**
+```dart
+List<int> _reminderTimes = []; // replaces bool _hasReminder + int? _reminderMinutes
+```
+
+On load (editing existing habit):
+```dart
+_reminderTimes = habit.reminderTimes.isNotEmpty
+    ? List.of(habit.reminderTimes)
+    : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : []);
+```
+
+**UI (replace existing reminder section):**
+```
+// Label row
+Row
+  Text('PENGINGAT', section label style)
+  Spacer
+  if _reminderTimes.isNotEmpty:
+    TextButton('+ Tambah waktu', onPressed: _addTime)
+
+// Time rows
+for (i, time) in _reminderTimes.enumerate:
+  _TimePickerRow(
+    time: time,
+    onTap: () => _pickTime(i),
+    onRemove: () => setState(() => _reminderTimes.removeAt(i)),
+  )
+
+// Add button (if empty)
+if _reminderTimes.isEmpty:
+  OutlinedButton.icon(
+    icon: Icon(Icons.alarm_add_rounded),
+    label: Text('Tambah waktu pengingat'),
+    onPressed: _addTime,
+  )
+```
+
+`_addTime()`: open time picker, if picked → add to list, de-dup, sort.
+
+**On save:** set `habit.reminderTimes = _reminderTimes` (sorted, deduped). Keep `habit.reminderMinutes = _reminderTimes.firstOrNull` for legacy compatibility.
+
+---
+
+### Step 4 — `lib/features/habits/presentation/habit_reminder_service.dart`
+
+Replace single-alarm scheduling with multi-alarm:
+
+```dart
+static Future<void> scheduleAll(Habit habit) async {
+  final times = habit.reminderTimes.isNotEmpty
+      ? habit.reminderTimes
+      : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : <int>[]);
+  for (final minutes in times) {
+    final id = _alarmId(habit.id, minutes);
+    final triggerMs = _nextTriggerMs(minutes);
+    await _channel.invokeMethod('scheduleHabitAlarm', {
+      'notifId': id,
+      'triggerMs': triggerMs,
+      'title': '${habit.emoji} ${habit.name}',
+    });
+  }
+}
+
+static Future<void> cancelAll(Habit habit) async {
+  final times = habit.reminderTimes.isNotEmpty
+      ? habit.reminderTimes
+      : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : <int>[]);
+  for (final minutes in times) {
+    await _channel.invokeMethod('cancelHabitAlarm', {'notifId': _alarmId(habit.id, minutes)});
+  }
+  // Also cancel the legacy single-alarm ID
+  await _channel.invokeMethod('cancelHabitAlarm',
+      {'notifId': habit.id.hashCode & 0x7fffffff});
+}
+
+// Alarm ID: upper 23 bits = habit hash, lower 9 bits = minutes (0–1439 fits in 11 bits, use & 0x1FF)
+static int _alarmId(String habitId, int minutes) =>
+    (habitId.hashCode & 0x7FFFFE00) | (minutes & 0x1FF);
+```
+
+Update all callers of the old `scheduleReminder`/`cancelReminder` methods to use `scheduleAll`/`cancelAll`.
+
+---
+
+### What NOT to do
+- Do not modify `HabitAlarmReceiver.kt` — it already handles individual alarm IDs; the new scheme is transparent to it
+- Do not run `build_runner` — edit `habit_model.g.dart` by hand as specified above
+- Do not change `HabitLog`, `HabitGroup`, `HabitRepository`, or any screen except `add_habit_screen.dart`
+- Do not remove `reminderMinutes` from the model (backward compat)
+
+---
+
 ## Pending Task — Morning Gate Refinement
 
 **Status of initial build:** done by Codex (morning_gate_screen.dart exists, slide-to-unlock works, data loads). This task refines it.
