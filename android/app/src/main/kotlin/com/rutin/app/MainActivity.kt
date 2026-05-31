@@ -281,13 +281,17 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "simulateSleepTrigger" -> {
-                        // For testing: mark sleep as active so the next unlock fires the game gate
+                        // Set sleep_active + test_trigger (bypasses wake window check in WakeUpTriggerReceiver)
                         applicationContext.getSharedPreferences(
                             SleepModeService.PREFS, Context.MODE_PRIVATE
                         ).edit()
                             .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true)
-                            .putLong(SleepModeService.KEY_LAST_INTERACTION, 0L)
+                            .putBoolean("test_trigger", true)
                             .apply()
+                        // Directly launch the game right now — no lock/unlock needed
+                        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                            MethodChannel(messenger, "rutin/sleep").invokeMethod("launchGame", null)
+                        }
                         result.success(null)
                     }
                     "setGameDismissedNormally" -> {

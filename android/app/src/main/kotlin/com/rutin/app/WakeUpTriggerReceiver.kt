@@ -14,12 +14,15 @@ class WakeUpTriggerReceiver : BroadcastReceiver() {
         val sleepNativePrefs = context.getSharedPreferences(
             "sleep_settings_native", Context.MODE_PRIVATE
         )
-        val wakeStart = sleepNativePrefs.getInt("wake_window_start", 300)
-        val wakeEnd = sleepNativePrefs.getInt("wake_window_end", 600)
-
-        val cal = java.util.Calendar.getInstance()
-        val nowMin = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
-        if (nowMin < wakeStart || nowMin > wakeEnd) return
+        val testTrigger = prefs.getBoolean("test_trigger", false)
+        if (!testTrigger) {
+            val wakeStart = sleepNativePrefs.getInt("wake_window_start", 300)
+            val wakeEnd = sleepNativePrefs.getInt("wake_window_end", 600)
+            val cal = java.util.Calendar.getInstance()
+            val nowMin = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
+            if (nowMin < wakeStart || nowMin > wakeEnd) return
+        }
+        prefs.edit().putBoolean("test_trigger", false).apply()
 
         // Clear sleep_active so the gate only fires once per sleep cycle
         prefs.edit()

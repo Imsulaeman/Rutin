@@ -248,9 +248,9 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Sleep mode aktif. Kunci lalu buka kunci HP untuk tes.',
+                    'Game seharusnya muncul sekarang. Jika tidak, cek apakah Mode Tidur aktif.',
                   ),
-                  duration: Duration(seconds: 5),
+                  duration: Duration(seconds: 4),
                 ),
               );
             },
