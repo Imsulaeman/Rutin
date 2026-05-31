@@ -31,7 +31,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent.getStringExtra("route") == "/wakeup-game") {
+        if (intent.getStringExtra("route") == "/morning-gate") {
             flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
                 MethodChannel(messenger, sleepChannelName).invokeMethod("launchGame", null)
             }
@@ -291,7 +291,7 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
                             onNewIntent(Intent(this@MainActivity, MainActivity::class.java).apply {
-                                putExtra("route", "/wakeup-game")
+                                putExtra("route", "/morning-gate")
                             })
                         }
                     }

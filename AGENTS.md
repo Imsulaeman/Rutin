@@ -778,4 +778,11 @@ Refinement pass across Home, Water, Obat, Kebiasaan:
 - Sleep mode logic specified (including audio timer edge case)
 
 ---
+**2026-05-31 - Codex (gpt-5)**
+- **Morning Gate shipped**: added `lib/features/sleep/presentation/morning_gate_screen.dart` as a full-screen pre-game overlay with live clock, Bahasa date, greeting, streak pill, read-only today's medicine/habit sections, and slide-to-unlock.
+- **Sleep launch flow changed**: native `launchGame` path now opens `/morning-gate` first, then the slider pushes `/wakeup-game`; direct test buttons for Sequence and Rhythm still open `/wakeup-game` unchanged.
+- **Native route updates**: `WakeUpTriggerReceiver.kt` and `MainActivity.kt` now pass/listen for `"/morning-gate"` on the wake trigger and simulated sleep trigger flow.
+- **Docs synced**: updated `TODO.md`, `MANUAL_TEST_CHECKLIST.md`, and the sleep settings test message to reflect the new morning gate path.
+
+---
 <!-- Add new log entries above this line, newest first -->

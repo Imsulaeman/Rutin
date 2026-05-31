@@ -30,10 +30,10 @@ class WakeUpTriggerReceiver : BroadcastReceiver() {
             .putLong("launch_game_at", System.currentTimeMillis())
             .apply()
 
-        // Launch app — onNewIntent in MainActivity will push the game route via MethodChannel
+        // Launch app — onNewIntent in MainActivity will push the gate route via MethodChannel
         val launchIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("route", "/wakeup-game")
+            putExtra("route", "/morning-gate")
         }
         context.startActivity(launchIntent)
     }

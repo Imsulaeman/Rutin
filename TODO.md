@@ -125,6 +125,8 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] **Session C** — Native sleep detection service (Kotlin): foreground service, 3-case logic, ACTION_USER_PRESENT receiver, MethodChannel bridge, launches game screen
 - [x] **Session D** — AccessibilityService (Kotlin): home button intercept during game, touch tracking for sleep detection, XML config
 
+- [x] **Morning Gate** - read-only morning dashboard + slide-to-unlock before `/wakeup-game`
+
 ## Feature: Localization
 - [x] `flutter_localizations` + `intl`
 - [x] Bahasa Indonesia strings

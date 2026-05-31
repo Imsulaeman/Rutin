@@ -2,6 +2,26 @@
 
 ---
 
+## Session 15 - 2026-05-31
+
+Date: 2026-05-31
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### Sleep Mode - Morning gate flow
+
+- [ ] Open `Profile` -> `Mode Tidur`.
+- [ ] Tap `Test Sleep Gate`.
+- [ ] Expected: `Morning Gate` appears first, not the game directly.
+- [ ] Expected: time, date, greeting, and streak pill are visible at the top.
+- [ ] Expected: read-only sections show today's medicine and habits when available.
+- [ ] Drag the slider to the right until it unlocks.
+- [ ] Expected: `/wakeup-game` opens after the slide threshold.
+- [ ] Complete or skip the game.
+- [ ] Expected: the game closes, then `Morning Gate` also closes back to the app.
+
+---
+
 ## Session 11 - 2026-05-30
 
 Date: 2026-05-30

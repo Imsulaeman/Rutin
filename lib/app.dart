@@ -13,16 +13,17 @@ import 'features/medicine/presentation/medicine_archive_screen.dart';
 import 'features/medicine/presentation/medicine_history_screen.dart';
 import 'features/medicine/presentation/medicine_list_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
+import 'features/sleep/presentation/morning_gate_screen.dart';
 import 'features/sleep/presentation/sleep_settings_screen.dart';
 import 'features/sleep/presentation/wakeup_game_screen.dart';
 import 'features/water/presentation/water_screen.dart';
 
-final _rootNavigatorKey    = GlobalKey<NavigatorState>();
-final _shellHomeKey        = GlobalKey<NavigatorState>();
-final _shellMedicineKey    = GlobalKey<NavigatorState>();
-final _shellWaterKey       = GlobalKey<NavigatorState>();
-final _shellHabitsKey      = GlobalKey<NavigatorState>();
-final _shellProfileKey     = GlobalKey<NavigatorState>();
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final _shellHomeKey = GlobalKey<NavigatorState>();
+final _shellMedicineKey = GlobalKey<NavigatorState>();
+final _shellWaterKey = GlobalKey<NavigatorState>();
+final _shellHabitsKey = GlobalKey<NavigatorState>();
+final _shellProfileKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -33,14 +34,15 @@ final appRouter = GoRouter(
       branches: [
         StatefulShellBranch(
           navigatorKey: _shellHomeKey,
-          routes: [
-            GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-          ],
+          routes: [GoRoute(path: '/', builder: (_, __) => const HomeScreen())],
         ),
         StatefulShellBranch(
           navigatorKey: _shellMedicineKey,
           routes: [
-            GoRoute(path: '/medicine', builder: (_, __) => const MedicineListScreen()),
+            GoRoute(
+              path: '/medicine',
+              builder: (_, __) => const MedicineListScreen(),
+            ),
           ],
         ),
         StatefulShellBranch(
@@ -58,7 +60,10 @@ final appRouter = GoRouter(
         StatefulShellBranch(
           navigatorKey: _shellProfileKey,
           routes: [
-            GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+            GoRoute(
+              path: '/profile',
+              builder: (_, __) => const ProfileScreen(),
+            ),
           ],
         ),
       ],
@@ -90,9 +95,15 @@ final appRouter = GoRouter(
       builder: (_, __) => const SleepSettingsScreen(),
     ),
     GoRoute(
+      path: '/morning-gate',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const MorningGateScreen(),
+    ),
+    GoRoute(
       path: '/wakeup-game',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, state) => WakeupGameScreen(forceGameIndex: state.extra as int?),
+      builder: (_, state) =>
+          WakeupGameScreen(forceGameIndex: state.extra as int?),
     ),
   ],
 );
@@ -123,18 +134,39 @@ class ShellScaffold extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
-            Container(width: 40, height: 4, decoration: BoxDecoration(
-              color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.medication_rounded, color: Color(0xFFEE5A8C)),
-              title: const Text('Tambah Obat', style: TextStyle(color: Colors.white)),
-              onTap: () { Navigator.pop(sheetCtx); context.push('/medicine/add'); },
+              leading: const Icon(
+                Icons.medication_rounded,
+                color: Color(0xFFEE5A8C),
+              ),
+              title: const Text(
+                'Tambah Obat',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                context.push('/medicine/add');
+              },
             ),
             ListTile(
               leading: const Icon(Icons.star_rounded, color: Color(0xFFF4A92B)),
-              title: const Text('Tambah Kebiasaan', style: TextStyle(color: Colors.white)),
-              onTap: () { Navigator.pop(sheetCtx); context.push('/habits/add'); },
+              title: const Text(
+                'Tambah Kebiasaan',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                context.push('/habits/add');
+              },
             ),
             const SizedBox(height: 8),
           ],
@@ -170,8 +202,8 @@ class _BottomNav extends StatelessWidget {
   final void Function(int branch) onTap;
   final VoidCallback onAdd;
 
-  static const _navBg    = Color(0xFF131C2B);
-  static const _green    = Color(0xFF4CC56A);
+  static const _navBg = Color(0xFF131C2B);
+  static const _green = Color(0xFF4CC56A);
   static const _inactive = Color(0xFF6B7688);
 
   @override
@@ -187,19 +219,49 @@ class _BottomNav extends StatelessWidget {
               padding: EdgeInsets.only(bottom: inset),
               decoration: const BoxDecoration(
                 color: _navBg,
-                boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 16, offset: Offset(0, -2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 16,
+                    offset: Offset(0, -2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
-                  Expanded(child: _Tab(icon: Icons.home_rounded, label: 'Beranda',
-                      active: currentIndex == 0, onTap: () => onTap(0))),
-                  Expanded(child: _Tab(icon: Icons.medication_rounded, label: 'Obat',
-                      active: currentIndex == 1, onTap: () => onTap(1))),
+                  Expanded(
+                    child: _Tab(
+                      icon: Icons.home_rounded,
+                      label: 'Beranda',
+                      active: currentIndex == 0,
+                      onTap: () => onTap(0),
+                    ),
+                  ),
+                  Expanded(
+                    child: _Tab(
+                      icon: Icons.medication_rounded,
+                      label: 'Obat',
+                      active: currentIndex == 1,
+                      onTap: () => onTap(1),
+                    ),
+                  ),
                   const SizedBox(width: 72), // gap for the FAB
-                  Expanded(child: _Tab(icon: Icons.water_drop_rounded, label: 'Air',
-                      active: currentIndex == 2, onTap: () => onTap(2))),
-                  Expanded(child: _Tab(icon: Icons.check_circle_rounded, label: 'Kebiasaan',
-                      active: currentIndex == 3, onTap: () => onTap(3))),
+                  Expanded(
+                    child: _Tab(
+                      icon: Icons.water_drop_rounded,
+                      label: 'Air',
+                      active: currentIndex == 2,
+                      onTap: () => onTap(2),
+                    ),
+                  ),
+                  Expanded(
+                    child: _Tab(
+                      icon: Icons.check_circle_rounded,
+                      label: 'Kebiasaan',
+                      active: currentIndex == 3,
+                      onTap: () => onTap(3),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -222,11 +284,19 @@ class _BottomNav extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
-                      BoxShadow(color: _green.withOpacity(0.5), blurRadius: 18, offset: const Offset(0, 6)),
+                      BoxShadow(
+                        color: _green.withOpacity(0.5),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
                     ],
                     border: Border.all(color: _navBg, width: 4),
                   ),
-                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 30,
+                  ),
                 ),
               ),
             ),
@@ -238,7 +308,12 @@ class _BottomNav extends StatelessWidget {
 }
 
 class _Tab extends StatelessWidget {
-  const _Tab({required this.icon, required this.label, required this.active, required this.onTap});
+  const _Tab({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -256,11 +331,14 @@ class _Tab extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 3),
-          Text(label, style: TextStyle(
-            fontSize: 10.5,
-            color: color,
-            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-          )),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              color: color,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -284,7 +362,7 @@ class _LaunchGameListenerState extends State<_LaunchGameListener> {
     super.initState();
     _ch.setMethodCallHandler((call) async {
       if (call.method == 'launchGame') {
-        appRouter.push('/wakeup-game');
+        appRouter.push('/morning-gate');
       }
     });
   }
@@ -300,9 +378,7 @@ class HabitApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _LaunchGameListener(
-      child: _AppRouter(),
-    );
+    return const _LaunchGameListener(child: _AppRouter());
   }
 }
 
@@ -317,10 +393,7 @@ class _AppRouter extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
       routerConfig: appRouter,
-      supportedLocales: const [
-        Locale('id'),
-        Locale('en'),
-      ],
+      supportedLocales: const [Locale('id'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -329,4 +402,3 @@ class _AppRouter extends StatelessWidget {
     );
   }
 }
-
