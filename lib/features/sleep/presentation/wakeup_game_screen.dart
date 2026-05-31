@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/services/analytics_service.dart';
+import '../../../core/services/haptics_service.dart';
 
 // ─── Lane colors (matches app palette) ────────────────────────────────────────
 const _laneColors = [
@@ -265,7 +266,7 @@ class _SequenceGameState extends State<_SequenceGame>
     for (final colorIdx in _sequence) {
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
-      HapticFeedback.selectionClick();
+      HapticsService.softTap();
       setState(() => _lit = colorIdx);
       await Future.delayed(const Duration(milliseconds: 550));
       if (!mounted) return;
@@ -276,14 +277,14 @@ class _SequenceGameState extends State<_SequenceGame>
 
   void _onTap(int i) {
     if (_isPlaying || _wrongTap) return;
-    HapticFeedback.lightImpact();
+    HapticsService.tap();
     final newInput = [..._userInput, i];
     setState(() => _userInput = newInput);
 
     final pos = newInput.length - 1;
     if (newInput[pos] != _sequence[pos]) {
       setState(() => _wrongTap = true);
-      HapticFeedback.heavyImpact();
+      HapticsService.fun();
       _shakeCtrl.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) setState(() { _wrongTap = false; _startRound(_round); });
@@ -299,7 +300,7 @@ class _SequenceGameState extends State<_SequenceGame>
     });
 
     if (newInput.length == _sequence.length) {
-      HapticFeedback.mediumImpact();
+      HapticsService.success();
       if (_round == 2) {
         Future.delayed(const Duration(milliseconds: 400), widget.onComplete);
       } else {
@@ -598,7 +599,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       final label = isPerfect ? 'Perfect' : 'Good';
       final color = isPerfect ? const Color(0xFF4CC56A) : const Color(0xFFFFB300);
 
-      HapticFeedback.mediumImpact();
+      HapticsService.tap();
       setState(() {
         best!.hit = true;
         _hits++;
@@ -609,7 +610,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
         if (mounted) setState(() => _laneFlash[lane] = null);
       });
     } else {
-      HapticFeedback.heavyImpact();
+      HapticsService.fun();
       setState(() {
         _laneFlash[lane] = Colors.red.withValues(alpha: 0.45);
         _judgments.add(_Judgment('Miss', Colors.redAccent, lane));
