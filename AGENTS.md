@@ -992,6 +992,18 @@ Refinement pass across Home, Water, Obat, Kebiasaan:
 
 ---
 **2026-05-31 - Codex (gpt-5)**
+- **Morning Gate verified on device**: user confirmed the refined gate works, including the emergency `Lewati` exit flow and the post-fix home-button interception path that re-launches the app back into `/morning-gate`.
+- **Bypass fix tightened**: `RutinAccessibilityService.kt` now starts `MainActivity` directly with `route="/morning-gate"` plus `NEW_TASK | SINGLE_TOP | CLEAR_TOP | REORDER_TO_FRONT`, instead of reopening the generic launcher entry.
+- **Docs synced**: marked the Morning Gate manual checks complete in `MANUAL_TEST_CHECKLIST.md`.
+
+---
+**2026-05-31 - Codex (gpt-5)**
+- **Morning Gate refined**: redesigned `morning_gate_screen.dart` into the requested dashboard-as-hero layout with compact header, large medicine/habits cards, count chips, restyled slide-to-unlock, and a new `Lewati` emergency exit dialog.
+- **Home-button bypass fixed**: `RutinAccessibilityService.kt` now re-launches `com.rutin.app` with `FLAG_ACTIVITY_REORDER_TO_FRONT` when the user leaves during an active gate/game flow instead of calling `GLOBAL_ACTION_BACK`, which did nothing on the launcher.
+- **Scope preserved**: no route changes, no game changes, no new Hive models; refinement stayed limited to the gate UI and accessibility intercept behavior.
+
+---
+**2026-05-31 - Codex (gpt-5)**
 - **Partial reboot verification recorded**: user confirmed the medicine alarm still works after a device reboot, so the native `RECEIVE_BOOT_COMPLETED` restore path is working for medicine alarms on the Realme GT 2 Pro / Android 14 test device.
 - **Water still pending**: user has not yet received the reboot-restored water reminder, so water should stay unverified until that notification fires on-device.
 - **Docs synced**: updated `TODO.md` and `MANUAL_TEST_CHECKLIST.md` to reflect medicine reboot restore as verified and water reboot restore as still pending.

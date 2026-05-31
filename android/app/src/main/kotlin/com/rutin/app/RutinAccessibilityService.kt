@@ -1,6 +1,7 @@
 package com.rutin.app
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
 import android.content.Context
 import android.view.accessibility.AccessibilityEvent
 
@@ -15,7 +16,8 @@ class RutinAccessibilityService : AccessibilityService() {
             .putLong(SleepModeService.KEY_LAST_INTERACTION, System.currentTimeMillis())
             .apply()
 
-        // During game: if user navigates to another app, force back
+        // During the gate/game flow: if user navigates away, force the
+        // morning gate route back to the front instead of the normal app home.
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val sleepPrefs = prefs()
             val gameActive = sleepPrefs.getBoolean("game_active", false)
@@ -24,7 +26,14 @@ class RutinAccessibilityService : AccessibilityService() {
             if (gameActive && !dismissedNormally) {
                 val pkg = event.packageName?.toString() ?: return
                 if (pkg != "com.rutin.app") {
-                    performGlobalAction(GLOBAL_ACTION_BACK)
+                    val launchIntent = Intent(this, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                        putExtra("route", "/morning-gate")
+                    }
+                    startActivity(launchIntent)
                 }
             }
         }

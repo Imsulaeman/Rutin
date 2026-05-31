@@ -2,6 +2,9 @@ package com.rutin.app
 
 import android.app.Notification
 import android.app.NotificationChannel
+import android.content.ContentResolver
+import android.media.AudioAttributes
+import android.net.Uri
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -62,16 +65,27 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         dosage: String?,
         renotifyMinutes: Int
     ) {
-        val channelId = "medicine_alarm"
+        val channelId = "medicine_alarm_v2"
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            nm.deleteNotificationChannel("medicine_alarm")
+            val soundUri = Uri.parse(
+                "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.ringtone}"
+            )
+            val audioAttrs = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .build()
             val channel = NotificationChannel(
                 channelId,
                 "Pengingat Obat",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Alarm minum obat"
+                setSound(soundUri, audioAttrs)
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 400, 200, 400, 200, 400)
                 setBypassDnd(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }

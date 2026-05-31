@@ -5,15 +5,18 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 
 class HabitAlarmReceiver : BroadcastReceiver() {
 
     companion object {
-        private const val CHANNEL_ID = "habit_reminder"
+        private const val CHANNEL_ID = "habit_reminder_v2"
         private const val EXTRA_NOTIF_ID = "notif_id"
         private const val EXTRA_TITLE = "title"
 
@@ -57,7 +60,21 @@ class HabitAlarmReceiver : BroadcastReceiver() {
     private fun showNotification(context: Context, notifId: Int, title: String) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "Pengingat Kebiasaan", NotificationManager.IMPORTANCE_HIGH)
+            nm.deleteNotificationChannel("habit_reminder")
+            val soundUri = Uri.parse(
+                "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.notif_chime}"
+            )
+            val audioAttrs = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build()
+            val channel = NotificationChannel(
+                CHANNEL_ID, "Pengingat Kebiasaan", NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                setSound(soundUri, audioAttrs)
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250)
+            }
             nm.createNotificationChannel(channel)
         }
         val openIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)

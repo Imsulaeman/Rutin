@@ -19,7 +19,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Today-first Obat workflow with sections: `Perlu diminum sekarang`, `Berikutnya`, `Sudah diminum`, `Terlewat`
 - [x] Food timing on medicine: `Bebas`, `Sebelum makan`, `Sesudah makan`, `Saat makan`
 - [x] Separate Riwayat calendar page for medicine adherence
-- [ ] RECEIVE_BOOT_COMPLETED reschedule after reboot
+- [x] RECEIVE_BOOT_COMPLETED reschedule after reboot (medicine user-tested; water still pending)
 - [ ] Streak counter per medicine
 - [ ] Missed log entry finalization policy at end of day
 
@@ -60,7 +60,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Medicine history / calendar page
 - [x] Swipe delete with alarm cancellation
 - [x] Forced full-screen re-open on repeat path
-- [ ] RECEIVE_BOOT_COMPLETED reschedule
+- [x] RECEIVE_BOOT_COMPLETED reschedule
 - [ ] Medicine streaks
 
 ## Feature: Water Reminder
@@ -155,7 +155,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Key events: medicine_taken, medicine_added, medicine_archived, medicine_deleted, habit_completed, habit_added, water_added
 - [x] Medicine archive / unarchive flow (swipe right = arsipkan, history preserved)
 - [x] Multi-dose support (unlimited times per medicine in add flow)
-- [ ] RECEIVE_BOOT_COMPLETED reschedule (medicine + water alarms after reboot)
+- [-] RECEIVE_BOOT_COMPLETED reschedule (medicine confirmed after reboot; water still pending)
 - [ ] Accounts / cloud backup (Phase 2 — Supabase, Google/Apple/email auth)
 
 ## Polish / ADA Ready

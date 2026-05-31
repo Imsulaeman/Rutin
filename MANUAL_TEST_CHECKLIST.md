@@ -2,6 +2,20 @@
 
 ---
 
+## Session 16 - 2026-05-31
+
+Date: 2026-05-31
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### RECEIVE_BOOT_COMPLETED - partial reboot verification
+
+- [x] Reboot test for medicine alarm restore completed by user.
+- [x] Expected: scheduled medicine alarm still works after device reboot.
+- [ ] Water reminder after reboot still pending verification.
+
+---
+
 ## Session 15 - 2026-05-31
 
 Date: 2026-05-31
@@ -10,15 +24,17 @@ Build: Debug
 
 ### Sleep Mode - Morning gate flow
 
-- [ ] Open `Profile` -> `Mode Tidur`.
-- [ ] Tap `Test Sleep Gate`.
-- [ ] Expected: `Morning Gate` appears first, not the game directly.
-- [ ] Expected: time, date, greeting, and streak pill are visible at the top.
-- [ ] Expected: read-only sections show today's medicine and habits when available.
-- [ ] Drag the slider to the right until it unlocks.
-- [ ] Expected: `/wakeup-game` opens after the slide threshold.
-- [ ] Complete or skip the game.
-- [ ] Expected: the game closes, then `Morning Gate` also closes back to the app.
+- [x] Open `Profile` -> `Mode Tidur`.
+- [x] Tap `Test Sleep Gate`.
+- [x] Expected: `Morning Gate` appears first, not the game directly.
+- [x] Expected: time, date, greeting, and streak pill are visible at the top.
+- [x] Expected: read-only sections show today's medicine and habits when available.
+- [x] Drag the slider to the right until it unlocks.
+- [x] Expected: `/wakeup-game` opens after the slide threshold.
+- [x] Complete or skip the game.
+- [x] Expected: the game closes, then `Morning Gate` also closes back to the app.
+- [x] Expected: tapping `Lewati` shows the confirm dialog and dismisses the gate after confirmation.
+- [x] Expected: pressing Home during the active gate flow re-launches the app back into `Morning Gate`.
 
 ---
 
