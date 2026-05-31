@@ -281,18 +281,19 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "simulateSleepTrigger" -> {
-                        // Set sleep_active + test_trigger (bypasses wake window check in WakeUpTriggerReceiver)
                         applicationContext.getSharedPreferences(
                             SleepModeService.PREFS, Context.MODE_PRIVATE
                         ).edit()
                             .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true)
                             .putBoolean("test_trigger", true)
                             .apply()
-                        // Directly launch the game right now — no lock/unlock needed
-                        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                            MethodChannel(messenger, "rutin/sleep").invokeMethod("launchGame", null)
-                        }
+                        // Reply first, then post launch on next looper cycle to avoid re-entrancy
                         result.success(null)
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            onNewIntent(Intent(this@MainActivity, MainActivity::class.java).apply {
+                                putExtra("route", "/wakeup-game")
+                            })
+                        }
                     }
                     "setGameDismissedNormally" -> {
                         val value = call.arguments as? Boolean ?: true
