@@ -215,6 +215,7 @@ class _SequenceGameState extends State<_SequenceGame>
   List<int> _userInput = [];
   int _round = 0;
   int? _lit;
+  int? _confirmLit; // briefly lit after correct tap
   bool _isPlaying = false;
   bool _wrongTap = false;
 
@@ -291,6 +292,12 @@ class _SequenceGameState extends State<_SequenceGame>
     }
 
     _pulseCtrl.forward(from: 0);
+    // Flash the tile briefly to confirm registration
+    setState(() => _confirmLit = i);
+    Future.delayed(const Duration(milliseconds: 180), () {
+      if (mounted) setState(() => _confirmLit = null);
+    });
+
     if (newInput.length == _sequence.length) {
       HapticFeedback.mediumImpact();
       if (_round == 2) {
@@ -362,20 +369,20 @@ class _SequenceGameState extends State<_SequenceGame>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(4, (i) {
-                final lit = _lit == i;
-                final tapped = _userInput.contains(i) &&
-                    _userInput.lastIndexOf(i) == _userInput.length - 1 &&
+                final lit = _lit == i || _confirmLit == i;
+                final tapped = _userInput.isNotEmpty &&
+                    _userInput.last == i &&
                     !_isPlaying;
                 return GestureDetector(
                   onTap: () => _onTap(i),
                   child: AnimatedBuilder(
                     animation: _pulseAnim,
                     builder: (context, child) => Transform.scale(
-                      scale: (tapped && !_isPlaying) ? _pulseAnim.value : 1.0,
+                      scale: tapped ? _pulseAnim.value : 1.0,
                       child: child,
                     ),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
+                      duration: const Duration(milliseconds: 80),
                       width: 72,
                       height: 80,
                       decoration: BoxDecoration(
@@ -394,7 +401,7 @@ class _SequenceGameState extends State<_SequenceGame>
                         boxShadow: lit
                             ? [
                                 BoxShadow(
-                                  color: _laneColors[i].withValues(alpha: 0.55),
+                                  color: _laneColors[i].withValues(alpha: 0.6),
                                   blurRadius: 28,
                                   spreadRadius: 4,
                                 )
@@ -425,13 +432,31 @@ class _SequenceGameState extends State<_SequenceGame>
 // ─── Game 2: Piano Tiles ──────────────────────────────────────────────────────
 
 class _Tile {
-  final int lane;       // 0..3
-  double y;            // 0.0 = top, 1.0 = bottom of game area
+  final int lane;
+  double y;
   bool hit;
   bool missed;
   bool visible;
+  double popProgress; // 0→1 over 130ms when hit, drives scale+fade
 
-  _Tile(this.lane) : y = -0.15, hit = false, missed = false, visible = true;
+  _Tile(this.lane)
+      : y = -0.15,
+        hit = false,
+        missed = false,
+        visible = true,
+        popProgress = 0.0;
+}
+
+class _Judgment {
+  final String text;
+  final Color color;
+  final int lane;
+  double life;   // 1.0 → 0.0 over 600ms
+  double yOff;   // rises from 0 to -56px
+
+  _Judgment(this.text, this.color, this.lane)
+      : life = 1.0,
+        yOff = 0.0;
 }
 
 class _PianoTilesGame extends StatefulWidget {
@@ -451,11 +476,11 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
   static const _tileHeight = 0.16;  // tile height as fraction of game area
 
   final List<_Tile> _tiles = [];
+  final List<_Judgment> _judgments = [];
   int _spawned = 0;
   int _hits = 0;
   bool _done = false;
 
-  // Flash state per lane
   final List<Color?> _laneFlash = [null, null, null, null];
 
   late Ticker _ticker;
@@ -502,18 +527,31 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       _spawnCooldown = _spawnInterval;
     }
 
-    // Move tiles
+    // Move tiles + drive pop animation
     bool changed = false;
     for (final t in _tiles) {
-      if (t.hit || t.missed) continue;
+      if (t.hit) {
+        // Drive pop
+        t.popProgress = (t.popProgress + dt / 0.13).clamp(0.0, 1.0);
+        if (t.popProgress >= 1.0) t.visible = false;
+        changed = true;
+        continue;
+      }
+      if (t.missed) continue;
       t.y += _tileSpeed * dt;
-      // Miss: tile exited past bottom
       if (t.y > 1.0 + _tileHeight) {
         t.missed = true;
         t.visible = false;
         changed = true;
       }
     }
+
+    // Drive judgment text animations
+    for (final j in _judgments) {
+      j.life = (j.life - dt / 0.6).clamp(0.0, 1.0);
+      j.yOff -= 56 * dt / 0.6;
+    }
+    _judgments.removeWhere((j) => j.life <= 0);
 
     // Remove tiles that are fully gone
     _tiles.removeWhere((t) => !t.visible && (t.hit || t.missed));
@@ -553,21 +591,30 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
     }
 
     if (best != null) {
-      HapticFeedback.lightImpact();
+      // Determine judgment: how centered was the tile in the zone?
+      final center = _hitZoneStart + _tileHeight / 2;
+      final distance = (best.y - center).abs();
+      final isPerfect = distance < _tileHeight * 0.3;
+      final label = isPerfect ? 'Perfect' : 'Good';
+      final color = isPerfect ? const Color(0xFF4CC56A) : const Color(0xFFFFB300);
+
+      HapticFeedback.mediumImpact();
       setState(() {
         best!.hit = true;
-        best.visible = false;
         _hits++;
         _laneFlash[lane] = _laneColors[lane];
+        _judgments.add(_Judgment(label, color, lane));
       });
-      Future.delayed(const Duration(milliseconds: 150), () {
+      Future.delayed(const Duration(milliseconds: 180), () {
         if (mounted) setState(() => _laneFlash[lane] = null);
       });
     } else {
-      // Miss tap
       HapticFeedback.heavyImpact();
-      setState(() => _laneFlash[lane] = Colors.red.withValues(alpha: 0.5));
-      Future.delayed(const Duration(milliseconds: 200), () {
+      setState(() {
+        _laneFlash[lane] = Colors.red.withValues(alpha: 0.45);
+        _judgments.add(_Judgment('Miss', Colors.redAccent, lane));
+      });
+      Future.delayed(const Duration(milliseconds: 220), () {
         if (mounted) setState(() => _laneFlash[lane] = null);
       });
     }
@@ -670,25 +717,38 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                     ),
                   ),
 
-                  // Tiles
+                  // Tiles (normal falling + pop animation)
                   ..._tiles.where((t) => t.visible).map((t) {
                     final top = t.y * gameH;
+                    // Pop: scale up + fade out
+                    final scale = t.hit
+                        ? 1.0 + t.popProgress * 0.4
+                        : 1.0;
+                    final opacity = t.hit
+                        ? (1.0 - t.popProgress).clamp(0.0, 1.0)
+                        : 1.0;
                     return Positioned(
                       left: t.lane * laneW + 3,
                       top: top,
                       width: laneW - 6,
                       height: tileHeightPx - 4,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: _laneColors[t.lane],
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _laneColors[t.lane].withValues(alpha: 0.5),
-                              blurRadius: 12,
-                              spreadRadius: 1,
-                            )
-                          ],
+                      child: Transform.scale(
+                        scale: scale,
+                        child: Opacity(
+                          opacity: opacity,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _laneColors[t.lane],
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _laneColors[t.lane].withValues(alpha: 0.5),
+                                  blurRadius: t.hit ? 24 : 12,
+                                  spreadRadius: t.hit ? 4 : 1,
+                                )
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     );
@@ -709,7 +769,36 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                     );
                   }),
 
-                  // Lane color indicators at bottom
+                  // Judgment text overlays
+                  ..._judgments.map((j) {
+                    final laneCenter = (j.lane + 0.5) * laneW;
+                    return Positioned(
+                      left: laneCenter - 40,
+                      bottom: gameH * (1 - _hitZoneStart) + (-j.yOff),
+                      width: 80,
+                      child: Opacity(
+                        opacity: j.life.clamp(0.0, 1.0),
+                        child: Text(
+                          j.text,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: j.color,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            shadows: [
+                              Shadow(
+                                color: j.color.withValues(alpha: 0.6),
+                                blurRadius: 8,
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+
+                  // Lane color dots at bottom
                   Positioned(
                     bottom: 8,
                     left: 0,
