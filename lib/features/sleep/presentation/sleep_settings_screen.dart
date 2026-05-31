@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../l10n/l10n.dart';
 import '../data/sleep_model.dart';
 
 class SleepSettingsScreen extends StatefulWidget {
@@ -11,7 +12,8 @@ class SleepSettingsScreen extends StatefulWidget {
   State<SleepSettingsScreen> createState() => _SleepSettingsScreenState();
 }
 
-class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
+class _SleepSettingsScreenState extends State<SleepSettingsScreen>
+    with WidgetsBindingObserver {
   static const _ch = MethodChannel('rutin/sleep');
 
   late SleepSettings _settings;
@@ -20,8 +22,20 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _settings = _loadOrCreate();
     _checkAccessibility();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkAccessibility();
   }
 
   SleepSettings _loadOrCreate() {
@@ -81,7 +95,20 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
     });
     try {
       await _ch.invokeMethod(val ? 'startService' : 'stopService');
-    } catch (_) {}
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _settings.sleepModeEnabled = false;
+        _saveNative();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            localized(context, id: 'Mode tidur belum dapat dijalankan. Coba aktifkan kembali setelah memperbarui aplikasi.', en: 'Sleep mode could not start. Try enabling it again after updating the app.'),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -89,7 +116,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mode Tidur'),
+        title: Text(context.l10n.sleepMode),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -103,11 +130,11 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
               SwitchListTile(
                 value: _settings.sleepModeEnabled,
                 onChanged: _onToggle,
-                title: const Text(
-                  'Mode Tidur',
+                title: Text(
+                  context.l10n.sleepMode,
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: const Text('Aktifkan gerbang bangun pagi'),
+                subtitle: Text(context.l10n.enableMorningGate),
               ),
               if (_settings.sleepModeEnabled && !_accessibilityGranted)
                 Padding(
@@ -127,7 +154,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Untuk pengalaman terbaik, aktifkan Accessibility Service.',
+                            localized(context, id: 'Untuk pengalaman terbaik, aktifkan Accessibility Service.', en: 'For the best experience, enable Accessibility Service.'),
                             style: TextStyle(
                               fontSize: 13,
                               color: cs.onErrorContainer,
@@ -137,7 +164,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
                         TextButton(
                           onPressed: () =>
                               _ch.invokeMethod('openAccessibilitySettings'),
-                          child: const Text('Aktifkan'),
+                          child: Text(localized(context, id: 'Aktifkan', en: 'Enable')),
                         ),
                       ],
                     ),
@@ -150,7 +177,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
             children: [
               _TimeTile(
                 icon: Icons.bedtime_rounded,
-                label: 'Jam tidur',
+                label: context.l10n.sleepTime,
                 value: _fmt(_settings.sleepModeStartMinutes),
                 onTap: () => _pickTime(_settings.sleepModeStartMinutes, (v) {
                   setState(() {
@@ -162,7 +189,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
               const Divider(height: 1),
               _TimeTile(
                 icon: Icons.wb_sunny_rounded,
-                label: 'Mulai jendela bangun',
+                label: context.l10n.wakeWindowStart,
                 value: _fmt(_settings.wakeWindowStartMinutes),
                 onTap: () => _pickTime(_settings.wakeWindowStartMinutes, (v) {
                   setState(() {
@@ -174,7 +201,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
               const Divider(height: 1),
               _TimeTile(
                 icon: Icons.light_mode_rounded,
-                label: 'Akhir jendela bangun',
+                label: context.l10n.wakeWindowEnd,
                 value: _fmt(_settings.wakeWindowEndMinutes),
                 onTap: () => _pickTime(_settings.wakeWindowEndMinutes, (v) {
                   setState(() {
@@ -204,38 +231,40 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
                     : TextButton(
                         onPressed: () =>
                             _ch.invokeMethod('openAccessibilitySettings'),
-                        child: const Text('Izinkan'),
+                        child: Text(context.l10n.allow),
                       ),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.battery_saver_rounded),
-                title: const Text('Optimasi Baterai'),
-                subtitle: const Text('Izinkan berjalan di latar belakang'),
+                title: Text(context.l10n.batteryOptimization),
+                subtitle: Text(context.l10n.allowBackground),
                 trailing: TextButton(
                   onPressed: () => _ch.invokeMethod('openBatteryOptimization'),
-                  child: const Text('Atur'),
+                  child: Text(context.l10n.configure),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          Row(
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => context.push('/wakeup-game', extra: 0),
-                  icon: const Icon(Icons.grid_view_rounded, size: 18),
-                  label: const Text('Test Sequence'),
-                ),
+              _GameTestButton(
+                icon: Icons.grid_view_rounded,
+                label: context.l10n.testSequence,
+                onTap: () => context.push('/wakeup-game', extra: 0),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => context.push('/wakeup-game', extra: 2),
-                  icon: const Icon(Icons.music_note_rounded, size: 18),
-                  label: const Text('Test Rhythm'),
-                ),
+              _GameTestButton(
+                icon: Icons.music_note_rounded,
+                label: context.l10n.testRhythm,
+                onTap: () => context.push('/wakeup-game', extra: 2),
+              ),
+              _GameTestButton(
+                icon: Icons.gesture_rounded,
+                label: context.l10n.testDots,
+                onTap: () => context.push('/wakeup-game', extra: 5),
               ),
             ],
           ),
@@ -261,13 +290,35 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
               );
             },
             icon: const Icon(Icons.bedtime_rounded, size: 18),
-            label: const Text('Test Sleep Gate'),
+            label: Text(context.l10n.testSleepGate),
           ),
           const SizedBox(height: 24),
         ],
       ),
     );
   }
+}
+
+class _GameTestButton extends StatelessWidget {
+  const _GameTestButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: (MediaQuery.sizeOf(context).width - 42) / 2,
+    child: OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+    ),
+  );
 }
 
 class _Card extends StatelessWidget {

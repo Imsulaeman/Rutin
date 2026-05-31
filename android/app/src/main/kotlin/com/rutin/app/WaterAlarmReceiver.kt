@@ -83,7 +83,7 @@ class WaterAlarmReceiver : BroadcastReceiver() {
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                 .build()
             val channel = NotificationChannel(
-                CHANNEL_ID, "Pengingat Air", NotificationManager.IMPORTANCE_HIGH
+                CHANNEL_ID, NativeStrings.waterChannel(context), NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 setSound(soundUri, audioAttrs)
                 enableVibration(true)
@@ -100,11 +100,11 @@ class WaterAlarmReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Waktunya minum air")
-            .setContentText("Sudah minum segelas belum?")
+            .setContentTitle(NativeStrings.waterTitle(context))
+            .setContentText(NativeStrings.waterBody(context))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .addAction(0, "Sudah minum", actionPi)
+            .addAction(0, NativeStrings.waterTaken(context), actionPi)
             .build()
 
         nm.notify(NOTIFICATION_ID, notification)

@@ -51,7 +51,7 @@ class ReminderActivity : Activity() {
 
         val alarmId = intent.getIntExtra("alarm_id", 0)
         val scheduledMinutes = intent.getIntExtra("scheduled_minutes", 0)
-        val medicineName = intent.getStringExtra("medicine_name") ?: "Obat"
+        val medicineName = intent.getStringExtra("medicine_name") ?: NativeStrings.medicineFallback(this)
         val dosage = intent.getStringExtra("dosage").orEmpty()
         val renotifyMinutes = intent.getIntExtra("renotify_minutes", 10)
 
@@ -94,7 +94,7 @@ class ReminderActivity : Activity() {
         }
         content.addView(badge)
 
-        content.addView(label("Waktunya minum", 16f, false, dp(26)))
+        content.addView(label(NativeStrings.medicineHeading(this), 16f, false, dp(26)))
         content.addView(label(medicineName, 30f, true, dp(8)))
         if (dosage.isNotEmpty()) content.addView(label(dosage, 15f, false, dp(8)))
 
@@ -107,7 +107,7 @@ class ReminderActivity : Activity() {
         content.addView(spacer(3f))
 
         // White primary button.
-        content.addView(Button("✓  Sudah diminum", Color.WHITE, pink).apply {
+        content.addView(Button("✓  ${NativeStrings.medicineTaken(this)}", Color.WHITE, pink).apply {
             setOnClickListener {
                 writePendingTaken(alarmId, scheduledMinutes)
                 val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -119,7 +119,7 @@ class ReminderActivity : Activity() {
 
         // Outlined snooze button.
         content.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(0, dp(14)) })
-        content.addView(OutlinedButton("⏰  Tunda 1 menit").apply {
+        content.addView(OutlinedButton("⏰  ${NativeStrings.medicineSnooze(this)}").apply {
             setOnClickListener {
                 val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 nm.cancel(alarmId)
@@ -138,7 +138,7 @@ class ReminderActivity : Activity() {
             }
         })
 
-        content.addView(label("↻  Pengingat berulang sampai dikonfirmasi.", 12f, false, dp(16))
+        content.addView(label("↻  ${NativeStrings.medicineRepeat(this)}", 12f, false, dp(16))
             .apply { alpha = 0.75f })
 
         root.addView(content)
@@ -248,10 +248,10 @@ class ReminderActivity : Activity() {
     private fun two(n: Int): String = if (n < 10) "0$n" else "$n"
 
     private fun period(hour: Int): String = when {
-        hour < 11 -> "PAGI"
-        hour < 15 -> "SIANG"
-        hour < 19 -> "SORE"
-        else -> "MALAM"
+        hour < 11 -> NativeStrings.text(this, "PAGI", "MORNING")
+        hour < 15 -> NativeStrings.text(this, "SIANG", "AFTERNOON")
+        hour < 19 -> NativeStrings.text(this, "SORE", "EVENING")
+        else -> NativeStrings.text(this, "MALAM", "NIGHT")
     }
 
     @Suppress("DEPRECATION")

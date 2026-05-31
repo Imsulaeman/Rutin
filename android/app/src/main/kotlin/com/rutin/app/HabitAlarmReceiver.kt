@@ -69,7 +69,7 @@ class HabitAlarmReceiver : BroadcastReceiver() {
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                 .build()
             val channel = NotificationChannel(
-                CHANNEL_ID, "Pengingat Kebiasaan", NotificationManager.IMPORTANCE_HIGH
+                CHANNEL_ID, NativeStrings.habitChannel(context), NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 setSound(soundUri, audioAttrs)
                 enableVibration(true)
@@ -86,7 +86,7 @@ class HabitAlarmReceiver : BroadcastReceiver() {
         val notif = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
-            .setContentText("Waktunya melakukan kebiasaanmu!")
+            .setContentText(NativeStrings.habitBody(context))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pi)
             .setAutoCancel(true)

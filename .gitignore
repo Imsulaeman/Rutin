@@ -51,3 +51,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local Firebase Android app configuration
+/android/app/google-services.json

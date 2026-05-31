@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
+
 class WaterProgressWidget extends StatelessWidget {
   const WaterProgressWidget({
     super.key,
@@ -68,7 +70,7 @@ class WaterProgressWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'dari $goal gelas',
+                        localized(context, id: 'dari $goal gelas', en: 'of $goal glasses'),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

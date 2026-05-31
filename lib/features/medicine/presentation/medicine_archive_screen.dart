@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/providers/providers.dart';
+import '../../../l10n/l10n.dart';
 import '../../notifications/alarm_service.dart';
 import '../data/medicine_model.dart';
 
@@ -60,7 +61,7 @@ class _MedicineArchiveScreenState
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: const Text('Arsip Obat'),
+        title: Text(localized(context, id: 'Arsip Obat', en: 'Medicine Archive')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -144,7 +145,7 @@ class _ArchivedCard extends StatelessWidget {
               ),
             ),
             onPressed: onUnarchive,
-            child: const Text('Aktifkan'),
+            child: Text(context.l10n.active),
           ),
         ],
       ),
@@ -177,8 +178,8 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Arsip kosong',
+            Text(
+              localized(context, id: 'Arsip kosong', en: 'Archive is empty'),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -186,8 +187,8 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Obat yang diarsipkan akan muncul di sini.',
+            Text(
+              localized(context, id: 'Obat yang diarsipkan akan muncul di sini.', en: 'Archived medicines will appear here.'),
               textAlign: TextAlign.center,
               style: TextStyle(color: _grey, fontSize: 13),
             ),

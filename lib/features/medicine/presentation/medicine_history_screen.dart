@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../shared/providers/providers.dart';
+import '../../../l10n/l10n.dart';
 import '../data/medicine_model.dart';
 import '../data/medicine_repository.dart';
 
@@ -46,7 +47,7 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: const Text('Riwayat Obat'),
+        title: Text(localized(context, id: 'Riwayat Obat', en: 'Medicine History')),
       ),
       body: ValueListenableBuilder<Box<MedicineLog>>(
         valueListenable: Hive.box<MedicineLog>('medicine_logs').listenable(),
@@ -219,14 +220,14 @@ class _NavCircle extends StatelessWidget {
 class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const Wrap(
+    return Wrap(
       spacing: 12,
       runSpacing: 8,
       children: [
-        _LegendItem(label: 'Semua diminum', color: _green),
-        _LegendItem(label: 'Sebagian', color: _amber),
-        _LegendItem(label: 'Terlewat', color: _red),
-        _LegendItem(label: 'Belum ada jadwal', color: _grey),
+        _LegendItem(label: localized(context, id: 'Semua diminum', en: 'All taken'), color: _green),
+        _LegendItem(label: localized(context, id: 'Sebagian', en: 'Partial'), color: _amber),
+        _LegendItem(label: context.l10n.missed, color: _red),
+        _LegendItem(label: localized(context, id: 'Belum ada jadwal', en: 'No schedule'), color: _grey),
       ],
     );
   }
@@ -287,14 +288,14 @@ class _SelectedDayCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Lihat dosis yang diminum, terlewat, atau belum jatuh tempo.',
+          Text(
+            localized(context, id: 'Lihat dosis yang diminum, terlewat, atau belum jatuh tempo.', en: 'Review doses that were taken, missed, or are not due yet.'),
             style: TextStyle(color: _grey, fontSize: 12),
           ),
           const SizedBox(height: 16),
           if (doses.isEmpty)
-            const Text(
-              'Tidak ada jadwal obat di hari ini.',
+            Text(
+              localized(context, id: 'Tidak ada jadwal obat di hari ini.', en: 'No medicine scheduled for this day.'),
               style: TextStyle(color: _grey),
             )
           else
@@ -333,10 +334,10 @@ class _HistoryDoseTile extends StatelessWidget {
       _ => _grey,
     };
     final label = switch (status) {
-      'taken' => 'Diminum',
-      'upcoming' => 'Belum waktunya',
-      'missed' => 'Terlewat',
-      _ => 'Belum ada log',
+      'taken' => context.l10n.taken,
+      'upcoming' => localized(context, id: 'Belum waktunya', en: 'Not due yet'),
+      'missed' => context.l10n.missed,
+      _ => localized(context, id: 'Belum ada log', en: 'No log yet'),
     };
 
     return Container(
@@ -369,7 +370,7 @@ class _HistoryDoseTile extends StatelessWidget {
                 ],
                 const SizedBox(height: 8),
                 Text(
-                  MedicineMealTiming.label(dose.medicine.mealTimingKey),
+                  medicineMealTimingLabel(context, dose.medicine.mealTimingKey),
                   style: const TextStyle(color: _grey, fontSize: 12),
                 ),
               ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../habits/data/habit_repository.dart';
 import '../../habits/data/medal_model.dart';
@@ -51,13 +52,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: Card(
                 child: ListTile(
-                  leading: const Icon(Icons.bedtime_rounded,
-                      color: Color(0xFF7C3AED)),
-                  title: const Text('Mode Tidur',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Pengaturan & game bangun pagi'),
+                  leading: const Icon(
+                    Icons.bedtime_rounded,
+                    color: Color(0xFF7C3AED),
+                  ),
+                  title: Text(
+                    context.l10n.sleepMode,
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(localized(
+                    context,
+                    id: 'Pengaturan & game bangun pagi',
+                    en: 'Settings & morning wake-up games',
+                  )),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/sleep-settings'),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.settings_rounded,
+                    color: AppTheme.muted,
+                  ),
+                  title: Text(
+                    context.l10n.settings,
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(localized(
+                    context,
+                    id: 'Bahasa, aksesibilitas, tentang',
+                    en: 'Language, accessibility, about',
+                  )),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/settings'),
                 ),
               ),
             ),
@@ -115,8 +148,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'hari streak terbaik',
+            Text(
+              localized(context, id: 'hari streak terbaik', en: 'best streak days'),
               style: TextStyle(fontSize: 15, color: Colors.white60),
             ),
             const SizedBox(height: 24),
@@ -127,8 +160,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ).textTheme.titleLarge?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'Kebiasaan yang sudah kamu capai',
+            Text(
+              localized(context, id: 'Kebiasaan yang sudah kamu capai', en: 'Habits you have achieved'),
               style: TextStyle(fontSize: 13, color: Colors.white54),
             ),
           ],

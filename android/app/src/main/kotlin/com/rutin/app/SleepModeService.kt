@@ -45,6 +45,14 @@ class SleepModeService : Service() {
             return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getBoolean(KEY_SERVICE_RUNNING, false)
         }
+
+        fun refreshNotification(context: Context) {
+            if (!isRunning(context)) return
+            context.startService(
+                Intent(context, SleepModeService::class.java)
+                    .setAction("com.rutin.app.REFRESH_NOTIFICATION")
+            )
+        }
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -72,6 +80,9 @@ class SleepModeService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "com.rutin.app.REFRESH_NOTIFICATION") {
+            updateNotification(false)
+        }
         return START_STICKY
     }
 
@@ -91,7 +102,7 @@ class SleepModeService : Service() {
     private fun registerWakeUpReceiver() {
         val receiver = WakeUpTriggerReceiver()
         val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
-        registerReceiver(receiver, filter)
+        registerAppReceiver(receiver, filter)
         wakeUpReceiver = receiver
     }
 
@@ -102,13 +113,24 @@ class SleepModeService : Service() {
                     // Pause detection for 30 min
                     val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
                     val pauseUntil = System.currentTimeMillis() + 30 * 60 * 1000L
-                    prefs.edit().putLong("pause_until_ms", pauseUntil).apply()
+                    prefs.edit()
+                        .putLong("pause_until_ms", pauseUntil)
+                        .putBoolean(KEY_SLEEP_ACTIVE, false)
+                        .apply()
                     updateNotification(true)
                 }
             }
         }
-        registerReceiver(receiver, IntentFilter(ACTION_STILL_AWAKE))
+        registerAppReceiver(receiver, IntentFilter(ACTION_STILL_AWAKE))
         stillAwakeReceiver = receiver
+    }
+
+    private fun registerAppReceiver(receiver: BroadcastReceiver, filter: IntentFilter) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(receiver, filter)
+        }
     }
 
     private fun checkSleepState() {
@@ -122,9 +144,12 @@ class SleepModeService : Service() {
             "sleep_settings_native", MODE_PRIVATE
         )
         val sleepStartMin = sleepStartPrefs.getInt("sleep_start_min", 1260)
+        val wakeEndMin = sleepStartPrefs.getInt("wake_window_end", 600)
         val nowMin = nowMinutes()
-        // Only monitor after sleep time
-        if (nowMin < sleepStartMin && nowMin > 600) return // not in sleep window yet (allow 10PM-6AM)
+        if (!SleepScheduleReceiver.isWithinNightWindow(nowMin, sleepStartMin, wakeEndMin)) {
+            SleepScheduleReceiver.finishNight(this)
+            return
+        }
 
         val now = System.currentTimeMillis()
         val lastInteraction = prefs.getLong(KEY_LAST_INTERACTION, now)
@@ -164,13 +189,13 @@ class SleepModeService : Service() {
         )
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle(if (paused) "Mode tidur dijeda 30 menit" else "Mode tidur aktif")
-            .setContentText("Menunggu waktu tidur...")
+            .setContentTitle(if (paused) NativeStrings.sleepPaused(this) else NativeStrings.sleepActive(this))
+            .setContentText(NativeStrings.sleepWaiting(this))
             .setOngoing(true)
             .addAction(
                 Notification.Action.Builder(
                     null,
-                    "Saya masih terjaga",
+                    NativeStrings.stillAwake(this),
                     stillAwakeIntent
                 ).build()
             )
@@ -187,10 +212,10 @@ class SleepModeService : Service() {
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Mode Tidur",
+                NativeStrings.sleepChannel(this),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Layanan deteksi tidur"
+                description = NativeStrings.sleepDescription(this@SleepModeService)
                 setShowBadge(false)
             }
             nm.createNotificationChannel(channel)

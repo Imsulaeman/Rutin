@@ -126,30 +126,97 @@ class HabitRepository {
 
   // ─── Logs ───
 
-  bool isCompletedToday(String habitId) {
+  /// Daily target = number of reminder times, with one completion minimum.
+  int dailyTarget(Habit habit) {
+    final times = habit.reminderTimes.isNotEmpty
+        ? habit.reminderTimes
+        : (habit.reminderMinutes != null
+              ? [habit.reminderMinutes!]
+              : const <int>[]);
+    return times.isEmpty ? 1 : times.length;
+  }
+
+  int completionsToday(String habitId) {
     final today = AppDateUtils.todayString();
-    return _logs.values.any((l) => l.habitId == habitId && l.date == today);
+    return _logs.values
+        .where((log) => log.habitId == habitId && log.date == today)
+        .length;
+  }
+
+  bool isCompletedToday(String habitId) {
+    final habit = _habits.get(habitId);
+    if (habit == null) return false;
+    return completionsToday(habitId) >= dailyTarget(habit);
+  }
+
+  Future<void> addCompletion(String habitId) async {
+    await _logs.add(
+      HabitLog()
+        ..habitId = habitId
+        ..date = AppDateUtils.todayString(),
+    );
+  }
+
+  Future<void> removeCompletion(String habitId) async {
+    final today = AppDateUtils.todayString();
+    final entries = _logs
+        .toMap()
+        .entries
+        .where(
+          (entry) =>
+              entry.value.habitId == habitId && entry.value.date == today,
+        )
+        .toList();
+    if (entries.isNotEmpty) {
+      await _logs.delete(entries.last.key);
+    }
+  }
+
+  Future<void> setCompletionsToday(Habit habit, int count) async {
+    final target = dailyTarget(habit);
+    count = count.clamp(0, target);
+    var current = completionsToday(habit.id);
+    while (current < count) {
+      await addCompletion(habit.id);
+      current++;
+    }
+    while (current > count) {
+      await removeCompletion(habit.id);
+      current--;
+    }
   }
 
   Future<void> markDone(String habitId) async {
-    if (!isCompletedToday(habitId)) {
-      await _logs.add(
-        HabitLog()
-          ..habitId = habitId
-          ..date = AppDateUtils.todayString(),
-      );
+    final habit = _habits.get(habitId);
+    if (habit == null) return;
+    if (completionsToday(habitId) < dailyTarget(habit)) {
+      await addCompletion(habitId);
     }
   }
 
   int getStreak(String habitId) {
-    final logs = _logs.values
-        .where((l) => l.habitId == habitId)
-        .map((l) => l.date)
-        .toSet();
+    final habit = _habits.get(habitId);
+    if (habit == null) return 0;
+    final target = dailyTarget(habit);
+    final byDate = <String, int>{};
+    for (final log in _logs.values.where((log) => log.habitId == habitId)) {
+      byDate[log.date] = (byDate[log.date] ?? 0) + 1;
+    }
+
     int streak = 0;
     var day = DateTime.now();
-    while (logs.contains(AppDateUtils.toDateString(day))) {
-      streak++;
+    final todayCount = byDate[AppDateUtils.toDateString(day)] ?? 0;
+    if (todayCount >= target) streak++;
+    day = day.subtract(const Duration(days: 1));
+
+    var guard = 0;
+    while (guard++ < 3660) {
+      final count = byDate[AppDateUtils.toDateString(day)] ?? 0;
+      if (count >= target) {
+        streak++;
+      } else if (count == 0) {
+        break;
+      }
       day = day.subtract(const Duration(days: 1));
     }
     return streak;

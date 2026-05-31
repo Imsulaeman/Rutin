@@ -16,6 +16,9 @@ class HabitAdapter extends TypeAdapter<Habit> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
+    final reminderTimes = numOfFields > 8
+        ? (fields[8] as List?)?.cast<int>() ?? <int>[]
+        : <int>[];
     return Habit()
       ..id = fields[0] as String
       ..name = fields[1] as String
@@ -24,13 +27,14 @@ class HabitAdapter extends TypeAdapter<Habit> {
       ..reminderMinutes = fields[4] as int?
       ..colorValue = (fields[5] is int) ? fields[5] as int : 0
       ..groupId = (fields[6] is String) ? fields[6] as String : null
-      ..sortIndex = (fields[7] is int) ? fields[7] as int : 0;
+      ..sortIndex = (fields[7] is int) ? fields[7] as int : 0
+      ..reminderTimes = reminderTimes;
   }
 
   @override
   void write(BinaryWriter writer, Habit obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -46,7 +50,9 @@ class HabitAdapter extends TypeAdapter<Habit> {
       ..writeByte(6)
       ..write(obj.groupId)
       ..writeByte(7)
-      ..write(obj.sortIndex);
+      ..write(obj.sortIndex)
+      ..writeByte(8)
+      ..write(obj.reminderTimes);
   }
 
   @override

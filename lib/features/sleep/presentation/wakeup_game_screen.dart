@@ -8,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/haptics_service.dart';
+import '../../../l10n/l10n.dart';
 
 // ─── Lane colors (matches app palette) ────────────────────────────────────────
 const _laneColors = [
@@ -66,7 +67,7 @@ class _WakeupGameScreenState extends State<WakeupGameScreen> {
   static int _todayGameIndex() {
     final now = DateTime.now();
     final seed = now.year * 10000 + now.month * 100 + now.day;
-    return const [0, 2][Random(seed).nextInt(2)];
+    return const [0, 2, 5][Random(seed).nextInt(3)];
   }
 
   static String _dateKey(DateTime d) =>
@@ -100,9 +101,15 @@ class _WakeupGameScreenState extends State<WakeupGameScreen> {
       });
     }
 
-    try { await _nativeCh.invokeMethod('stopMusic'); } catch (_) {}
-    try { await _nativeCh.invokeMethod('playChime'); } catch (_) {}
-    try { await _ch.invokeMethod('setGameDismissedNormally', true); } catch (_) {}
+    try {
+      await _nativeCh.invokeMethod('stopMusic');
+    } catch (_) {}
+    try {
+      await _nativeCh.invokeMethod('playChime');
+    } catch (_) {}
+    try {
+      await _ch.invokeMethod('setGameDismissedNormally', true);
+    } catch (_) {}
     AnalyticsService.gameCompleted();
 
     await Future.delayed(const Duration(seconds: 2));
@@ -110,8 +117,12 @@ class _WakeupGameScreenState extends State<WakeupGameScreen> {
   }
 
   Future<void> _onSkip() async {
-    try { await _nativeCh.invokeMethod('stopMusic'); } catch (_) {}
-    try { await _ch.invokeMethod('setGameDismissedNormally', true); } catch (_) {}
+    try {
+      await _nativeCh.invokeMethod('stopMusic');
+    } catch (_) {}
+    try {
+      await _ch.invokeMethod('setGameDismissedNormally', true);
+    } catch (_) {}
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -128,9 +139,11 @@ class _WakeupGameScreenState extends State<WakeupGameScreen> {
               children: [
                 _Header(streak: _streak),
                 Expanded(
-                  child: _gameIndex == 0
-                      ? _SequenceGame(onComplete: _onGameComplete)
-                      : _PianoTilesGame(onComplete: _onGameComplete),
+                  child: switch (_gameIndex) {
+                    0 => _SequenceGame(onComplete: _onGameComplete),
+                    2 => _PianoTilesGame(onComplete: _onGameComplete),
+                    _ => _ConnectDotsGame(onComplete: _onGameComplete),
+                  },
                 ),
               ],
             ),
@@ -143,15 +156,14 @@ class _WakeupGameScreenState extends State<WakeupGameScreen> {
                   duration: const Duration(milliseconds: 600),
                   child: TextButton(
                     onPressed: _onSkip,
-                    child: const Text(
-                      'Lewati →',
+                    child: Text(
+                      localized(context, id: 'Lewati →', en: 'Skip →'),
                       style: TextStyle(color: Colors.white30, fontSize: 13),
                     ),
                   ),
                 ),
               ),
-            if (_showCelebration)
-              Positioned.fill(child: _CelebrationOverlay()),
+            if (_showCelebration) Positioned.fill(child: _CelebrationOverlay()),
           ],
         ),
       ),
@@ -177,7 +189,8 @@ class _Header extends StatelessWidget {
               color: const Color(0xFFFF6D00).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                  color: const Color(0xFFFF6D00).withValues(alpha: 0.3)),
+                color: const Color(0xFFFF6D00).withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -185,7 +198,9 @@ class _Header extends StatelessWidget {
                 const Text('🔥', style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 5),
                 Text(
-                  streak == 0 ? 'Hari pertama!' : 'Hari ke-$streak',
+                  streak == 0
+                      ? localized(context, id: 'Hari pertama!', en: 'First day!')
+                      : localized(context, id: 'Hari ke-$streak', en: 'Day $streak'),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -229,17 +244,22 @@ class _SequenceGameState extends State<_SequenceGame>
   void initState() {
     super.initState();
     _shakeCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 400));
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
     _shakeAnim = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: -16.0), weight: 1),
       TweenSequenceItem(tween: Tween(begin: -16.0, end: 16.0), weight: 2),
       TweenSequenceItem(tween: Tween(begin: 16.0, end: 0.0), weight: 1),
     ]).animate(CurvedAnimation(parent: _shakeCtrl, curve: Curves.easeInOut));
     _pulseCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 300));
-    _pulseAnim =
-        Tween(begin: 1.0, end: 1.12).animate(
-            CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _pulseAnim = Tween(
+      begin: 1.0,
+      end: 1.12,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut));
     _startRound(0);
   }
 
@@ -287,7 +307,12 @@ class _SequenceGameState extends State<_SequenceGame>
       HapticsService.fun();
       _shakeCtrl.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) setState(() { _wrongTap = false; _startRound(_round); });
+        if (mounted) {
+          setState(() {
+            _wrongTap = false;
+            _startRound(_round);
+          });
+        }
       });
       return;
     }
@@ -331,8 +356,8 @@ class _SequenceGameState extends State<_SequenceGame>
                 color: done
                     ? const Color(0xFF4CC56A)
                     : active
-                        ? Colors.white
-                        : Colors.white24,
+                    ? Colors.white
+                    : Colors.white24,
                 borderRadius: BorderRadius.circular(4),
               ),
             );
@@ -343,7 +368,9 @@ class _SequenceGameState extends State<_SequenceGame>
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: Text(
-            _isPlaying ? 'Perhatikan...' : 'Ketuk urutannya!',
+            _isPlaying
+                ? localized(context, id: 'Perhatikan...', en: 'Watch closely...')
+                : localized(context, id: 'Ketuk urutannya!', en: 'Tap the sequence!'),
             key: ValueKey(_isPlaying),
             style: TextStyle(
               fontSize: 20,
@@ -355,7 +382,7 @@ class _SequenceGameState extends State<_SequenceGame>
         const SizedBox(height: 8),
         Text(
           _isPlaying
-              ? 'Putaran ${_round + 1}/3  •  ${_sequence.length} warna'
+              ? localized(context, id: 'Putaran ${_round + 1}/3  •  ${_sequence.length} warna', en: 'Round ${_round + 1}/3  •  ${_sequence.length} colors')
               : '${_userInput.length}/${_sequence.length}',
           style: const TextStyle(color: Colors.white38, fontSize: 13),
         ),
@@ -363,15 +390,18 @@ class _SequenceGameState extends State<_SequenceGame>
         // Tiles
         AnimatedBuilder(
           animation: _shakeAnim,
-          builder: (context, child) =>
-              Transform.translate(offset: Offset(_shakeAnim.value, 0), child: child),
+          builder: (context, child) => Transform.translate(
+            offset: Offset(_shakeAnim.value, 0),
+            child: child,
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(4, (i) {
                 final lit = _lit == i || _confirmLit == i;
-                final tapped = _userInput.isNotEmpty &&
+                final tapped =
+                    _userInput.isNotEmpty &&
                     _userInput.last == i &&
                     !_isPlaying;
                 return GestureDetector(
@@ -390,8 +420,8 @@ class _SequenceGameState extends State<_SequenceGame>
                         color: lit
                             ? _laneColors[i]
                             : _wrongTap
-                                ? Colors.red.withValues(alpha: 0.25)
-                                : _laneColors[i].withValues(alpha: 0.18),
+                            ? Colors.red.withValues(alpha: 0.25)
+                            : _laneColors[i].withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: lit
@@ -405,7 +435,7 @@ class _SequenceGameState extends State<_SequenceGame>
                                   color: _laneColors[i].withValues(alpha: 0.6),
                                   blurRadius: 28,
                                   spreadRadius: 4,
-                                )
+                                ),
                               ]
                             : null,
                       ),
@@ -419,11 +449,12 @@ class _SequenceGameState extends State<_SequenceGame>
         const SizedBox(height: 24),
         if (_wrongTap)
           Text(
-            'Salah! Ulangi putaran...',
+            localized(context, id: 'Salah! Ulangi putaran...', en: 'Wrong! Repeat the round...'),
             style: TextStyle(
-                color: Colors.red.shade400,
-                fontSize: 13,
-                fontWeight: FontWeight.w600),
+              color: Colors.red.shade400,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
       ],
     );
@@ -441,23 +472,21 @@ class _Tile {
   double popProgress; // 0→1 over 130ms when hit, drives scale+fade
 
   _Tile(this.lane)
-      : y = -0.15,
-        hit = false,
-        missed = false,
-        visible = true,
-        popProgress = 0.0;
+    : y = -0.15,
+      hit = false,
+      missed = false,
+      visible = true,
+      popProgress = 0.0;
 }
 
 class _Judgment {
   final String text;
   final Color color;
   final int lane;
-  double life;   // 1.0 → 0.0 over 600ms
-  double yOff;   // rises from 0 to -56px
+  double life; // 1.0 → 0.0 over 600ms
+  double yOff; // rises from 0 to -56px
 
-  _Judgment(this.text, this.color, this.lane)
-      : life = 1.0,
-        yOff = 0.0;
+  _Judgment(this.text, this.color, this.lane) : life = 1.0, yOff = 0.0;
 }
 
 class _PianoTilesGame extends StatefulWidget {
@@ -470,11 +499,11 @@ class _PianoTilesGame extends StatefulWidget {
 class _PianoTilesGameState extends State<_PianoTilesGame>
     with SingleTickerProviderStateMixin {
   static const _nativeCh = MethodChannel('habit_app/native_reminder');
-  static const _tileCount = 16;   // total tiles to spawn
-  static const _required = 10;   // hits needed
+  static const _tileCount = 16; // total tiles to spawn
+  static const _required = 10; // hits needed
   static const _tileSpeed = 0.45; // fraction of screen per second
   static const _hitZoneStart = 0.72; // top of hit zone (fraction)
-  static const _tileHeight = 0.16;  // tile height as fraction of game area
+  static const _tileHeight = 0.16; // tile height as fraction of game area
 
   final List<_Tile> _tiles = [];
   final List<_Judgment> _judgments = [];
@@ -583,7 +612,8 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
     double bestY = -1;
     for (final t in _tiles) {
       if (t.hit || t.missed || t.lane != lane) continue;
-      if (t.y >= _hitZoneStart - 0.05 && t.y <= _hitZoneStart + _tileHeight + 0.05) {
+      if (t.y >= _hitZoneStart - 0.05 &&
+          t.y <= _hitZoneStart + _tileHeight + 0.05) {
         if (t.y > bestY) {
           bestY = t.y;
           best = t;
@@ -597,7 +627,9 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       final distance = (best.y - center).abs();
       final isPerfect = distance < _tileHeight * 0.3;
       final label = isPerfect ? 'Perfect' : 'Good';
-      final color = isPerfect ? const Color(0xFF4CC56A) : const Color(0xFFFFB300);
+      final color = isPerfect
+          ? const Color(0xFF4CC56A)
+          : const Color(0xFFFFB300);
 
       HapticsService.tap();
       setState(() {
@@ -689,7 +721,8 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                             right: lane < 3
                                 ? BorderSide(
                                     color: Colors.white.withValues(alpha: 0.06),
-                                    width: 1)
+                                    width: 1,
+                                  )
                                 : BorderSide.none,
                           ),
                         ),
@@ -708,11 +741,13 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                         color: Colors.white.withValues(alpha: 0.04),
                         border: Border(
                           top: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              width: 1),
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
                           bottom: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              width: 1),
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1,
+                          ),
                         ),
                       ),
                     ),
@@ -722,9 +757,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                   ..._tiles.where((t) => t.visible).map((t) {
                     final top = t.y * gameH;
                     // Pop: scale up + fade out
-                    final scale = t.hit
-                        ? 1.0 + t.popProgress * 0.4
-                        : 1.0;
+                    final scale = t.hit ? 1.0 + t.popProgress * 0.4 : 1.0;
                     final opacity = t.hit
                         ? (1.0 - t.popProgress).clamp(0.0, 1.0)
                         : 1.0;
@@ -743,10 +776,12 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _laneColors[t.lane].withValues(alpha: 0.5),
+                                  color: _laneColors[t.lane].withValues(
+                                    alpha: 0.5,
+                                  ),
                                   blurRadius: t.hit ? 24 : 12,
                                   spreadRadius: t.hit ? 4 : 1,
-                                )
+                                ),
                               ],
                             ),
                           ),
@@ -791,7 +826,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                               Shadow(
                                 color: j.color.withValues(alpha: 0.6),
                                 blurRadius: 8,
-                              )
+                              ),
                             ],
                           ),
                         ),
@@ -813,8 +848,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                               height: 6,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: _laneColors[lane]
-                                    .withValues(alpha: 0.6),
+                                color: _laneColors[lane].withValues(alpha: 0.6),
                               ),
                             ),
                           ),
@@ -829,6 +863,215 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
         ),
       ],
     );
+  }
+}
+
+// ─── Game 5: Connect the Dots ────────────────────────────────────────────────
+
+class _ConnectDotsGame extends StatefulWidget {
+  const _ConnectDotsGame({required this.onComplete});
+
+  final VoidCallback onComplete;
+
+  @override
+  State<_ConnectDotsGame> createState() => _ConnectDotsGameState();
+}
+
+class _ConnectDotsGameState extends State<_ConnectDotsGame> {
+  List<Offset>? _dots;
+  final List<Offset> _path = [];
+  int _nextDot = 0;
+  bool _done = false;
+  Size _gameSize = Size.zero;
+
+  static List<Offset> _computeDots() {
+    final now = DateTime.now();
+    final seed = now.year * 10000 + now.month * 100 + now.day;
+    final rng = Random(seed);
+    const pX = 0.12, pY = 0.12;
+    const cols = 4, rows = 2;
+    const cW = (1.0 - 2 * pX) / cols;
+    const cH = (1.0 - 2 * pY) / rows;
+    final pts = <Offset>[];
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        pts.add(
+          Offset(
+            pX + c * cW + cW / 2 + (rng.nextDouble() - 0.5) * cW * 0.55,
+            pY + r * cH + cH / 2 + (rng.nextDouble() - 0.5) * cH * 0.5,
+          ),
+        );
+      }
+    }
+    pts.shuffle(rng);
+    return pts;
+  }
+
+  void _onPanUpdate(Offset local) {
+    if (_done) return;
+    setState(() => _path.add(local));
+    final dot = _dots![_nextDot];
+    final dotPx = Offset(dot.dx * _gameSize.width, dot.dy * _gameSize.height);
+    if ((local - dotPx).distance < 30) {
+      HapticsService.tap();
+      setState(() => _nextDot++);
+      if (_nextDot == 8) {
+        setState(() => _done = true);
+        HapticsService.success();
+        Future.delayed(const Duration(milliseconds: 300), widget.onComplete);
+      }
+    }
+  }
+
+  void _onPanEnd() {
+    if (!_done) setState(_path.clear);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Hubungkan titik berurutan',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '$_nextDot/8 titik',
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _gameSize = Size(constraints.maxWidth, constraints.maxHeight);
+              _dots ??= _computeDots();
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanUpdate: (details) => _onPanUpdate(details.localPosition),
+                onPanEnd: (_) => _onPanEnd(),
+                child: CustomPaint(
+                  painter: _DotsPainter(
+                    dots: _dots!,
+                    path: List.unmodifiable(_path),
+                    nextDot: _nextDot,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DotsPainter extends CustomPainter {
+  _DotsPainter({required this.dots, required this.path, required this.nextDot});
+
+  final List<Offset> dots;
+  final List<Offset> path;
+  final int nextDot;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (nextDot > 1) {
+      final paint = Paint()
+        ..color = const Color(0xFF7C3AED)
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      final line = Path()
+        ..moveTo(dots[0].dx * size.width, dots[0].dy * size.height);
+      for (int i = 1; i < nextDot; i++) {
+        line.lineTo(dots[i].dx * size.width, dots[i].dy * size.height);
+      }
+      canvas.drawPath(line, paint);
+    }
+
+    if (path.length >= 2) {
+      final paint = Paint()
+        ..color = const Color(0xFF7C3AED).withValues(alpha: 0.45)
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      final trace = Path()..moveTo(path.first.dx, path.first.dy);
+      for (final point in path.skip(1)) {
+        trace.lineTo(point.dx, point.dy);
+      }
+      canvas.drawPath(trace, paint);
+    }
+
+    for (int i = 0; i < dots.length; i++) {
+      final center = Offset(dots[i].dx * size.width, dots[i].dy * size.height);
+      final connected = i < nextDot;
+      final isNext = i == nextDot;
+      final radius = connected
+          ? 20.0
+          : isNext
+          ? 18.0
+          : 16.0;
+
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = connected
+              ? const Color(0xFF7C3AED)
+              : isNext
+              ? const Color(0xFF7C3AED).withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.1),
+      );
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = connected
+              ? const Color(0xFF7C3AED)
+              : isNext
+              ? const Color(0xFF7C3AED).withValues(alpha: 0.8)
+              : Colors.white.withValues(alpha: 0.3)
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke,
+      );
+
+      final label = TextPainter(
+        text: TextSpan(
+          text: '${i + 1}',
+          style: TextStyle(
+            color: connected || isNext ? Colors.white : Colors.white54,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      label.paint(
+        canvas,
+        Offset(center.dx - label.width / 2, center.dy - label.height / 2),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DotsPainter oldDelegate) {
+    return oldDelegate.path != path || oldDelegate.nextDot != nextDot;
   }
 }
 
@@ -849,11 +1092,17 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
-    _scale = Tween(begin: 0.3, end: 1.0).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut));
-    _fade = Tween(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _ctrl, curve: const Interval(0, 0.35)));
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _scale = Tween(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut));
+    _fade = Tween(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: const Interval(0, 0.35)));
     _ctrl.forward();
   }
 
@@ -884,7 +1133,9 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                       shape: BoxShape.circle,
                       color: const Color(0xFF4CC56A).withValues(alpha: 0.15),
                       border: Border.all(
-                          color: const Color(0xFF4CC56A), width: 2),
+                        color: const Color(0xFF4CC56A),
+                        width: 2,
+                      ),
                     ),
                     child: const Icon(
                       Icons.check_rounded,
@@ -893,8 +1144,8 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Selamat pagi! 🔥',
+                  Text(
+                    localized(context, id: 'Selamat pagi! 🔥', en: 'Good morning! 🔥'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -903,8 +1154,8 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Game selesai. Selamat beraktivitas!',
+                  Text(
+                    localized(context, id: 'Game selesai. Selamat beraktivitas!', en: 'Game complete. Have a great day!'),
                     style: TextStyle(color: Colors.white54, fontSize: 14),
                   ),
                 ],

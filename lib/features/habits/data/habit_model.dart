@@ -27,6 +27,9 @@ class Habit extends HiveObject {
 
   @HiveField(7)
   int sortIndex = 0;
+
+  @HiveField(8)
+  List<int> reminderTimes = []; // minutes since midnight, empty = no reminder
 }
 
 @HiveType(typeId: 5)

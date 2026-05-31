@@ -31,7 +31,6 @@ class RutinAccessibilityService : AccessibilityService() {
                             Intent.FLAG_ACTIVITY_SINGLE_TOP or
                             Intent.FLAG_ACTIVITY_CLEAR_TOP or
                             Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                        putExtra("route", "/morning-gate")
                     }
                     startActivity(launchIntent)
                 }

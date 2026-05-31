@@ -165,7 +165,7 @@ object NativeReminderScheduler {
                 rootAlarmId = item.optInt("rootAlarmId"),
                 triggerAtMillis = nextOccurrenceMillis(item.optInt("scheduledMinutes")),
                 scheduledMinutes = item.optInt("scheduledMinutes"),
-                medicineName = item.optString("medicineName", "Obat"),
+                medicineName = item.optString("medicineName", NativeStrings.medicineFallback(context)),
                 dosage = item.optString("dosage").takeIf { it.isNotEmpty() },
                 renotifyMinutes = item.optInt("renotifyMinutes", 1),
                 isLoop = false

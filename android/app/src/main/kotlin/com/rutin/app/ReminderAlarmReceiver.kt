@@ -17,7 +17,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val rootAlarmId = intent.getIntExtra("root_alarm_id", intent.getIntExtra("alarm_id", 0))
         val scheduledMinutes = intent.getIntExtra("scheduled_minutes", 0)
-        val medicineName = intent.getStringExtra("medicine_name") ?: "Obat"
+        val medicineName = intent.getStringExtra("medicine_name") ?: NativeStrings.medicineFallback(context)
         val dosage = intent.getStringExtra("dosage")
         val renotifyMinutes = intent.getIntExtra("renotify_minutes", 10)
         val isLoop = intent.getBooleanExtra("is_loop", false)
@@ -79,10 +79,10 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 .build()
             val channel = NotificationChannel(
                 channelId,
-                "Pengingat Obat",
+                NativeStrings.medicineChannel(context),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alarm minum obat"
+                description = NativeStrings.medicineDescription(context)
                 setSound(soundUri, audioAttrs)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 400, 200, 400, 200, 400)
@@ -125,7 +125,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Waktunya minum obat")
+            .setContentTitle(NativeStrings.medicineTitle(context))
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)

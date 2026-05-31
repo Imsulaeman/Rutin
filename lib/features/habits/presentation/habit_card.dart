@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/services/haptics_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../data/habit_model.dart';
+import '../data/habit_repository.dart';
 
 const _habitTimeGradient = [Color(0xFF9B6BFF), Color(0xFF7C3AED)];
 
@@ -37,6 +41,9 @@ class HabitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final repo = HabitRepository();
+    final target = repo.dailyTarget(habit);
+    final completions = repo.completionsToday(habit.id).clamp(0, target);
     return Card(
       color: isDone
           ? AppTheme.habitsColor.withValues(alpha: 0.12)
@@ -51,7 +58,7 @@ class HabitCard extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
+        onTap: target == 1 ? onTap : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
@@ -81,17 +88,47 @@ class HabitCard extends StatelessWidget {
                       habit.name,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
+                    if (target > 1) ...[
+                      const SizedBox(height: 6),
+                      _CompletionDots(
+                        target: target,
+                        completions: completions,
+                        onTap: (index) async {
+                          final next = index + 1 == completions
+                              ? index
+                              : index + 1;
+                          if (next < completions) {
+                            HapticsService.softTap();
+                          } else if (next == target) {
+                            HapticsService.success();
+                          } else {
+                            HapticsService.tap();
+                          }
+                          await repo.setCompletionsToday(habit, next);
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 2),
                     Text(
-                      streak > 0 ? '$streak hari beruntun 🔥' : 'Mulai hari ini',
+                      streak > 0
+                          ? '$streak hari beruntun 🔥'
+                          : localized(context, id: 'Mulai hari ini', en: 'Start today'),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: streak > 0
-                                ? AppTheme.streakColor
-                                : cs.onSurfaceVariant,
-                          ),
+                        color: streak > 0
+                            ? AppTheme.streakColor
+                            : cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                color: AppTheme.muted,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => context.push('/habits/history/${habit.id}'),
               ),
               if (nearestReminderMinutes(habit) != null) ...[
                 const SizedBox(width: 10),
@@ -112,14 +149,16 @@ class HabitCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(width: 4),
-              Icon(
-                isDone
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked,
-                size: 24,
-                color: isDone ? AppTheme.habitsColor : cs.outlineVariant,
-              ),
+              if (target == 1) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  isDone
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked,
+                  size: 24,
+                  color: isDone ? AppTheme.habitsColor : cs.outlineVariant,
+                ),
+              ],
             ],
           ),
         ),
@@ -131,6 +170,59 @@ class HabitCard extends StatelessWidget {
     final h = minutes ~/ 60;
     final m = minutes % 60;
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
+}
+
+class _CompletionDots extends StatelessWidget {
+  const _CompletionDots({
+    required this.target,
+    required this.completions,
+    required this.onTap,
+  });
+
+  final int target;
+  final int completions;
+  final Future<void> Function(int index) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < target; i++) ...[
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onTap(i),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i < completions
+                      ? AppTheme.habitsColor
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: i < completions
+                        ? AppTheme.habitsColor
+                        : AppTheme.muted,
+                  ),
+                ),
+                child: i < completions
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 11,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          if (i != target - 1) const SizedBox(width: 2),
+        ],
+      ],
+    );
   }
 }
 

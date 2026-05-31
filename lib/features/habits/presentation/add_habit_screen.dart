@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import '../data/habit_model.dart';
 import '../data/habit_repository.dart';
 import 'emoji_picker.dart';
@@ -26,7 +27,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   late final Set<int> _selectedDays;
 
   bool _reminderEnabled = false;
-  TimeOfDay _reminderTime = const TimeOfDay(hour: 8, minute: 0);
+  List<int> _reminderTimes = [];
   bool _saving = false;
 
   String? _selectedGroupId;
@@ -44,12 +45,11 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     _selectedGroupId = h?.groupId;
     _groups = _repo.getGroups();
 
-    if (h?.reminderMinutes != null) {
-      _reminderEnabled = true;
-      _reminderTime = TimeOfDay(
-        hour: h!.reminderMinutes! ~/ 60,
-        minute: h.reminderMinutes! % 60,
-      );
+    if (h != null) {
+      _reminderTimes = h.reminderTimes.isNotEmpty
+          ? List.of(h.reminderTimes)
+          : (h.reminderMinutes != null ? [h.reminderMinutes!] : []);
+      _reminderEnabled = _reminderTimes.isNotEmpty;
     }
   }
 
@@ -59,9 +59,118 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     super.dispose();
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _reminderTime);
-    if (picked != null) setState(() => _reminderTime = picked);
+  Future<TimeOfDay?> _showReminderPicker(int initialMinutes) {
+    return showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: initialMinutes ~/ 60,
+        minute: initialMinutes % 60,
+      ),
+    );
+  }
+
+  void _toggleReminder(bool enabled) {
+    setState(() {
+      _reminderEnabled = enabled;
+      if (enabled && _reminderTimes.isEmpty) {
+        _reminderTimes = [8 * 60];
+      } else if (!enabled) {
+        _reminderTimes = [];
+      }
+    });
+  }
+
+  void _addTime() {
+    setState(() => _reminderTimes = [..._reminderTimes, 8 * 60]);
+  }
+
+  Future<void> _pickTime(int index) async {
+    final picked = await _showReminderPicker(_reminderTimes[index]);
+    if (picked == null) return;
+    final minutes = picked.hour * 60 + picked.minute;
+    setState(() {
+      final next = [..._reminderTimes];
+      next[index] = minutes;
+      _reminderTimes = next;
+    });
+  }
+
+  void _removeTime(int index) {
+    setState(() => _reminderTimes = [..._reminderTimes]..removeAt(index));
+  }
+
+  Future<void> _createGroup() async {
+    final nameController = TextEditingController();
+    String emoji = '📋';
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(localized(context, id: 'Rutinitas baru', en: 'New routine')),
+          content: Row(
+            children: [
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showEmojiPicker(dialogContext);
+                  if (picked != null) {
+                    setDialogState(() => emoji = picked);
+                  }
+                },
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceHigh,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Center(
+                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama rutinitas',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(context.l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(localized(context, id: 'Buat', en: 'Create')),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final name = nameController.text.trim();
+    Future.delayed(const Duration(milliseconds: 300), nameController.dispose);
+    if (created != true || name.isEmpty) return;
+
+    final group = HabitGroup()
+      ..id = DateTime.now().millisecondsSinceEpoch.toString()
+      ..name = name
+      ..emoji = emoji
+      ..sortIndex = _groups.length;
+    await _repo.saveGroup(group);
+    if (!mounted) return;
+    setState(() {
+      _groups.add(group);
+      _selectedGroupId = group.id;
+    });
   }
 
   Future<void> _save() async {
@@ -69,18 +178,27 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     setState(() => _saving = true);
 
     try {
-      final habit = widget.habit ??
+      if (widget.habit != null) {
+        try {
+          await HabitReminderService.cancelAll(widget.habit!);
+        } catch (_) {}
+      }
+      final habit =
+          widget.habit ??
           (Habit()
             ..id = DateTime.now().millisecondsSinceEpoch.toString()
             ..colorValue = 0
             ..sortIndex = _repo.habitsInGroup(_selectedGroupId).length);
+      final reminderTimes = _reminderTimes.toSet().toList()..sort();
       habit
         ..name = _nameController.text.trim()
         ..emoji = _emoji
         ..scheduleDays = (_selectedDays.toList()..sort())
         ..groupId = _selectedGroupId
-        ..reminderMinutes =
-            _reminderEnabled ? _reminderTime.hour * 60 + _reminderTime.minute : null;
+        ..reminderTimes = reminderTimes
+        ..reminderMinutes = reminderTimes.isNotEmpty
+            ? reminderTimes.first
+            : null;
 
       await _repo.save(habit);
 
@@ -90,11 +208,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       }
 
       try {
-        if (_reminderEnabled) {
-          await HabitReminderService.schedule(habit);
-        } else {
-          await HabitReminderService.cancel(habit.id);
-        }
+        await HabitReminderService.scheduleAll(habit);
       } catch (_) {}
 
       if (!mounted) return;
@@ -102,9 +216,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menyimpan: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
     }
   }
 
@@ -113,7 +227,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit ? 'Edit Kebiasaan' : 'Tambah Kebiasaan'),
+        title: Text(_isEdit
+            ? localized(context, id: 'Edit Kebiasaan', en: 'Edit Habit')
+            : context.l10n.addHabit),
       ),
       body: Form(
         key: _formKey,
@@ -127,10 +243,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Nama kebiasaan'),
+                    decoration: const InputDecoration(
+                      labelText: 'Nama kebiasaan',
+                    ),
                     textCapitalization: TextCapitalization.sentences,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Nama wajib diisi'
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -148,8 +267,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                       border: Border.all(color: AppTheme.border),
                     ),
                     child: Center(
-                      child: Text(_emoji,
-                          style: const TextStyle(fontSize: 28)),
+                      child: Text(_emoji, style: const TextStyle(fontSize: 28)),
                     ),
                   ),
                 ),
@@ -158,14 +276,24 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             const SizedBox(height: 32),
 
             // Group picker
-            _label(context, 'RUTINITAS'),
+            Row(
+              children: [
+                _label(context, 'RUTINITAS'),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: _createGroup,
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: Text(localized(context, id: 'Tambah', en: 'Add')),
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 ChoiceChip(
-                  label: const Text('Tanpa rutinitas'),
+                  label: Text(localized(context, id: 'Tanpa rutinitas', en: 'No routine')),
                   selected: _selectedGroupId == null,
                   onSelected: (_) => setState(() => _selectedGroupId = null),
                 ),
@@ -182,11 +310,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'Buat rutinitas dulu dari tab Kebiasaan',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: cs.onSurfaceVariant),
+                  localized(context, id: 'Buat rutinitas dulu dari tab Kebiasaan', en: 'Create a routine first from the Habits tab'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ),
             const SizedBox(height: 32),
@@ -222,49 +349,75 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               decoration: BoxDecoration(
                 color: cs.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.7)),
+                border: Border.all(
+                  color: cs.outlineVariant.withValues(alpha: 0.7),
+                ),
               ),
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     child: Row(
                       children: [
-                        const Expanded(child: Text('Aktifkan pengingat')),
+                        Expanded(child: Text(localized(context, id: 'Aktifkan pengingat', en: 'Enable reminder'))),
                         Switch(
                           value: _reminderEnabled,
-                          onChanged: (v) => setState(() => _reminderEnabled = v),
+                          onChanged: _toggleReminder,
                         ),
                       ],
                     ),
                   ),
                   if (_reminderEnabled) ...[
-                    Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
-                    InkWell(
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(12),
-                        bottomRight: Radius.circular(12),
-                      ),
-                      onTap: _pickTime,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        child: Row(
-                          children: [
-                            Icon(Icons.access_time_rounded,
-                                size: 18, color: cs.onSurfaceVariant),
-                            const SizedBox(width: 10),
-                            const Text('Waktu pengingat'),
-                            const Spacer(),
-                            Text(
-                              _fmtTime(_reminderTime),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: cs.primary,
-                              ),
+                    Divider(
+                      height: 1,
+                      color: cs.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < _reminderTimes.length; i++) ...[
+                            _TimePickerRow(
+                              minutes: _reminderTimes[i],
+                              canRemove: _reminderTimes.length > 1,
+                              onTap: () => _pickTime(i),
+                              onRemove: () => _removeTime(i),
+                            ),
+                            Divider(
+                              height: 1,
+                              color: cs.outlineVariant.withValues(alpha: 0.5),
                             ),
                           ],
-                        ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: _addTime,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.add_rounded,
+                                    size: 16,
+                                    color: AppTheme.habitsColor,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    localized(context, id: 'Tambah waktu', en: 'Add time'),
+                                    style: TextStyle(
+                                      color: AppTheme.habitsColor,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -275,7 +428,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
             FilledButton(
               onPressed: _saving ? null : _save,
-              child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
+              child: Text(_saving
+                  ? localized(context, id: 'Menyimpan...', en: 'Saving...')
+                  : context.l10n.save),
             ),
           ],
         ),
@@ -284,12 +439,94 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   }
 
   Widget _label(BuildContext context, String text) => Text(
-        text,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-      );
+    text,
+    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
+  );
 
-  String _fmtTime(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  static String _fmtMinutes(int minutes) =>
+      '${(minutes ~/ 60).toString().padLeft(2, '0')}:${(minutes % 60).toString().padLeft(2, '0')}';
+}
+
+class _TimePickerRow extends StatelessWidget {
+  const _TimePickerRow({
+    required this.minutes,
+    required this.canRemove,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  final int minutes;
+  final bool canRemove;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.habitsColor.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.access_time_rounded,
+                size: 20,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                localized(context, id: 'Waktu pengingat', en: 'Reminder time'),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppTheme.habitsColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                _AddHabitScreenState._fmtMinutes(minutes),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (canRemove) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onRemove,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: AppTheme.muted,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/haptics_service.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/providers.dart';
 import '../../notifications/alarm_service.dart';
 import '../data/medicine_model.dart';
@@ -78,7 +79,8 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
       if (med == null || med.scheduleTimes.isEmpty) continue;
       final fired = DateTime.fromMillisecondsSinceEpoch(firedMs);
       final firedMin = fired.hour * 60 + fired.minute;
-      final minute = scheduledMin ??
+      final minute =
+          scheduledMin ??
           med.scheduleTimes.reduce(
             (a, b) => (a - firedMin).abs() <= (b - firedMin).abs() ? a : b,
           );
@@ -148,7 +150,9 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
   }
 
   _DoseBucket _bucketFor(MedicineRepository repo, _Dose dose) {
-    if (repo.isTaken(dose.medicine.id, dose.scheduled)) return _DoseBucket.taken;
+    if (repo.isTaken(dose.medicine.id, dose.scheduled)) {
+      return _DoseBucket.taken;
+    }
     final now = DateTime.now();
     final diff = now.difference(dose.scheduled);
     if (diff.inMinutes >= 60) return _DoseBucket.missed;
@@ -167,7 +171,10 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     if (mounted) setState(() {});
   }
 
-  Future<void> _executeDelete(MedicineRepository repo, Medicine medicine) async {
+  Future<void> _executeDelete(
+    MedicineRepository repo,
+    Medicine medicine,
+  ) async {
     for (final minutes in medicine.scheduleTimes) {
       await AlarmService.cancelAllForAlarm(
         AlarmService.medicineRootAlarmId(medicine.id, minutes),
@@ -179,7 +186,10 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     if (mounted) setState(() {});
   }
 
-  Future<void> _executeArchive(MedicineRepository repo, Medicine medicine) async {
+  Future<void> _executeArchive(
+    MedicineRepository repo,
+    Medicine medicine,
+  ) async {
     for (final minutes in medicine.scheduleTimes) {
       await AlarmService.cancelAllForAlarm(
         AlarmService.medicineRootAlarmId(medicine.id, minutes),
@@ -192,8 +202,10 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
   }
 
   String? _debugTextFor(_Dose dose) {
-    final alarmId =
-        AlarmService.medicineRootAlarmId(dose.medicine.id, dose.minute);
+    final alarmId = AlarmService.medicineRootAlarmId(
+      dose.medicine.id,
+      dose.minute,
+    );
     final debug = _reminderDebug[alarmId];
     if (debug == null) return null;
     final baseMillis = debug['baseMillis'];
@@ -203,8 +215,8 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     final dayLabel = _sameDay(base, DateTime.now())
         ? 'hari ini'
         : _sameDay(base, tomorrow)
-            ? 'besok'
-            : '${base.day}/${base.month}';
+        ? 'besok'
+        : '${base.day}/${base.month}';
     return 'Berikutnya $dayLabel ${_fmtClock(base)}';
   }
 
@@ -260,9 +272,9 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                                 icon: Icons.arrow_back_rounded,
                                 onTap: () => context.go('/'),
                               ),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  'Obat',
+                                  context.l10n.medicine,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: Colors.white,
@@ -273,14 +285,12 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                               ),
                               _HeaderButton(
                                 icon: Icons.archive_outlined,
-                                onTap: () =>
-                                    context.push('/medicine/archive'),
+                                onTap: () => context.push('/medicine/archive'),
                               ),
                               const SizedBox(width: 4),
                               _HeaderButton(
                                 icon: Icons.calendar_month_rounded,
-                                onTap: () =>
-                                    context.push('/medicine/history'),
+                                onTap: () => context.push('/medicine/history'),
                               ),
                               const SizedBox(width: 4),
                               _HeaderButton(
@@ -324,6 +334,7 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                               onToggle: (dose, taken) =>
                                   _toggle(repo, dose, taken),
                               debugTextFor: _debugTextFor,
+                              streak: repo.getMedicineStreak(medicine.id),
                             ),
                           ),
                         ),
@@ -382,13 +393,13 @@ class _DayBanner extends StatelessWidget {
     final String statusText;
 
     if (nowCount > 0) {
-      statusText = '$nowCount perlu diminum';
+      statusText = localized(context, id: '$nowCount perlu diminum', en: '$nowCount due now');
     } else if (missedCount > 0) {
-      statusText = '$missedCount terlewat';
+      statusText = localized(context, id: '$missedCount terlewat', en: '$missedCount missed');
     } else if (taken == total) {
-      statusText = 'Semua sudah diminum';
+      statusText = localized(context, id: 'Semua sudah diminum', en: 'All taken');
     } else {
-      statusText = '$taken/$total selesai';
+      statusText = localized(context, id: '$taken/$total selesai', en: '$taken/$total done');
     }
 
     return Container(
@@ -449,6 +460,7 @@ class _MedicineCard extends StatelessWidget {
     required this.bucketFor,
     required this.onToggle,
     required this.debugTextFor,
+    required this.streak,
   });
 
   final Medicine medicine;
@@ -456,20 +468,19 @@ class _MedicineCard extends StatelessWidget {
   final _DoseBucket Function(_Dose) bucketFor;
   final Future<void> Function(_Dose dose, bool taken) onToggle;
   final String? Function(_Dose) debugTextFor;
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
     // Show next alarm for the most relevant dose:
     // prefer upcoming/now doses; fall back to any dose if all taken/missed.
-    final relevantDose = doses.firstWhere(
-      (d) {
-        final b = bucketFor(d);
-        return b == _DoseBucket.now || b == _DoseBucket.upcoming;
-      },
-      orElse: () => doses.first,
-    );
-    final debugText = debugTextFor(relevantDose)
-        ?? doses.map(debugTextFor).where((t) => t != null).firstOrNull;
+    final relevantDose = doses.firstWhere((d) {
+      final b = bucketFor(d);
+      return b == _DoseBucket.now || b == _DoseBucket.upcoming;
+    }, orElse: () => doses.first);
+    final debugText =
+        debugTextFor(relevantDose) ??
+        doses.map(debugTextFor).where((t) => t != null).firstOrNull;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -493,9 +504,21 @@ class _MedicineCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (streak > 0)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    '🔥 $streak',
+                    style: const TextStyle(
+                      color: Color(0xFFFF6D00),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               _Badge(
                 icon: Icons.restaurant_rounded,
-                label: MedicineMealTiming.label(medicine.mealTimingKey),
+                label: medicineMealTimingLabel(context, medicine.mealTimingKey),
               ),
             ],
           ),
@@ -572,18 +595,17 @@ class _DoseChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          gradient:
-              isNow ? const LinearGradient(colors: _medGradient) : null,
+          gradient: isNow ? const LinearGradient(colors: _medGradient) : null,
           color: isNow ? null : _bg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isTaken
                 ? _green.withValues(alpha: 0.4)
                 : isMissed
-                    ? _missed.withValues(alpha: 0.3)
-                    : isNow
-                        ? Colors.transparent
-                        : _surfaceLine,
+                ? _missed.withValues(alpha: 0.3)
+                : isNow
+                ? Colors.transparent
+                : _surfaceLine,
           ),
         ),
         child: Row(
@@ -698,7 +720,7 @@ class _SwipeMedicine extends StatelessWidget {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   backgroundColor: _surface,
-                  title: const Text(
+                  title: Text(
                     'Arsipkan obat?',
                     style: TextStyle(color: Colors.white),
                   ),
@@ -709,7 +731,7 @@ class _SwipeMedicine extends StatelessWidget {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Batal'),
+                      child: Text(context.l10n.cancel),
                     ),
                     FilledButton(
                       style: FilledButton.styleFrom(
@@ -717,7 +739,7 @@ class _SwipeMedicine extends StatelessWidget {
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Arsipkan'),
+                      child: Text(context.l10n.archive),
                     ),
                   ],
                 ),
@@ -728,8 +750,8 @@ class _SwipeMedicine extends StatelessWidget {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   backgroundColor: _surface,
-                  title: const Text(
-                    'Hapus obat?',
+                  title: Text(
+                    localized(context, id: 'Hapus obat?', en: 'Delete medicine?'),
                     style: TextStyle(color: Colors.white),
                   ),
                   content: Text(
@@ -739,14 +761,14 @@ class _SwipeMedicine extends StatelessWidget {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Batal'),
+                      child: Text(context.l10n.cancel),
                     ),
                     FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: _medGradient.last,
                       ),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Hapus'),
+                      child: Text(context.l10n.delete),
                     ),
                   ],
                 ),
@@ -791,8 +813,8 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Belum ada obat hari ini',
+            Text(
+              localized(context, id: 'Belum ada obat hari ini', en: 'No medicine today'),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -800,8 +822,8 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di sini.',
+            Text(
+              localized(context, id: 'Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di sini.', en: "Add a medicine schedule with + so today's doses appear here."),
               textAlign: TextAlign.center,
               style: TextStyle(color: _grey, fontSize: 13, height: 1.45),
             ),
@@ -830,15 +852,7 @@ bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 String _todayLabel() {
-  const days = [
-    'Minggu',
-    'Senin',
-    'Selasa',
-    'Rabu',
-    'Kamis',
-    'Jumat',
-    'Sabtu',
-  ];
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const months = [
     'Jan',
     'Feb',

@@ -11,6 +11,11 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Drag habit onto another habit to create a new stack
 - [x] Move habit reminder time to the right side, Obat-style placement
 - [x] Keep habit reminder pill aligned with Habits theme instead of copying Obat pink literally
+- [-] Rewrite Connect the Dots → Flow Free style (grid, colored pairs, fill all cells) — spec in AGENTS.md
+- [-] Habit calendar visual — full cell background colors instead of tiny dots — spec in AGENTS.md
+- [-] Compact habit cards (reduce padding, merge streak into name row) — spec in AGENTS.md
+- [-] History screen (overall activity feed + 28-day strip) accessible from Settings — spec in AGENTS.md
+- [-] English as default language (first launch defaults to EN not device locale) — spec in AGENTS.md
 
 ### Obat (Medicine)
 - [x] Daily medicine schedule re-arms for the next day
@@ -19,8 +24,8 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Today-first Obat workflow with sections: `Perlu diminum sekarang`, `Berikutnya`, `Sudah diminum`, `Terlewat`
 - [x] Food timing on medicine: `Bebas`, `Sebelum makan`, `Sesudah makan`, `Saat makan`
 - [x] Separate Riwayat calendar page for medicine adherence
-- [x] RECEIVE_BOOT_COMPLETED reschedule after reboot (medicine user-tested; water still pending)
-- [ ] Streak counter per medicine
+- [x] RECEIVE_BOOT_COMPLETED reschedule after reboot (medicine and water user-tested)
+- [x] Streak counter per medicine
 - [ ] Missed log entry finalization policy at end of day
 
 ### Air (Water)
@@ -61,7 +66,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Swipe delete with alarm cancellation
 - [x] Forced full-screen re-open on repeat path
 - [x] RECEIVE_BOOT_COMPLETED reschedule
-- [ ] Medicine streaks
+- [x] Medicine streaks
 
 ## Feature: Water Reminder
 - [x] WaterGoal + WaterLog data models
@@ -81,6 +86,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] HabitRepository
 - [x] Create habit with optional reminder
 - [x] Multiple daily reminder times per habit
+- [x] Per-reminder completion count + partial streak semantics
 - [x] Check off for today
 - [x] Streak counter
 - [x] Skip non-scheduled days without breaking streak
@@ -97,21 +103,22 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Drag routines into stacks
 - [x] Swipe-to-delete on habits and stacks
 - [x] Stack unfolds after move
-- [ ] Habit history / calendar view
+- [x] Habit history / calendar view
 - [ ] Routine streak
 
 ## Feature: Home / Today View
 - [x] Combine routines + standalone habits + water progress
 - [x] At-a-glance done / pending / missed
-- [ ] TB treatment countdown
+- [-] Treatment program countdown — spec in AGENTS.md
 
-## Feature: TB Treatment Mode
+## Feature: Treatment Program (generic — TB, Tifus, Malaria, ARV, etc.)
 - [x] TBTreatmentProfile data model
-- [ ] TB onboarding
-- [ ] Treatment countdown on home
-- [ ] Adherence score
-- [ ] PDF adherence report
-- [ ] Share via Android share sheet
+- [-] Add conditionName field to model — spec in AGENTS.md
+- [-] Onboarding screen (condition, start date, duration, link medicine) — spec in AGENTS.md
+- [-] Treatment detail screen (progress, adherence, PDF export) — spec in AGENTS.md
+- [-] Home countdown card — spec in AGENTS.md
+- [-] Settings entry point — spec in AGENTS.md
+- [-] PDF adherence report + share sheet — spec in AGENTS.md
 
 ## Feature: Sleep Mode + Wake-up Game Gate
 - [x] SleepSettings data model
@@ -122,25 +129,32 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
   - [x] Game 2: Tap Rhythm (10 falling circles, hit 7/10)
   - [ ] Game 3: Tile Puzzle (3×3 8-puzzle, daily seed)
   - [ ] Game 4: Daily Quiz (3 questions, 20-question bank, get 2/3)
-  - [ ] Game 5: Connect the Dots (8 dots, draw path in order)
+  - [x] Game 5: Connect the Dots (8 dots, draw path in order)
 - [x] **Session C** — Native sleep detection service (Kotlin): foreground service, 3-case logic, ACTION_USER_PRESENT receiver, MethodChannel bridge, launches game screen
 - [x] **Session D** — AccessibilityService (Kotlin): home button intercept during game, touch tracking for sleep detection, XML config
 
 - [x] **Morning Gate** - read-only morning dashboard + slide-to-unlock before `/wakeup-game`
+- [x] Replace incorrect sleep foreground `health` service type with `specialUse`
+- [x] Refresh Accessibility status after returning from Android settings
+- [x] Retest Infinix X6873: enabling Mode Tidur no longer force-closes after Android 13+ receiver registration fix
+- [x] Retest Infinix X6873: Home or window switching during Morning Gate reuses one existing gate
+- [x] Schedule SleepModeService silently at bedtime instead of showing an all-day foreground notification
+- [ ] Retest nightly transition: `Mode tidur aktif` notification appears at bedtime and disappears after the wake window or gate dismissal
 
 ## Feature: Localization
 - [x] `flutter_localizations` + `intl`
 - [x] Bahasa Indonesia strings
 - [x] English strings
-- [ ] Language toggle in settings
+- [x] Runtime language switch with phone-locale default
+- [x] Native Android reminder localization mirror
+- [ ] Finish EN sweep for deep secondary dialogs and low-frequency game copy
 
 ## Settings Screen
-- [ ] Sleep mode on/off + schedule
-- [ ] Wake-up window range
-- [ ] Language toggle
+- [x] Sleep mode link + accessibility status
+- [x] Language selector (`🇮🇩 ID` / `🇬🇧 EN`) with immediate runtime switch
+- [x] About / version
 - [ ] Battery optimization guidance
-- [ ] Accessibility status + grant button
-- [ ] About / version
+- [ ] Wake-up window range (in /sleep-settings)
 
 ## Phase 2
 - [ ] Weekly stats per habit
@@ -156,7 +170,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Key events: medicine_taken, medicine_added, medicine_archived, medicine_deleted, habit_completed, habit_added, water_added
 - [x] Medicine archive / unarchive flow (swipe right = arsipkan, history preserved)
 - [x] Multi-dose support (unlimited times per medicine in add flow)
-- [-] RECEIVE_BOOT_COMPLETED reschedule (medicine confirmed after reboot; water still pending)
+- [x] RECEIVE_BOOT_COMPLETED reschedule (medicine and water confirmed after reboot)
 - [ ] Accounts / cloud backup (Phase 2 — Supabase, Google/Apple/email auth)
 
 ## Polish / ADA Ready

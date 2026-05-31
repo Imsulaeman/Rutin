@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/services/analytics_service.dart';
 import '../../../features/notifications/alarm_service.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/providers.dart';
 import '../data/medicine_model.dart';
 
@@ -121,7 +122,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: const Text('Tambah Obat'),
+        title: Text(context.l10n.addMedicine),
       ),
       body: SafeArea(
         child: Form(
@@ -134,7 +135,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   children: [
                     _TextField(
                       controller: _nameController,
-                      label: 'Nama obat',
+                      label: localized(context, id: 'Nama obat', en: 'Medicine name'),
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'Nama obat wajib diisi'
                           : null,
@@ -142,8 +143,8 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                     const SizedBox(height: 14),
                     _TextField(
                       controller: _dosageController,
-                      label: 'Dosis',
-                      hintText: 'Contoh: 1 tablet',
+                      label: localized(context, id: 'Dosis', en: 'Dosage'),
+                      hintText: localized(context, id: 'Contoh: 1 tablet', en: 'Example: 1 tablet'),
                     ),
                   ],
                 ),
@@ -178,7 +179,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Tambah waktu',
+                              localized(context, id: 'Tambah waktu', en: 'Add time'),
                               style: TextStyle(
                                 color: _medGradient.first,
                                 fontSize: 13,
@@ -202,7 +203,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   children: [
                     for (final option in MedicineMealTiming.values)
                       _MealChip(
-                        label: MedicineMealTiming.label(option),
+                        label: medicineMealTimingLabel(context, option),
                         selected: option == _mealTimingKey,
                         onTap: () => setState(() => _mealTimingKey = option),
                       ),
@@ -217,7 +218,9 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   minimumSize: const Size.fromHeight(54),
                 ),
                 onPressed: _saving ? null : _save,
-                child: Text(_saving ? 'Menyimpan...' : 'Simpan'),
+                child: Text(_saving
+                    ? localized(context, id: 'Menyimpan...', en: 'Saving...')
+                    : context.l10n.save),
               ),
             ],
           ),

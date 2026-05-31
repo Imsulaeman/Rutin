@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/habits/data/habit_model.dart';
 import 'features/habits/presentation/add_habit_screen.dart';
+import 'features/habits/presentation/habit_history_screen.dart';
 import 'features/habits/presentation/habits_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/medicine/presentation/add_medicine_screen.dart';
@@ -13,10 +15,13 @@ import 'features/medicine/presentation/medicine_archive_screen.dart';
 import 'features/medicine/presentation/medicine_history_screen.dart';
 import 'features/medicine/presentation/medicine_list_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
+import 'features/settings/data/language_service.dart';
+import 'features/settings/presentation/settings_screen.dart';
 import 'features/sleep/presentation/morning_gate_screen.dart';
 import 'features/sleep/presentation/sleep_settings_screen.dart';
 import 'features/sleep/presentation/wakeup_game_screen.dart';
 import 'features/water/presentation/water_screen.dart';
+import 'l10n/l10n.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellHomeKey = GlobalKey<NavigatorState>();
@@ -90,6 +95,17 @@ final appRouter = GoRouter(
       builder: (_, state) => AddHabitScreen(habit: state.extra as Habit?),
     ),
     GoRoute(
+      path: '/habits/history/:id',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, state) =>
+          HabitHistoryScreen(habitId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      path: '/settings',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const SettingsScreen(),
+    ),
+    GoRoute(
       path: '/sleep-settings',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (_, __) => const SleepSettingsScreen(),
@@ -122,6 +138,7 @@ class ShellScaffold extends StatelessWidget {
   }
 
   void _showAdd(BuildContext context) {
+    final l10n = context.l10n;
     HapticFeedback.mediumImpact();
     showModalBottomSheet<void>(
       context: context,
@@ -148,8 +165,8 @@ class ShellScaffold extends StatelessWidget {
                 Icons.medication_rounded,
                 color: Color(0xFFEE5A8C),
               ),
-              title: const Text(
-                'Tambah Obat',
+              title: Text(
+                l10n.addMedicine,
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
@@ -159,8 +176,8 @@ class ShellScaffold extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.star_rounded, color: Color(0xFFF4A92B)),
-              title: const Text(
-                'Tambah Kebiasaan',
+              title: Text(
+                l10n.addHabit,
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
@@ -232,7 +249,7 @@ class _BottomNav extends StatelessWidget {
                   Expanded(
                     child: _Tab(
                       icon: Icons.home_rounded,
-                      label: 'Beranda',
+                      label: context.l10n.home,
                       active: currentIndex == 0,
                       onTap: () => onTap(0),
                     ),
@@ -240,7 +257,7 @@ class _BottomNav extends StatelessWidget {
                   Expanded(
                     child: _Tab(
                       icon: Icons.medication_rounded,
-                      label: 'Obat',
+                      label: context.l10n.medicine,
                       active: currentIndex == 1,
                       onTap: () => onTap(1),
                     ),
@@ -249,7 +266,7 @@ class _BottomNav extends StatelessWidget {
                   Expanded(
                     child: _Tab(
                       icon: Icons.water_drop_rounded,
-                      label: 'Air',
+                      label: context.l10n.water,
                       active: currentIndex == 2,
                       onTap: () => onTap(2),
                     ),
@@ -257,7 +274,7 @@ class _BottomNav extends StatelessWidget {
                   Expanded(
                     child: _Tab(
                       icon: Icons.check_circle_rounded,
-                      label: 'Kebiasaan',
+                      label: context.l10n.habits,
                       active: currentIndex == 3,
                       onTap: () => onTap(3),
                     ),
@@ -387,18 +404,23 @@ class _AppRouter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Rutin',
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.dark,
-      routerConfig: appRouter,
-      supportedLocales: const [Locale('id'), Locale('en')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+    return ValueListenableBuilder<Box<String>>(
+      valueListenable: LanguageService.box.listenable(keys: const ['language']),
+      builder: (context, _, __) => MaterialApp.router(
+        onGenerateTitle: (context) => context.l10n.appTitle,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.dark,
+        routerConfig: appRouter,
+        locale: Locale(LanguageService.current),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+      ),
     );
   }
 }

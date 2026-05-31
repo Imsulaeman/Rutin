@@ -41,6 +41,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         setupSleepChannel(flutterEngine)
+        SleepScheduleReceiver.sync(applicationContext)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler { call, result ->
@@ -49,7 +50,8 @@ class MainActivity : FlutterActivity() {
                         val alarmId = call.argument<Int>("alarmId") ?: 0
                         val triggerAtMillis = call.argument<Long>("triggerAtMillis") ?: 0L
                         val scheduledMinutes = call.argument<Int>("scheduledMinutes") ?: 0
-                        val medicineName = call.argument<String>("medicineName") ?: "Obat"
+                        val medicineName = call.argument<String>("medicineName")
+                            ?: NativeStrings.medicineFallback(applicationContext)
                         val dosage = call.argument<String>("dosage")
                         val renotifyMinutes = call.argument<Int>("renotifyMinutes") ?: 10
                         val isLoop = call.argument<Boolean>("isLoop") ?: false
@@ -64,6 +66,12 @@ class MainActivity : FlutterActivity() {
                             isLoop = isLoop
                         )
                         result.success(true)
+                    }
+                    "setAppLanguage" -> {
+                        val language = call.argument<String>("language") ?: "en"
+                        NativeStrings.setLanguage(applicationContext, language)
+                        SleepModeService.refreshNotification(applicationContext)
+                        result.success(null)
                     }
                     "cancelReminder" -> {
                         val alarmId = call.argument<Int>("alarmId") ?: 0
@@ -217,10 +225,11 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startService" -> {
-                        SleepModeService.start(applicationContext)
+                        SleepScheduleReceiver.sync(applicationContext)
                         result.success(null)
                     }
                     "stopService" -> {
+                        SleepScheduleReceiver.cancel(applicationContext)
                         SleepModeService.stop(applicationContext)
                         result.success(null)
                     }
@@ -263,6 +272,7 @@ class MainActivity : FlutterActivity() {
                             .putInt("wake_window_end", wakeEnd)
                             .putBoolean("enabled", enabled)
                             .apply()
+                        SleepScheduleReceiver.sync(applicationContext)
                         result.success(null)
                     }
                     "setGameActive" -> {
@@ -302,6 +312,9 @@ class MainActivity : FlutterActivity() {
                         ).edit()
                             .putBoolean("game_dismissed_normally", value)
                             .apply()
+                        if (value) {
+                            SleepScheduleReceiver.finishNight(applicationContext)
+                        }
                         result.success(null)
                     }
                     else -> result.notImplemented()

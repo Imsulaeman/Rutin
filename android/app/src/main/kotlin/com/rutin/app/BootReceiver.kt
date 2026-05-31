@@ -20,12 +20,7 @@ class BootReceiver : BroadcastReceiver() {
             WaterAlarmReceiver.schedule(context, intervalMs)
         }
 
-        // Restart sleep mode service if it was enabled before reboot.
-        // NOTE: On Android 14 FBE devices BOOT_COMPLETED fires AFTER the first unlock,
-        // so this re-arms the gate for the SECOND unlock onward, not the first morning wake.
-        val sleepPrefs = context.getSharedPreferences("sleep_settings_native", Context.MODE_PRIVATE)
-        if (sleepPrefs.getBoolean("enabled", false)) {
-            runCatching { SleepModeService.start(context) }
-        }
+        // Re-arm bedtime scheduling without showing an all-day foreground notification.
+        runCatching { SleepScheduleReceiver.sync(context) }
     }
 }

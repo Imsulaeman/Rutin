@@ -8,7 +8,7 @@ class ReminderDismissReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val rootAlarmId = intent.getIntExtra("alarm_id", 0)
         val scheduledMinutes = intent.getIntExtra("scheduled_minutes", 0)
-        val medicineName = intent.getStringExtra("medicine_name") ?: "Obat"
+        val medicineName = intent.getStringExtra("medicine_name") ?: NativeStrings.medicineFallback(context)
         val dosage = intent.getStringExtra("dosage")
         val renotifyMinutes = intent.getIntExtra("renotify_minutes", 10)
 

@@ -2,6 +2,144 @@
 
 ---
 
+## Session 21 - 2026-05-31
+
+Date: 2026-05-31
+Device: Infinix X6873
+Build: Debug - full native rebuild required
+
+### Runtime localization
+
+- [ ] Fresh-install with phone language Indonesian. Expected: Rutin opens in Indonesian.
+- [ ] Fresh-install with an unsupported phone language. Expected: Rutin opens in English.
+- [ ] Open `Profile` -> `Settings`, select `🇬🇧 EN`. Expected: visible navigation and normal-use screen copy switch immediately without restart.
+- [ ] Close and reopen Rutin. Expected: English remains selected.
+- [ ] Select `🇮🇩 ID`. Expected: Indonesian returns immediately.
+- [ ] Trigger medicine, water, habit, and active sleep-mode notifications in both languages.
+- [ ] Expected: native channel labels, title, body, actions, and medicine full-screen controls follow the selected language.
+
+### Wake-up game test buttons
+
+- [ ] Open `Mode Tidur`.
+- [ ] Tap `Test Sequence`, `Test Rhythm`, and `Test Dots`.
+- [ ] Expected: each button launches its own game directly.
+
+---
+
+## Session 20 - 2026-05-31
+
+Date: 2026-05-31
+Device: Infinix X6873
+Build: Debug
+
+### Settings screen
+
+- [ ] Open `Profile` -> `Pengaturan`.
+- [ ] Expected: Mode Tidur status and Accessibility status match the phone.
+- [ ] Change Bahasa to `English`, close the app, and reopen Settings.
+- [ ] Expected: the selected language preference persists.
+- [ ] Expected: About shows `1.0.0 (build 1)` and `Ilham Maulana Sulaeman`.
+
+### Habit history calendar
+
+- [ ] Tap the calendar icon on a habit card.
+- [ ] Expected: the habit name and emoji appear in the AppBar.
+- [ ] Expected: full days are purple, partial days amber, missed days dim white, and future days have no dot.
+- [ ] Expected: previous and next month buttons work.
+
+### Medicine streak
+
+- [ ] Open Obat with a medicine that has consecutive completed days.
+- [ ] Expected: the card shows a `🔥 N` badge only when its computed streak is greater than zero.
+
+### Wake-up game - Connect the Dots
+
+- [ ] Open Mode Tidur and launch `/wakeup-game` with game index `5`.
+- [ ] Expected: eight numbered dots appear in a seeded daily layout.
+- [ ] Draw through dots `1` to `8` in order, lifting your finger between attempts if needed.
+- [ ] Expected: connected progress remains, haptics fire, and completion shows the celebration.
+
+---
+
+## Session 19 - 2026-05-31
+
+Date: 2026-05-31
+Device: Infinix X6873
+Build: Debug - native bedtime scheduler installed
+
+### Sleep mode - night-only notification
+
+- [x] Keep Mode Tidur enabled during the afternoon.
+- [x] Expected: no `Mode tidur aktif` foreground notification appears outside the nightly window.
+- [x] Expected: native `SleepScheduleReceiver` alarm is armed for the configured bedtime (`21:00` on this device).
+- [ ] Wait until the configured bedtime.
+- [ ] Expected: `Mode tidur aktif` notification appears with `Saya masih terjaga`.
+- [ ] Complete or skip the next Morning Gate, or wait past the wake-window end.
+- [ ] Expected: the sleep notification disappears and tomorrow's bedtime alarm is armed.
+
+---
+
+## Session 18 - 2026-05-31
+
+Date: 2026-05-31
+Device: Infinix X6873
+Build: Debug - full rebuild required
+
+### Water reminder - reboot cadence
+
+- [x] Run a full `flutter run`, open Air once, and confirm reminders are active.
+- [x] Reboot the phone.
+- [x] Expected: the next water reminder keeps the configured cadence instead of falling back to a stale/default interval.
+
+### Sleep mode - cross-device foreground service
+
+- [x] Run a full `flutter run`; hot restart is not sufficient for this native manifest fix.
+- [x] Open `Profile` -> `Mode Tidur`, enable Mode Tidur, and return from Android settings if prompted.
+- [x] Expected: Rutin does not request body-sensor permission.
+- [x] Tap `Test Sleep Gate`, then press Home.
+- [x] Expected: the app returns to Morning Gate while the gate is active.
+- [x] Source fix: Android 13+ dynamic receivers are registered as `RECEIVER_NOT_EXPORTED`.
+- [x] Source fix: accessibility recovery no longer pushes a duplicate `/morning-gate` route.
+- [x] Retest after unlock: enabling Mode Tidur does not force-close Rutin.
+- [x] Retest after unlock: pressing Home or switching windows returns to one existing Morning Gate.
+
+---
+
+## Session 17 - 2026-05-31
+
+Date: 2026-05-31
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Debug
+
+### Kebiasaan - multiple reminder times
+
+- [ ] Open `Tambah Kebiasaan`, tap `+ Tambah` beside `RUTINITAS`, create a stack, and confirm it is selected immediately.
+- [ ] Open the same `+ Tambah` dialog and press Android Back or `Batal`; expected: dialog closes without a red screen.
+- [ ] Add a habit with two reminder times a few minutes apart.
+- [ ] Expected: both times appear in the add/edit form, sorted chronologically.
+- [ ] Expected: adding the same time twice does not create a duplicate.
+- [ ] Wait for both scheduled times.
+- [ ] Expected: both habit notifications fire independently.
+- [ ] Edit the habit, remove one time, and add a different time.
+- [ ] Expected: the removed time no longer fires and the new time does fire.
+- [ ] Delete the habit.
+- [ ] Expected: its remaining habit reminders stop firing.
+
+### Kebiasaan - per-reminder completion
+
+- [ ] Create a habit with two reminder times.
+- [ ] Expected: Kebiasaan and Home show two completion dots instead of the single check circle.
+- [ ] Tap the first dot.
+- [ ] Expected: only the first dot fills and Home does not count the habit as fully complete.
+- [ ] Tap the second dot.
+- [ ] Expected: both dots fill and the habit becomes fully complete.
+- [ ] Tap the second filled dot again.
+- [ ] Expected: the second dot clears and progress returns to one filled dot.
+- [ ] Open `Mode Tidur` -> `Test Sleep Gate`.
+- [ ] Expected: Morning Gate shows the same progress dots read-only.
+
+---
+
 ## Session 16 - 2026-05-31
 
 Date: 2026-05-31

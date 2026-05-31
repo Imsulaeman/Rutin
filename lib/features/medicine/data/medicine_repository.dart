@@ -26,8 +26,7 @@ class MedicineRepository {
 
   Medicine? getById(String id) => _medicines.get(id);
 
-  Future<void> save(Medicine medicine) =>
-      _medicines.put(medicine.id, medicine);
+  Future<void> save(Medicine medicine) => _medicines.put(medicine.id, medicine);
 
   Future<void> delete(String id) => _medicines.delete(id);
 
@@ -41,8 +40,7 @@ class MedicineRepository {
     }).toList();
   }
 
-  Future<void> saveLog(MedicineLog log) =>
-      _logs.add(log);
+  Future<void> saveLog(MedicineLog log) => _logs.add(log);
 
   // ── Per-dose taken state ──────────────────────────────────────────────────
   // A dose is keyed by (medicineId, minute-truncated local scheduledTime).
@@ -61,8 +59,48 @@ class MedicineRepository {
   bool isTaken(String medicineId, DateTime scheduled) =>
       findLog(medicineId, scheduled)?.status == 'taken';
 
+  int getMedicineStreak(String medicineId) {
+    final medicine = _medicines.get(medicineId);
+    if (medicine == null || medicine.scheduleTimes.isEmpty) return 0;
+
+    int streak = 0;
+    final today = DateTime.now();
+    final nowMin = today.hour * 60 + today.minute;
+
+    for (var guard = 0; guard < 3660; guard++) {
+      final day = today.subtract(Duration(days: guard));
+      final isToday = guard == 0;
+      bool allTaken = true;
+      bool anyDue = false;
+
+      for (final minute in medicine.scheduleTimes) {
+        if (isToday && minute > nowMin) continue;
+        anyDue = true;
+        final scheduled = DateTime(
+          day.year,
+          day.month,
+          day.day,
+          minute ~/ 60,
+          minute % 60,
+        );
+        if (!isTaken(medicineId, scheduled)) {
+          allTaken = false;
+          break;
+        }
+      }
+
+      if (!anyDue) continue;
+      if (!allTaken) break;
+      streak++;
+    }
+    return streak;
+  }
+
   Future<void> setTaken(
-      String medicineId, DateTime scheduled, bool taken) async {
+    String medicineId,
+    DateTime scheduled,
+    bool taken,
+  ) async {
     final existing = findLog(medicineId, scheduled);
     if (taken) {
       if (existing != null) {

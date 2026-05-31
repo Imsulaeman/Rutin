@@ -189,6 +189,14 @@ class SleepSettings {
 
 ## Notification Architecture
 
+### Language Preference
+
+`app_settings.language` is the Flutter source of truth. First launch resolves the
+phone language (`id` stays Indonesian; unsupported locales use English). Every
+change is mirrored through `habit_app/native_reminder` into
+`app_settings_native.language`, so native medicine, water, habit, and sleep-mode
+notifications use the selected language even while Flutter is not running.
+
 ### Why two packages?
 - `flutter_local_notifications` handles the UI (what you see)
 - `android_alarm_manager_plus` handles the scheduling (fires even when app is closed)
@@ -222,6 +230,14 @@ POST_NOTIFICATIONS        <!-- Android 13+ -->
 Tracks **user presence + audio state**, not screen state — notifications waking the screen don't reset the timer.
 
 ```
+Mode Tidur enabled outside nightly window
+  → SleepScheduleReceiver silently schedules AlarmManager for bedtime
+  → no foreground service and no notification during the day
+
+Bedtime alarm fires
+  → SleepModeService starts as foreground service
+  → "Mode tidur aktif" notification appears
+
 Signals monitored:
   ACTION_USER_PRESENT        → user unlocked phone → reset last_interaction
   AccessibilityEvent (touch) → any tap/scroll → reset last_interaction
@@ -253,7 +269,7 @@ Why not screen state: notifications (WhatsApp, etc.) wake the screen briefly but
 
 ### Manual Override
 
-Foreground notification ("Sleep mode active") includes an **"I'm still awake"** action button.
+Nightly foreground notification ("Sleep mode active") includes an **"I'm still awake"** action button.
 - Tapping it pauses sleep mode for 30 min
 - After 30 min, detection resumes from scratch
 - Prevents mis-triggers without requiring app to be opened
@@ -272,10 +288,7 @@ Sleep mode active (e.g. 11 PM)
   ↓
 6:15 AM — user unlocks phone within wake-up window
   ↓
-App launches full-screen routine above lockscreen
-  FLAG_SHOW_WHEN_LOCKED
-  FLAG_TURN_SCREEN_ON
-  FLAG_KEEP_SCREEN_ON
+User unlocks PIN → app launches Morning Gate
   ↓
 Back button → disabled
 Home button → AccessibilityService detects → returns to routine immediately
@@ -305,8 +318,9 @@ Granted once during onboarding. Three jobs:
 ### Android Background Service Survival
 
 Required:
-- Sleep mode monitor runs as **foreground service** (persistent notification: "Sleep mode active")
-- `RECEIVE_BOOT_COMPLETED` → restart service after phone reboot
+- `SleepScheduleReceiver` silently schedules the configured bedtime with native `AlarmManager`
+- Sleep mode monitor runs as **foreground service only during the nightly window** (persistent notification: "Sleep mode active")
+- `RECEIVE_BOOT_COMPLETED` → re-arm the bedtime alarm after phone reboot
 - On-screen guidance during onboarding: disable battery optimization for this app
 
 The Huawei Watch receives notifications passively from the Android phone — no special handling needed.

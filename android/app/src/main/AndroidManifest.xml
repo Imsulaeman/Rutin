@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -70,6 +70,9 @@
             android:name=".HabitAlarmReceiver"
             android:exported="false" />
         <receiver
+            android:name=".SleepScheduleReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>
@@ -83,8 +86,12 @@
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
             android:name=".SleepModeService"
-            android:foregroundServiceType="health"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Detects overnight inactivity and re-arms the user-enabled morning routine gate." />
+        </service>
         <service
             android:name=".RutinAccessibilityService"
             android:exported="true"

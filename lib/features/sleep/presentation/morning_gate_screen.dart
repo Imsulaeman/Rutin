@@ -8,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/services/haptics_service.dart';
+import '../../../l10n/l10n.dart';
 import '../../habits/data/habit_model.dart';
 import '../../medicine/data/medicine_model.dart';
 
@@ -156,17 +157,21 @@ class _MorningGateScreenState extends State<MorningGateScreen>
             .toList()
           ..sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
 
-    return habits
-        .map(
-          (habit) => _HabitRowData(
-            emoji: habit.emoji,
-            name: habit.name,
-            done: logs.any(
-              (log) => log.habitId == habit.id && log.date == todayKey,
-            ),
-          ),
-        )
-        .toList();
+    return habits.map((habit) {
+      final target = habit.reminderTimes.isNotEmpty
+          ? habit.reminderTimes.length
+          : 1;
+      final completions = logs
+          .where((log) => log.habitId == habit.id && log.date == todayKey)
+          .length;
+      return _HabitRowData(
+        emoji: habit.emoji,
+        name: habit.name,
+        target: target,
+        completions: completions.clamp(0, target),
+        done: completions >= target,
+      );
+    }).toList();
   }
 
   Future<void> _onUnlocked() async {
@@ -185,20 +190,20 @@ class _MorningGateScreenState extends State<MorningGateScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Lewati gerbang?'),
-        content: const Text(
-          'Game pagi ini akan dilewati. Streak kamu tetap aman.',
+        title: Text(localized(context, id: 'Lewati gerbang?', en: 'Skip the gate?')),
+        content: Text(
+          localized(context, id: 'Game pagi ini akan dilewati. Streak kamu tetap aman.', en: 'This morning game will be skipped. Your streak stays safe.'),
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Lewati',
+            child: Text(
+              localized(context, id: 'Lewati', en: 'Skip'),
               style: TextStyle(color: Colors.redAccent),
             ),
           ),
@@ -357,7 +362,9 @@ class _StreakPill extends StatelessWidget {
           const Text('🔥', style: TextStyle(fontSize: 16)),
           const SizedBox(width: 5),
           Text(
-            streak == 0 ? 'Hari pertama!' : 'Hari ke-$streak',
+            streak == 0
+                ? localized(context, id: 'Hari pertama!', en: 'First day!')
+                : localized(context, id: 'Hari ke-$streak', en: 'Day $streak'),
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -385,12 +392,12 @@ class _MedicineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _HeroCard(
       accent: _pink,
-      title: 'OBAT HARI INI',
+      title: context.l10n.medicineToday,
       icon: Icons.medication_rounded,
       doneCount: doneCount,
       totalCount: totalCount,
       child: rows.isEmpty
-          ? const _EmptyCardText(text: 'Tidak ada obat hari ini')
+          ? _EmptyCardText(text: localized(context, id: 'Tidak ada obat hari ini', en: 'No medicine today'))
           : Column(
               children: [
                 for (int i = 0; i < rows.length; i++) ...[
@@ -422,12 +429,12 @@ class _HabitsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _HeroCard(
       accent: _purple,
-      title: 'KEBIASAAN HARI INI',
+      title: context.l10n.habitsToday,
       icon: Icons.auto_awesome_rounded,
       doneCount: doneCount,
       totalCount: totalCount,
       child: rows.isEmpty
-          ? const _EmptyCardText(text: 'Tidak ada kebiasaan hari ini')
+          ? _EmptyCardText(text: localized(context, id: 'Tidak ada kebiasaan hari ini', en: 'No habits today'))
           : Column(
               children: [
                 for (int i = 0; i < rows.length; i++) ...[
@@ -594,13 +601,49 @@ class _HabitRow extends StatelessWidget {
             style: const TextStyle(fontSize: 14, color: Colors.white),
           ),
         ),
-        Icon(
-          row.done
-              ? Icons.check_circle_rounded
-              : Icons.radio_button_unchecked_rounded,
-          color: row.done ? _green : Colors.white24,
-          size: 18,
-        ),
+        if (row.target > 1)
+          _GateCompletionDots(target: row.target, completions: row.completions)
+        else
+          Icon(
+            row.done
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded,
+            color: row.done ? _green : Colors.white24,
+            size: 18,
+          ),
+      ],
+    );
+  }
+}
+
+class _GateCompletionDots extends StatelessWidget {
+  const _GateCompletionDots({required this.target, required this.completions});
+
+  final int target;
+  final int completions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < target; i++) ...[
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: i < completions ? _purple : Colors.transparent,
+              border: Border.all(
+                color: i < completions ? _purple : Colors.white24,
+              ),
+            ),
+            child: i < completions
+                ? const Icon(Icons.check_rounded, size: 11, color: Colors.white)
+                : null,
+          ),
+          if (i != target - 1) const SizedBox(width: 4),
+        ],
       ],
     );
   }
@@ -707,8 +750,8 @@ class _EmergencyExit extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: onPressed,
-      child: const Text(
-        'Lewati',
+      child: Text(
+        localized(context, id: 'Lewati', en: 'Skip'),
         style: TextStyle(color: Colors.white24, fontSize: 12),
       ),
     );
@@ -753,11 +796,15 @@ class _HabitRowData {
   const _HabitRowData({
     required this.emoji,
     required this.name,
+    required this.target,
+    required this.completions,
     required this.done,
   });
 
   final String emoji;
   final String name;
+  final int target;
+  final int completions;
   final bool done;
 }
 

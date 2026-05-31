@@ -10,6 +10,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/services/haptics_service.dart';
 import '../../../main.dart';
+import '../../../l10n/l10n.dart';
 import '../../../shared/providers/providers.dart';
 import '../../habits/data/habit_model.dart';
 import '../../habits/data/habit_repository.dart';
@@ -210,6 +211,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _load();
   }
 
+  Future<void> _setHabitCompletions(Habit habit, int count) async {
+    final current = _habitRepo.completionsToday(habit.id);
+    final target = _habitRepo.dailyTarget(habit);
+    if (count < current) {
+      HapticsService.softTap();
+    } else if (count == target) {
+      HapticsService.success();
+    } else {
+      HapticsService.tap();
+    }
+    await _habitRepo.setCompletionsToday(habit, count);
+    _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final medicineRepo = ref.watch(medicineRepositoryProvider);
@@ -266,8 +281,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 start: 0.10,
                                 end: 0.60,
                                 child: _SectionCard(
-                                  title: 'OBAT',
-                                  actionLabel: 'Semua',
+                                  title: context.l10n.medicine.toUpperCase(),
+                                  actionLabel: localized(context, id: 'Semua', en: 'All'),
                                   onAction: () => context.go('/medicine'),
                                   child: medicines.isEmpty
                                       ? const _EmptyHint(
@@ -310,8 +325,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 start: 0.20,
                                 end: 0.70,
                                 child: _SectionCard(
-                                  title: 'AIR',
-                                  actionLabel: 'Semua',
+                                  title: context.l10n.water.toUpperCase(),
+                                  actionLabel: localized(context, id: 'Semua', en: 'All'),
                                   onAction: () => context.go('/water'),
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(18),
@@ -381,8 +396,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 start: 0.30,
                                 end: 0.80,
                                 child: _SectionCard(
-                                  title: 'KEBIASAAN HARI INI',
-                                  actionLabel: 'Semua',
+                                  title: context.l10n.habitsToday,
+                                  actionLabel: localized(context, id: 'Semua', en: 'All'),
                                   onAction: () => context.go('/habits'),
                                   child: _todayHabits.isEmpty
                                       ? const _EmptyHint(
@@ -390,68 +405,162 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               'Belum ada kebiasaan terjadwal hari ini.',
                                         )
                                       : Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            ..._buildSections(shownHabits).map((section) {
+                                            ..._buildSections(shownHabits).map((
+                                              section,
+                                            ) {
                                               final (group, habits) = section;
                                               if (group == null) {
                                                 // Standalone habit
                                                 return Padding(
-                                                  padding: const EdgeInsets.only(bottom: 10),
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 10,
+                                                      ),
                                                   child: _TodayHabitRow(
                                                     habit: habits.first,
-                                                    done: _habitRepo.isCompletedToday(habits.first.id),
-                                                    streak: _habitRepo.getStreak(habits.first.id),
-                                                    onTap: () => _markHabitDone(habits.first),
+                                                    done: _habitRepo
+                                                        .isCompletedToday(
+                                                          habits.first.id,
+                                                        ),
+                                                    streak: _habitRepo
+                                                        .getStreak(
+                                                          habits.first.id,
+                                                        ),
+                                                    target: _habitRepo
+                                                        .dailyTarget(
+                                                          habits.first,
+                                                        ),
+                                                    completions: _habitRepo
+                                                        .completionsToday(
+                                                          habits.first.id,
+                                                        ),
+                                                    onSetCompletions: (count) =>
+                                                        _setHabitCompletions(
+                                                          habits.first,
+                                                          count,
+                                                        ),
+                                                    onTap: () => _markHabitDone(
+                                                      habits.first,
+                                                    ),
                                                   ),
                                                 );
                                               }
                                               // Stacked habits — header + indented rows
                                               return Padding(
-                                                padding: const EdgeInsets.only(bottom: 10),
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 10,
+                                                ),
                                                 child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Padding(
-                                                      padding: const EdgeInsets.only(bottom: 6),
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            bottom: 6,
+                                                          ),
                                                       child: Row(
                                                         children: [
-                                                          Text(group.emoji, style: const TextStyle(fontSize: 13)),
-                                                          const SizedBox(width: 6),
+                                                          Text(
+                                                            group.emoji,
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontSize: 13,
+                                                                ),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 6,
+                                                          ),
                                                           Text(
                                                             group.name,
-                                                            style: const TextStyle(
-                                                              color: _muted,
-                                                              fontSize: 12,
-                                                              fontWeight: FontWeight.w600,
-                                                              letterSpacing: 0.3,
-                                                            ),
+                                                            style:
+                                                                const TextStyle(
+                                                                  color: _muted,
+                                                                  fontSize: 12,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  letterSpacing:
+                                                                      0.3,
+                                                                ),
                                                           ),
                                                         ],
                                                       ),
                                                     ),
-                                                    for (int i = 0; i < habits.length; i++)
+                                                    for (
+                                                      int i = 0;
+                                                      i < habits.length;
+                                                      i++
+                                                    )
                                                       Padding(
-                                                        padding: const EdgeInsets.only(bottom: 6),
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              bottom: 6,
+                                                            ),
                                                         child: IntrinsicHeight(
                                                           child: Row(
-                                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .stretch,
                                                             children: [
                                                               Container(
                                                                 width: 2,
-                                                                margin: const EdgeInsets.only(left: 6),
+                                                                margin:
+                                                                    const EdgeInsets.only(
+                                                                      left: 6,
+                                                                    ),
                                                                 decoration: BoxDecoration(
-                                                                  color: _habitColor.withValues(alpha: 0.35),
-                                                                  borderRadius: BorderRadius.circular(1),
+                                                                  color: _habitColor
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.35,
+                                                                      ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        1,
+                                                                      ),
                                                                 ),
                                                               ),
-                                                              const SizedBox(width: 10),
+                                                              const SizedBox(
+                                                                width: 10,
+                                                              ),
                                                               Expanded(
                                                                 child: _TodayHabitRow(
-                                                                  habit: habits[i],
-                                                                  done: _habitRepo.isCompletedToday(habits[i].id),
-                                                                  streak: _habitRepo.getStreak(habits[i].id),
-                                                                  onTap: () => _markHabitDone(habits[i]),
+                                                                  habit:
+                                                                      habits[i],
+                                                                  done: _habitRepo
+                                                                      .isCompletedToday(
+                                                                        habits[i]
+                                                                            .id,
+                                                                      ),
+                                                                  streak: _habitRepo
+                                                                      .getStreak(
+                                                                        habits[i]
+                                                                            .id,
+                                                                      ),
+                                                                  target: _habitRepo
+                                                                      .dailyTarget(
+                                                                        habits[i],
+                                                                      ),
+                                                                  completions: _habitRepo
+                                                                      .completionsToday(
+                                                                        habits[i]
+                                                                            .id,
+                                                                      ),
+                                                                  onSetCompletions:
+                                                                      (
+                                                                        count,
+                                                                      ) => _setHabitCompletions(
+                                                                        habits[i],
+                                                                        count,
+                                                                      ),
+                                                                  onTap: () =>
+                                                                      _markHabitDone(
+                                                                        habits[i],
+                                                                      ),
                                                                 ),
                                                               ),
                                                             ],
@@ -502,8 +611,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 start: 0.0,
                 end: 0.45,
                 child: _Header(
-                  title: _timeGreeting(),
-                  date: _formattedDate(),
+                  title: _timeGreeting(context),
+                  date: _formattedDate(context),
                   onMenu: () {
                     HapticFeedback.selectionClick();
                     context.go('/profile');
@@ -517,40 +626,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  static String _formattedDate() {
-    const days = [
-      'Minggu',
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-    ];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
+  static String _formattedDate(BuildContext context) {
+    final isId = Localizations.localeOf(context).languageCode == 'id';
+    final days = isId
+        ? const ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+        : const ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    final months = isId
+        ? const ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+        : const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final now = DateTime.now();
     return '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
-  static String _timeGreeting() {
+  static String _timeGreeting(BuildContext context) {
     final hour = DateTime.now().hour;
-    if (hour < 11) return 'Selamat pagi';
-    if (hour < 15) return 'Selamat siang';
-    if (hour < 19) return 'Selamat sore';
-    return 'Selamat malam';
+    if (hour < 11) return localized(context, id: 'Selamat pagi', en: 'Good morning');
+    if (hour < 15) return localized(context, id: 'Selamat siang', en: 'Good afternoon');
+    if (hour < 19) return localized(context, id: 'Selamat sore', en: 'Good evening');
+    return localized(context, id: 'Selamat malam', en: 'Good night');
   }
 
   Future<void> _maybeShowPermissionWizard(BuildContext context) async {
@@ -572,9 +665,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Izin Wajib'),
-        content: const Text(
-          'Aktifkan semua izin agar reminder jalan:\n'
+        title: Text(localized(context, id: 'Izin Wajib', en: 'Required Permissions')),
+        content: Text(
+          localized(context, id: 'Aktifkan semua izin agar reminder jalan:\n', en: 'Enable all permissions so reminders work:\n') +
           '1) Notifikasi\n'
           '2) Exact alarm (Alarms & reminders)\n'
           '3) Full-screen intent',
@@ -606,7 +699,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Selesai'),
+            child: Text(context.l10n.done),
           ),
         ],
       ),
@@ -865,7 +958,7 @@ class _HomeMedicineRow extends StatelessWidget {
     return _muted;
   }
 
-  String _nextDoseLabel() {
+  String _nextDoseLabel(BuildContext context) {
     final nowDose = doses.where((d) => bucketFor(d) == _HomeDoseBucket.now);
     if (nowDose.isNotEmpty) return _fmtMinute(nowDose.first.minute);
     final upcoming = doses.where(
@@ -874,9 +967,9 @@ class _HomeMedicineRow extends StatelessWidget {
     if (upcoming.isNotEmpty) return _fmtMinute(upcoming.first.minute);
     if (doses.isNotEmpty &&
         doses.every((d) => bucketFor(d) == _HomeDoseBucket.taken)) {
-      return '✓ Selesai';
+      return '✓ ${context.l10n.done}';
     }
-    return 'Terlewat';
+    return context.l10n.missed;
   }
 
   _HomeDose? _nowDose() {
@@ -938,7 +1031,7 @@ class _HomeMedicineRow extends StatelessWidget {
             ),
           ),
           Text(
-            _nextDoseLabel(),
+            _nextDoseLabel(context),
             style: const TextStyle(color: _muted, fontSize: 12),
           ),
           if (nowDose != null) ...[
@@ -971,18 +1064,24 @@ class _TodayHabitRow extends StatelessWidget {
     required this.habit,
     required this.done,
     required this.streak,
+    required this.target,
+    required this.completions,
+    required this.onSetCompletions,
     required this.onTap,
   });
 
   final Habit habit;
   final bool done;
   final int streak;
+  final int target;
+  final int completions;
+  final Future<void> Function(int count) onSetCompletions;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: target == 1 ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -1038,6 +1137,16 @@ class _TodayHabitRow extends StatelessWidget {
                       ],
                     ),
                   ],
+                  if (target > 1) ...[
+                    const SizedBox(height: 6),
+                    _HomeCompletionDots(
+                      target: target,
+                      completions: completions,
+                      onTap: (index) => onSetCompletions(
+                        index + 1 == completions ? index : index + 1,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1052,28 +1161,79 @@ class _TodayHabitRow extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(width: 10),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: done ? _success : Colors.transparent,
-                border: Border.all(
-                  color: done ? _success : _muted.withValues(alpha: 0.65),
-                  width: 2,
+            if (target == 1) ...[
+              const SizedBox(width: 10),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: done ? _success : Colors.transparent,
+                  border: Border.all(
+                    color: done ? _success : _muted.withValues(alpha: 0.65),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 15,
+                  color: done ? Colors.white : Colors.transparent,
                 ),
               ),
-              child: Icon(
-                Icons.check_rounded,
-                size: 15,
-                color: done ? Colors.white : Colors.transparent,
-              ),
-            ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _HomeCompletionDots extends StatelessWidget {
+  const _HomeCompletionDots({
+    required this.target,
+    required this.completions,
+    required this.onTap,
+  });
+
+  final int target;
+  final int completions;
+  final Future<void> Function(int index) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < target; i++) ...[
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onTap(i),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i < completions ? _habitColor : Colors.transparent,
+                  border: Border.all(
+                    color: i < completions ? _habitColor : _muted,
+                  ),
+                ),
+                child: i < completions
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 11,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+            ),
+          ),
+          if (i != target - 1) const SizedBox(width: 2),
+        ],
+      ],
     );
   }
 }

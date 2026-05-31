@@ -16,6 +16,7 @@ Future<void> waterAlarmCallback() async {
   if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(WaterLogAdapter());
   if (!Hive.isBoxOpen('water_goals')) await Hive.openBox<WaterGoal>('water_goals');
   if (!Hive.isBoxOpen('water_logs')) await Hive.openBox<WaterLog>('water_logs');
+  if (!Hive.isBoxOpen('app_settings')) await Hive.openBox<String>('app_settings');
 
   final repo = WaterRepository();
   final goal = repo.getGoal();
@@ -53,22 +54,23 @@ Future<void> waterAlarmCallback() async {
 
 Future<void> _showWaterNotification() async {
   final plugin = FlutterLocalNotificationsPlugin();
+  final isId = Hive.box<String>('app_settings').get('language') == 'id';
 
   await plugin.show(
     waterAlarmId,
-    'Waktunya minum air',
-    'Sudah minum segelas belum?',
-    const NotificationDetails(
+    isId ? 'Waktunya minum air' : 'Time to drink water',
+    isId ? 'Sudah minum segelas belum?' : 'Have you had a glass of water?',
+    NotificationDetails(
       android: AndroidNotificationDetails(
         'water_reminder_v2',
-        'Pengingat Air',
+        isId ? 'Pengingat Air' : 'Water Reminder',
         importance: Importance.high,
         priority: Priority.high,
         autoCancel: true,
         actions: [
           AndroidNotificationAction(
             'water_taken',
-            'Sudah minum',
+            isId ? 'Sudah minum' : 'Drank water',
             cancelNotification: true,
             showsUserInterface: true,
           ),
