@@ -80,6 +80,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Habit + HabitLog data models
 - [x] HabitRepository
 - [x] Create habit with optional reminder
+- [x] Multiple daily reminder times per habit
 - [x] Check off for today
 - [x] Streak counter
 - [x] Skip non-scheduled days without breaking streak
@@ -179,5 +180,6 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [ ] README polish (GitHub repo, for ADA reviewers who look at code)
 - [ ] Internal beta on Play Store (so ADA can install directly)
 - [ ] Crash-free rate check (Firebase Crashlytics or at minimum no known crashes)
+- [ ] **Post-MVP design polish pass** (only once MVP is done + launch-ready): run `/emil-design-eng`, `/impeccable`, `/gpt-taste` across all screens for final visual refinement
 - [ ] Data backup / JSON export
 - [ ] Play Store listing
