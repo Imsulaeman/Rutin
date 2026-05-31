@@ -386,6 +386,198 @@ Session D adds the home-button intercept on top of Session C.
 
 ---
 
+## Pending Task — Morning Gate Screen
+
+**What this is:** A full-screen overlay that appears after the user unlocks their PIN in the morning (when sleep mode was active overnight). It shows a read-only today dashboard (medicine + habits), then a slide-to-unlock component that launches the wake-up game. After the game completes, the overlay dismisses and normal phone use resumes.
+
+**This replaces the current behaviour** where `WakeUpTriggerReceiver` launches `/wakeup-game` directly. The new flow is: wake trigger → `/morning-gate` → slide → `/wakeup-game` → complete → both pop.
+
+---
+
+### Flow
+
+```
+Overnight: SleepModeService sets sleep_active=true
+  ↓
+Morning: user enters PIN → ACTION_USER_PRESENT fires
+  ↓
+WakeUpTriggerReceiver → starts MainActivity with route="/morning-gate"
+  ↓
+onNewIntent → MethodChannel("rutin/sleep").invokeMethod("launchGame")
+  ↓
+_LaunchGameListener in app.dart pushes /morning-gate
+  ↓
+User sees time + today dashboard + slide-to-unlock
+  ↓
+User slides to right (85% threshold)
+  ↓
+await context.push('/wakeup-game')   ← daily seed, no forceGameIndex
+  ↓
+Game completes → pops → morning gate pops → home screen
+```
+
+---
+
+### New file: `lib/features/sleep/presentation/morning_gate_screen.dart`
+
+**Scaffold:** no AppBar, `backgroundColor: Color(0xFF0B0E1A)`, full-screen, `WillPopScope` returns false (back button disabled — AccessibilityService handles intercept).
+
+**Call `_ch.invokeMethod('setGameActive', true)` in `initState` and `false` in `dispose`** — same flag `RutinAccessibilityService` already watches. No new native code needed.
+
+#### Layout (top to bottom)
+
+```
+SafeArea
+  Column
+    ├── _GateHeader          (time + date + greeting + streak)
+    ├── Expanded
+    │     SingleChildScrollView
+    │       Column
+    │         ├── _MedicineSection   (today's medicines, read-only)
+    │         └── _HabitsSection     (today's habits, read-only)
+    └── _SlideToUnlock       (fixed at bottom)
+```
+
+---
+
+#### `_GateHeader`
+
+- **Time:** `HH:mm` live, updates via `Timer.periodic(Duration(minutes: 1), ...)`. Font size 64, bold, white.
+- **Date:** `EEEE, d MMMM y` in Bahasa Indonesia via `intl` (`DateFormat('EEEE, d MMMM y', 'id')`). White54, 14pt.
+- **Greeting:** "Selamat pagi!" if hour < 11, "Selamat siang!" if < 15, "Selamat sore!" if < 19, "Selamat malam!" otherwise.
+- **Streak pill:** same as `_Header` in `wakeup_game_screen.dart` — orange fire pill, "Hari ke-N" or "Hari pertama!". Read streak from `Hive.box<int>('morning_streaks')` using the same `_calcStreak` logic (guard with `Hive.isBoxOpen`).
+
+---
+
+#### `_MedicineSection`
+
+Data sources (already open in main.dart):
+- `Hive.box<Medicine>('medicines')` — Medicine model has `id`, `name`, `dosage`, `scheduleTimes: List<int>` (minutes since midnight), `isActive`
+- `Hive.box<MedicineLog>('medicine_logs')` — MedicineLog has `medicineId`, `scheduledTime: DateTime`, `takenAt`, `status: String` ('taken' | 'missed' | 'snoozed' | 'pending')
+
+**Build logic:**
+```
+for each Medicine where isActive == true:
+  for each time in medicine.scheduleTimes:
+    scheduledDateTime = today at that time (minutes → HH:mm)
+    find MedicineLog where medicineId matches AND scheduledTime.date == today AND scheduledTime.hour/minute matches
+    status:
+      log exists && status == 'taken'  → taken (green ✓)
+      log exists && status == 'missed' → missed (red ✗)
+      scheduledDateTime < now && no log → missed (red ✗)
+      scheduledDateTime >= now         → pending (orange ○)
+```
+
+**UI:**
+- Section label: "💊 OBAT HARI INI", white54, 11pt, letterSpacing 1.2, uppercase
+- Card per medicine (not per dose-time) — inside card, one row per scheduled time
+- Row: `[time HH:mm]  [name + dosage]  [status icon]`
+- Status icon: `Icons.check_circle_rounded` green for taken, `Icons.radio_button_unchecked` orange for pending, `Icons.cancel_rounded` red for missed
+- If `medicines` box is empty or no active medicines: hide section entirely
+
+---
+
+#### `_HabitsSection`
+
+Data sources:
+- `Hive.box<Habit>('habits')` — Habit has `id`, `name`, `emoji`, `scheduleDays: List<int>` (1=Mon…7=Sun, empty=daily), `reminderMinutes`
+- `Hive.box<HabitLog>('habit_logs')` — HabitLog has `habitId`, `date: String` ("yyyy-MM-dd")
+
+**Build logic:**
+```
+today = DateTime.now()
+todayWeekday = today.weekday  (1=Mon, 7=Sun)
+todayDateKey = "yyyy-MM-dd"
+
+for each Habit:
+  scheduled = habit.scheduleDays.isEmpty || habit.scheduleDays.contains(todayWeekday)
+  if !scheduled: skip
+  done = habit_logs box has any entry where habitId == habit.id && date == todayDateKey
+```
+
+**UI:**
+- Section label: "✦ KEBIASAAN HARI INI", white54, 11pt, letterSpacing 1.2, uppercase
+- One row per habit: `[emoji in 32px container]  [name]  [done icon]`
+- Done icon: `Icons.check_circle_rounded` green if done, `Icons.radio_button_unchecked` white24 if not
+- If no habits scheduled today: hide section entirely
+
+---
+
+#### `_SlideToUnlock`
+
+```
+Container (full width, height 64, margin horizontal 20, margin bottom 16)
+  decoration: pill shape (borderRadius 32), bg surfaceDark, border white12
+
+  Stack
+    ├── Center: Text("Geser untuk mulai  →→", opacity: 1 - _dragFraction, white38, 13pt)
+    └── Positioned(left: _thumbOffset):
+          GestureDetector (onHorizontalDragUpdate, onHorizontalDragEnd)
+            Container(56×56 circle, gradient primary color, glow shadow)
+```
+
+**State:**
+- `_dragFraction`: 0.0 → 1.0. `_thumbOffset = _dragFraction * (trackWidth - 56)`.
+- `trackWidth` = layout width of the container (use `LayoutBuilder` or a `GlobalKey` + post-frame callback).
+- `onHorizontalDragUpdate`: `_dragFraction = clamp(_dragFraction + delta.dx / trackWidth, 0, 1)`. If `_dragFraction >= 0.85`: call `_onUnlocked()`.
+- `onHorizontalDragEnd`: if not yet unlocked → `AnimationController` springs back to 0 (400ms, Curves.elasticOut).
+- `_onUnlocked()`: `HapticsService.success()`, set `_unlocked = true` (guard against double-call), then:
+
+```dart
+Future<void> _onUnlocked() async {
+  if (_unlocked) return;
+  _unlocked = true;
+  HapticsService.success();
+  await context.push('/wakeup-game');
+  // game completed and popped — now dismiss morning gate
+  if (mounted) Navigator.of(context).pop();
+}
+```
+
+---
+
+### Files to modify
+
+**`lib/app.dart`**
+- Add route:
+```dart
+GoRoute(
+  path: '/morning-gate',
+  parentNavigatorKey: _rootNavigatorKey,
+  builder: (_, __) => const MorningGateScreen(),
+),
+```
+- Import `morning_gate_screen.dart`
+- In `_LaunchGameListenerState.initState`, change:
+```dart
+if (call.method == 'launchGame') appRouter.push('/morning-gate');
+```
+
+**`android/.../WakeUpTriggerReceiver.kt`**
+- Change `putExtra("route", "/wakeup-game")` → `putExtra("route", "/morning-gate")`
+
+**`android/.../MainActivity.kt`** — `simulateSleepTrigger`
+- Change `putExtra("route", "/wakeup-game")` → `putExtra("route", "/morning-gate")` in the `onNewIntent` call inside the Handler.post block
+
+---
+
+### What NOT to do
+- Do NOT touch `WakeupGameScreen` — it stays identical, just launched from a different parent
+- Do NOT add mark-as-taken buttons — read-only display only
+- Do NOT use `FLAG_SHOW_WHEN_LOCKED` — fires after PIN unlock, no native lock-screen override
+- Do NOT add new Hive models or new native services
+- Do NOT modify the existing test buttons (Test Sequence / Test Rhythm) — they still go to `/wakeup-game` directly
+- Dart only except the two Kotlin line-changes above; all changes are Flutter/Dart
+
+---
+
+### Verify
+- `dart analyze` on all new/modified Dart files — no errors
+- `gradlew app:compileDebugKotlin --no-daemon` — BUILD SUCCESSFUL
+- Manual test via Profile → Mode Tidur → Test Sleep Gate → morning gate appears → slide → game launches → complete → both screens dismiss
+
+---
+
 ## Pending Task — Custom Notification Sounds + Vibration
 
 **Sound files are already placed at:**
