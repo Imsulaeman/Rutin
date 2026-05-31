@@ -5,6 +5,19 @@ import '../data/habit_model.dart';
 
 const _habitTimeGradient = [Color(0xFF9B6BFF), Color(0xFF7C3AED)];
 
+/// Returns the nearest upcoming reminder time for [habit] today.
+/// Falls back to the smallest time (tomorrow's first reminder) if all passed.
+int? nearestReminderMinutes(Habit habit) {
+  final times = habit.reminderTimes.isNotEmpty
+      ? List<int>.from(habit.reminderTimes)
+      : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : <int>[]);
+  if (times.isEmpty) return null;
+  times.sort();
+  final nowMin = DateTime.now().hour * 60 + DateTime.now().minute;
+  final upcoming = times.where((t) => t > nowMin).toList();
+  return upcoming.isNotEmpty ? upcoming.first : times.first;
+}
+
 class HabitCard extends StatelessWidget {
   const HabitCard({
     super.key,
@@ -80,9 +93,9 @@ class HabitCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (habit.reminderMinutes != null) ...[
+              if (nearestReminderMinutes(habit) != null) ...[
                 const SizedBox(width: 10),
-                _TimePill(label: _fmtTime(habit.reminderMinutes!)),
+                _TimePill(label: _fmtTime(nearestReminderMinutes(habit)!)),
               ],
               if (onMoreTap != null) ...[
                 const SizedBox(width: 8),

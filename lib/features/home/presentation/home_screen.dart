@@ -56,6 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _waterMl = 0;
   int _waterTargetMl = 2000;
   List<Habit> _todayHabits = const [];
+  Map<String, HabitGroup> _groupMap = {};
   int _habitsDue = 0;
   int _habitsDone = 0;
 
@@ -122,19 +123,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final goal = _waterRepo.getGoal();
     final logToday = _waterRepo.getTodayLog();
     final weekday = DateTime.now().weekday;
-    final todayHabits = _habitRepo.getAll()
+    final todayHabits = _habitRepo
+        .getAll()
         .where((habit) => habit.scheduleDays.contains(weekday))
         .toList();
 
+    final groupBox = Hive.box<HabitGroup>('habit_groups');
     setState(() {
       _waterMl = logToday?.mlLogged ?? 0;
       _waterTargetMl = goal.dailyTargetMl;
       _todayHabits = todayHabits;
+      _groupMap = {for (final g in groupBox.values) g.id: g};
       _habitsDue = todayHabits.length;
       _habitsDone = todayHabits
           .where((habit) => _habitRepo.isCompletedToday(habit.id))
           .length;
     });
+  }
+
+  /// Build an ordered list of sections: (null, [habit]) for standalone,
+  /// (group, [h1, h2, ...]) for stacks.
+  List<(HabitGroup?, List<Habit>)> _buildSections(List<Habit> habits) {
+    final sections = <(HabitGroup?, List<Habit>)>[];
+    final seenGroups = <String>{};
+    for (final habit in habits) {
+      final gid = habit.groupId;
+      if (gid != null && _groupMap.containsKey(gid)) {
+        if (!seenGroups.contains(gid)) {
+          seenGroups.add(gid);
+          final groupHabits = habits.where((h) => h.groupId == gid).toList();
+          sections.add((_groupMap[gid], groupHabits));
+        }
+      } else {
+        sections.add((null, [habit]));
+      }
+    }
+    return sections;
   }
 
   List<_HomeDose> _todayDoses(MedicineRepository repo) {
@@ -237,156 +261,231 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           offset: const Offset(0, -overlapLift),
                           child: Column(
                             children: [
-                        _FadeSlideIn(
-                          animation: _entrance,
-                          start: 0.10,
-                          end: 0.60,
-                          child: _SectionCard(
-                            title: 'OBAT',
-                            actionLabel: 'Semua',
-                            onAction: () => context.go('/medicine'),
-                            child: medicines.isEmpty
-                                ? const _EmptyHint(
-                                    text: 'Belum ada jadwal obat hari ini.',
-                                  )
-                                : Column(
-                                    children: [
-                                      for (int i = 0; i < medicines.length; i++) ...[
-                                        _HomeMedicineCard(
-                                          medicine: medicines[i],
-                                          doses: groupedDoses[medicines[i].id] ?? const [],
-                                          bucketFor: (dose) => _bucketFor(medicineRepo, dose),
-                                          onTapDose: (dose) => _toggleDose(medicineRepo, dose),
+                              _FadeSlideIn(
+                                animation: _entrance,
+                                start: 0.10,
+                                end: 0.60,
+                                child: _SectionCard(
+                                  title: 'OBAT',
+                                  actionLabel: 'Semua',
+                                  onAction: () => context.go('/medicine'),
+                                  child: medicines.isEmpty
+                                      ? const _EmptyHint(
+                                          text:
+                                              'Belum ada jadwal obat hari ini.',
+                                        )
+                                      : Column(
+                                          children: [
+                                            for (
+                                              int i = 0;
+                                              i < medicines.length;
+                                              i++
+                                            ) ...[
+                                              _HomeMedicineRow(
+                                                medicine: medicines[i],
+                                                doses:
+                                                    groupedDoses[medicines[i]
+                                                        .id] ??
+                                                    const [],
+                                                bucketFor: (dose) => _bucketFor(
+                                                  medicineRepo,
+                                                  dose,
+                                                ),
+                                                onTapDose: (dose) =>
+                                                    _toggleDose(
+                                                      medicineRepo,
+                                                      dose,
+                                                    ),
+                                              ),
+                                              if (i != medicines.length - 1)
+                                                const SizedBox(height: 12),
+                                            ],
+                                          ],
                                         ),
-                                        if (i != medicines.length - 1)
-                                          const SizedBox(height: 12),
-                                      ],
-                                    ],
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _FadeSlideIn(
-                          animation: _entrance,
-                          start: 0.20,
-                          end: 0.70,
-                          child: _SectionCard(
-                            title: 'AIR',
-                            actionLabel: 'Semua',
-                            onAction: () => context.go('/water'),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(18),
-                              onTap: () {
-                                HapticsService.tap();
-                                context.go('/water');
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 6,
                                 ),
-                                child: Row(
-                                  children: [
-                                    WaterProgressWidget(
-                                      current: _waterMl,
-                                      goal: _waterTargetMl,
-                                      size: 104,
-                                      strokeWidth: 10,
-                                      trackColor: _waterColor.withValues(alpha: 0.16),
-                                      fillColor: _waterColor,
-                                      center: Text(
-                                        '${(waterPct * 100).round()}%',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                              ),
+                              const SizedBox(height: 14),
+                              _FadeSlideIn(
+                                animation: _entrance,
+                                start: 0.20,
+                                end: 0.70,
+                                child: _SectionCard(
+                                  title: 'AIR',
+                                  actionLabel: 'Semua',
+                                  onAction: () => context.go('/water'),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(18),
+                                    onTap: () {
+                                      HapticsService.tap();
+                                      context.go('/water');
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 6,
                                       ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                      child: Row(
                                         children: [
-                                          const Text(
-                                            'Progress air hari ini',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
+                                          WaterProgressWidget(
+                                            current: _waterMl,
+                                            goal: _waterTargetMl,
+                                            size: 104,
+                                            strokeWidth: 10,
+                                            trackColor: _waterColor.withValues(
+                                              alpha: 0.16,
+                                            ),
+                                            fillColor: _waterColor,
+                                            center: Text(
+                                              '${(waterPct * 100).round()}%',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            '$_waterMl / $_waterTargetMl ml',
-                                            style: const TextStyle(
-                                              color: _muted,
-                                              fontSize: 13,
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Text(
+                                                  'Progress air hari ini',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  '$_waterMl / $_waterTargetMl ml',
+                                                  style: const TextStyle(
+                                                    color: _muted,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        _FadeSlideIn(
-                          animation: _entrance,
-                          start: 0.30,
-                          end: 0.80,
-                          child: _SectionCard(
-                            title: 'KEBIASAAN HARI INI',
-                            actionLabel: 'Semua',
-                            onAction: () => context.go('/habits'),
-                            child: _todayHabits.isEmpty
-                                ? const _EmptyHint(
-                                    text: 'Belum ada kebiasaan terjadwal hari ini.',
-                                  )
-                                : Column(
-                                    children: [
-                                      for (int i = 0; i < shownHabits.length; i++) ...[
-                                        _TodayHabitRow(
-                                          habit: shownHabits[i],
-                                          done: _habitRepo.isCompletedToday(shownHabits[i].id),
-                                          onTap: () => _markHabitDone(shownHabits[i]),
-                                        ),
-                                        if (i != shownHabits.length - 1)
-                                          const SizedBox(height: 10),
-                                      ],
-                                      if (hiddenHabitCount > 0) ...[
-                                        const SizedBox(height: 12),
-                                        Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            '+ $hiddenHabitCount lainnya',
-                                            style: const TextStyle(
-                                              color: _muted,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
+                              const SizedBox(height: 14),
+                              _FadeSlideIn(
+                                animation: _entrance,
+                                start: 0.30,
+                                end: 0.80,
+                                child: _SectionCard(
+                                  title: 'KEBIASAAN HARI INI',
+                                  actionLabel: 'Semua',
+                                  onAction: () => context.go('/habits'),
+                                  child: _todayHabits.isEmpty
+                                      ? const _EmptyHint(
+                                          text:
+                                              'Belum ada kebiasaan terjadwal hari ini.',
+                                        )
+                                      : Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            ..._buildSections(shownHabits).map((section) {
+                                              final (group, habits) = section;
+                                              if (group == null) {
+                                                // Standalone habit
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(bottom: 10),
+                                                  child: _TodayHabitRow(
+                                                    habit: habits.first,
+                                                    done: _habitRepo.isCompletedToday(habits.first.id),
+                                                    streak: _habitRepo.getStreak(habits.first.id),
+                                                    onTap: () => _markHabitDone(habits.first),
+                                                  ),
+                                                );
+                                              }
+                                              // Stacked habits — header + indented rows
+                                              return Padding(
+                                                padding: const EdgeInsets.only(bottom: 10),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(bottom: 6),
+                                                      child: Row(
+                                                        children: [
+                                                          Text(group.emoji, style: const TextStyle(fontSize: 13)),
+                                                          const SizedBox(width: 6),
+                                                          Text(
+                                                            group.name,
+                                                            style: const TextStyle(
+                                                              color: _muted,
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.w600,
+                                                              letterSpacing: 0.3,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    for (int i = 0; i < habits.length; i++)
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(bottom: 6),
+                                                        child: IntrinsicHeight(
+                                                          child: Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                            children: [
+                                                              Container(
+                                                                width: 2,
+                                                                margin: const EdgeInsets.only(left: 6),
+                                                                decoration: BoxDecoration(
+                                                                  color: _habitColor.withValues(alpha: 0.35),
+                                                                  borderRadius: BorderRadius.circular(1),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(width: 10),
+                                                              Expanded(
+                                                                child: _TodayHabitRow(
+                                                                  habit: habits[i],
+                                                                  done: _habitRepo.isCompletedToday(habits[i].id),
+                                                                  streak: _habitRepo.getStreak(habits[i].id),
+                                                                  onTap: () => _markHabitDone(habits[i]),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              );
+                                            }),
+                                            if (hiddenHabitCount > 0) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '+ $hiddenHabitCount lainnya',
+                                                style: const TextStyle(
+                                                  color: _muted,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                            ],
+                                            Text(
+                                              '$_habitsDone / $_habitsDue selesai',
+                                              style: const TextStyle(
+                                                color: _habitColor,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                      ],
-                                      const SizedBox(height: 12),
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          '$_habitsDone / $_habitsDue selesai',
-                                          style: const TextStyle(
-                                            color: _habitColor,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -739,8 +838,8 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _HomeMedicineCard extends StatelessWidget {
-  const _HomeMedicineCard({
+class _HomeMedicineRow extends StatelessWidget {
+  const _HomeMedicineRow({
     required this.medicine,
     required this.doses,
     required this.bucketFor,
@@ -752,135 +851,116 @@ class _HomeMedicineCard extends StatelessWidget {
   final _HomeDoseBucket Function(_HomeDose dose) bucketFor;
   final Future<void> Function(_HomeDose dose) onTapDose;
 
+  Color _dotColor() {
+    if (doses.any((d) => bucketFor(d) == _HomeDoseBucket.now)) {
+      return _medGradient[0];
+    }
+    if (doses.any((d) => bucketFor(d) == _HomeDoseBucket.missed)) {
+      return _missed;
+    }
+    if (doses.isNotEmpty &&
+        doses.every((d) => bucketFor(d) == _HomeDoseBucket.taken)) {
+      return _success;
+    }
+    return _muted;
+  }
+
+  String _nextDoseLabel() {
+    final nowDose = doses.where((d) => bucketFor(d) == _HomeDoseBucket.now);
+    if (nowDose.isNotEmpty) return _fmtMinute(nowDose.first.minute);
+    final upcoming = doses.where(
+      (d) => bucketFor(d) == _HomeDoseBucket.upcoming,
+    );
+    if (upcoming.isNotEmpty) return _fmtMinute(upcoming.first.minute);
+    if (doses.isNotEmpty &&
+        doses.every((d) => bucketFor(d) == _HomeDoseBucket.taken)) {
+      return '✓ Selesai';
+    }
+    return 'Terlewat';
+  }
+
+  _HomeDose? _nowDose() {
+    for (final dose in doses) {
+      if (bucketFor(dose) == _HomeDoseBucket.now) return dose;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final nowDose = _nowDose();
+    final dosage = (medicine.dosage ?? '').trim();
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xAA0D1423),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _panelLine),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: _dotColor(),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   medicine.name,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if ((medicine.dosage ?? '').isNotEmpty)
-                Text(
-                  medicine.dosage!,
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-            ],
+                if (dosage.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    dosage,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final dose in doses)
-                _HomeDoseChip(
-                  label: _fmtMinute(dose.minute),
-                  bucket: bucketFor(dose),
-                  onTap: () => onTapDose(dose),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Text(
-            MedicineMealTiming.label(medicine.mealTimingKey),
+            _nextDoseLabel(),
             style: const TextStyle(color: _muted, fontSize: 12),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeDoseChip extends StatelessWidget {
-  const _HomeDoseChip({
-    required this.label,
-    required this.bucket,
-    required this.onTap,
-  });
-
-  final String label;
-  final _HomeDoseBucket bucket;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isNow = bucket == _HomeDoseBucket.now;
-    final isTaken = bucket == _HomeDoseBucket.taken;
-    final isMissed = bucket == _HomeDoseBucket.missed;
-
-    final foreground = switch (bucket) {
-      _HomeDoseBucket.now => Colors.white,
-      _HomeDoseBucket.taken => _success,
-      _HomeDoseBucket.missed => _missed,
-      _HomeDoseBucket.upcoming => _muted,
-    };
-
-    final background = switch (bucket) {
-      _HomeDoseBucket.taken => _success.withValues(alpha: 0.16),
-      _HomeDoseBucket.missed => _missed.withValues(alpha: 0.16),
-      _HomeDoseBucket.upcoming => const Color(0xFF1A2236),
-      _HomeDoseBucket.now => null,
-    };
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: isNow ? const LinearGradient(colors: _medGradient) : null,
-          color: isNow ? null : background,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isTaken
-                ? _success.withValues(alpha: 0.45)
-                : isMissed
-                    ? _missed.withValues(alpha: 0.35)
-                    : isNow
-                        ? Colors.transparent
-                        : _panelLine,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isTaken) ...[
-              const Icon(Icons.check_rounded, size: 13, color: _success),
-              const SizedBox(width: 4),
-            ] else if (isMissed) ...[
-              const Icon(Icons.close_rounded, size: 13, color: _missed),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                color: foreground,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+          if (nowDose != null) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => onTapDose(nowDose),
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: _medGradient[0].withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  size: 16,
+                  color: Color(0xFFEE5A8C),
+                ),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -890,11 +970,13 @@ class _TodayHabitRow extends StatelessWidget {
   const _TodayHabitRow({
     required this.habit,
     required this.done,
+    required this.streak,
     required this.onTap,
   });
 
   final Habit habit;
   final bool done;
+  final int streak;
   final VoidCallback onTap;
 
   @override
@@ -902,14 +984,75 @@ class _TodayHabitRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: const Color(0xAA0D1423),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: _panelLine),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: _habitColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(habit.emoji, style: const TextStyle(fontSize: 17)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    habit.name,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      decoration: done ? TextDecoration.lineThrough : null,
+                      decorationColor: _muted,
+                    ),
+                  ),
+                  if (habit.reminderMinutes != null) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.alarm_rounded,
+                          size: 11,
+                          color: _muted,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          _fmtMinute(habit.reminderMinutes!),
+                          style: const TextStyle(color: _muted, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (streak > 0) ...[
+              const SizedBox(width: 6),
+              Text(
+                '🔥 $streak',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: _habitColor,
+                ),
+              ),
+            ],
+            const SizedBox(width: 10),
             AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               width: 24,
@@ -928,19 +1071,6 @@ class _TodayHabitRow extends StatelessWidget {
                 color: done ? Colors.white : Colors.transparent,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                habit.name,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  decoration: done ? TextDecoration.lineThrough : null,
-                  decorationColor: _muted,
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -957,11 +1087,7 @@ class _EmptyHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: _muted,
-        fontSize: 13,
-        height: 1.4,
-      ),
+      style: const TextStyle(color: _muted, fontSize: 13, height: 1.4),
     );
   }
 }

@@ -459,11 +459,17 @@ class _MedicineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // first debug text available across all doses (e.g. next alarm)
-    final debugText = doses
-        .map(debugTextFor)
-        .where((t) => t != null)
-        .firstOrNull;
+    // Show next alarm for the most relevant dose:
+    // prefer upcoming/now doses; fall back to any dose if all taken/missed.
+    final relevantDose = doses.firstWhere(
+      (d) {
+        final b = bucketFor(d);
+        return b == _DoseBucket.now || b == _DoseBucket.upcoming;
+      },
+      orElse: () => doses.first,
+    );
+    final debugText = debugTextFor(relevantDose)
+        ?? doses.map(debugTextFor).where((t) => t != null).firstOrNull;
 
     return Container(
       padding: const EdgeInsets.all(16),
