@@ -280,6 +280,16 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(null)
                     }
+                    "simulateSleepTrigger" -> {
+                        // For testing: mark sleep as active so the next unlock fires the game gate
+                        applicationContext.getSharedPreferences(
+                            SleepModeService.PREFS, Context.MODE_PRIVATE
+                        ).edit()
+                            .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true)
+                            .putLong(SleepModeService.KEY_LAST_INTERACTION, 0L)
+                            .apply()
+                        result.success(null)
+                    }
                     "setGameDismissedNormally" -> {
                         val value = call.arguments as? Boolean ?: true
                         applicationContext.getSharedPreferences(

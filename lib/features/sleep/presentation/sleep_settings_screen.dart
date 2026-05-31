@@ -233,6 +233,30 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED).withValues(alpha: 0.15),
+              foregroundColor: const Color(0xFF7C3AED),
+              side: const BorderSide(color: Color(0xFF7C3AED), width: 1),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+            onPressed: () async {
+              await _ch.invokeMethod('simulateSleepTrigger');
+              if (!mounted) return;
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Sleep mode aktif. Kunci lalu buka kunci HP untuk tes.',
+                  ),
+                  duration: Duration(seconds: 5),
+                ),
+              );
+            },
+            icon: const Icon(Icons.bedtime_rounded, size: 18),
+            label: const Text('Test Sleep Gate'),
+          ),
           const SizedBox(height: 24),
         ],
       ),
