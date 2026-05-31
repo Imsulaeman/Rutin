@@ -121,11 +121,37 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 - **Sleep gate on-device**: FBE limitation confirmed — BOOT_COMPLETED fires after first unlock on Android 14, so post-reboot mornings miss the first gate trigger.
 
 ---
+**2026-05-31 - Codex**
+- **Home dashboard cards improved** in `lib/features/home/presentation/home_screen.dart` only.
+- **Habit rows** now show emoji, optional reminder time, and streak (`🔥 N`) alongside the completion circle.
+- **Medicine section** now uses compact single-line rows with a status dot, next-dose label, dosage under the medicine name when available, and a quick check button for due-now doses instead of tall chip cards.
+- **Verified:** `dart analyze lib/features/home/presentation/home_screen.dart` -> no issues.
+
+---
+**2026-05-31 - Codex**
+- **Water next-reminder label shipped** in `lib/features/water/presentation/water_screen.dart` only.
+- **Water ring** now shows the next reminder timing below the percentage while reminders are active and refreshes the label every minute.
+- **Docs synced:** Home dashboard and Water next-reminder sections are marked completed; Habit Multiple Reminder Times remains pending.
+- **Verified:** `dart analyze lib/features/water/presentation/water_screen.dart` -> no issues.
+
+---
+**2026-05-31 - Codex**
+- **Habit multiple reminder times shipped**: habits now persist `reminderTimes`, while `reminderMinutes` remains as the legacy-compatible first reminder.
+- **Add/edit flow upgraded**: the original `Aktifkan pengingat` switch remains the entry point. Turning it on reveals an initial `08:00` row plus the existing Add Medicine-style multi-time card with purple Habits styling; turning it off clears the reminder schedule. Reminder times are deduplicated and sorted on save.
+- **Routine creation shortcut added**: `Tambah Kebiasaan` now has a compact `+ Tambah` action beside `RUTINITAS`; creating a routine stack from the form saves it and selects it immediately.
+- **Routine dialog back/cancel crash fixed**: the dialog-owned text controller is disposed after its closing animation instead of immediately after `Navigator.pop`, avoiding a disposed-controller red screen.
+- **Alarm lifecycle hardened**: each habit reminder time gets a deterministic alarm ID; edit, delete, medal-retire, and delete-routine-with-habits paths cancel all current alarms plus the legacy single alarm.
+- **Implementation note:** alarm IDs use 11 low bits for minute-of-day (`0..1439`), not the draft's 9 bits (`0..511`), to avoid collisions between valid reminder times.
+- **Verified:** analyzer completed with only the pre-existing `onReorder` deprecation info in `habits_screen.dart`.
+
+---
 <!-- Add new log entries above this line, newest first -->
+
+Home dashboard note: this task is already shipped. The delivered state includes emoji + reminder time + streak on habit rows, compact medicine rows, and dosage shown under the medicine name when available.
 
 ---
 
-## Pending Task — Home Dashboard Card Improvements
+## Completed Task — Home Dashboard Card Improvements
 
 **File:** `lib/features/home/presentation/home_screen.dart` only. No other files.
 
@@ -204,7 +230,7 @@ Remove `_HomeDoseChip` if no longer used.
 
 ---
 
-## Pending Task — Water Tab: Next Reminder Time
+## Completed Task — Water Tab: Next Reminder Time
 
 **File:** `lib/features/water/presentation/water_screen.dart` only.
 
@@ -266,7 +292,7 @@ if (_nextReminderLabel() != null) ...[
 
 ---
 
-## Pending Task — Habit Multiple Reminder Times
+## Completed Task — Habit Multiple Reminder Times
 
 **Goal:** habits support multiple daily reminders like medicine does.
 **Scope:** 4 files — model, hand-edited adapter, add screen, reminder service.
@@ -373,3 +399,155 @@ static Future<void> cancelAll(Habit habit) async {
 Update all callers of old `scheduleReminder`/`cancelReminder` to use `scheduleAll`/`cancelAll`.
 
 **What NOT to do:** do not modify `HabitAlarmReceiver.kt`, do not run build_runner, do not remove `reminderMinutes`.
+
+---
+
+## Pending Task — Habit Multi-Completion (per-reminder check-off)
+
+**Problem:** A habit with multiple reminder times (e.g. workout morning + evening) only needs ONE check to show as fully done all day — the remaining slots get ignored. Completion should be a count, not a binary.
+
+**Decision (locked with owner):**
+- A habit's daily **target** = number of reminder times (min 1).
+- Each completion is one tap; you can tap to add and tap to undo.
+- Reminders keep firing for all slots regardless of completion (no suppression).
+- **Streak rule:** day with **0%** done → streak breaks. Day with **>0% but <100%** → streak **survives but does not increase**. Day with **100%** → streak **increases**.
+- Home "X / Y selesai" summary counts **only fully-complete habits** (a 1/2 habit is NOT counted).
+
+**No Hive model change needed** — `HabitLog` already uses `_logs.add()` (auto-key), so multiple rows per day are allowed. Completion count = number of HabitLog rows for (habitId, today).
+
+---
+
+### Step 1 — `habit_repository.dart`
+
+Add target-aware completion logic. Replace the binary `isCompletedToday` and `markDone`.
+
+```dart
+/// Daily target = number of reminder times (min 1).
+int dailyTarget(Habit habit) {
+  final times = habit.reminderTimes.isNotEmpty
+      ? habit.reminderTimes
+      : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : const <int>[]);
+  return times.isEmpty ? 1 : times.length;
+}
+
+int completionsToday(String habitId) {
+  final today = AppDateUtils.todayString();
+  return _logs.values.where((l) => l.habitId == habitId && l.date == today).length;
+}
+
+/// Fully done = completions >= target. (Signature unchanged — callers unaffected.)
+bool isCompletedToday(String habitId) {
+  final habit = _habits.get(habitId);
+  if (habit == null) return false;
+  return completionsToday(habitId) >= dailyTarget(habit);
+}
+
+Future<void> addCompletion(String habitId) async {
+  await _logs.add(HabitLog()
+    ..habitId = habitId
+    ..date = AppDateUtils.todayString());
+}
+
+Future<void> removeCompletion(String habitId) async {
+  final today = AppDateUtils.todayString();
+  final entry = _logs.toMap().entries
+      .where((e) => e.value.habitId == habitId && e.value.date == today)
+      .lastOrNull;
+  if (entry != null) await _logs.delete(entry.key);
+}
+
+/// Rating-style set: add/remove rows until count == n (clamped 0..target).
+Future<void> setCompletionsToday(Habit habit, int n) async {
+  final target = dailyTarget(habit);
+  n = n.clamp(0, target);
+  var current = completionsToday(habit.id);
+  while (current < n) { await addCompletion(habit.id); current++; }
+  while (current > n) { await removeCompletion(habit.id); current--; }
+}
+```
+
+Keep `markDone(habitId)` working (some callers use it) — redefine as "add one, capped at target":
+```dart
+Future<void> markDone(String habitId) async {
+  final habit = _habits.get(habitId);
+  if (habit == null) return;
+  if (completionsToday(habitId) < dailyTarget(habit)) {
+    await addCompletion(habitId);
+  }
+}
+```
+
+**Streak rewrite:**
+```dart
+int getStreak(String habitId) {
+  final habit = _habits.get(habitId);
+  if (habit == null) return 0;
+  final target = dailyTarget(habit);
+
+  final byDate = <String, int>{};
+  for (final l in _logs.values.where((l) => l.habitId == habitId)) {
+    byDate[l.date] = (byDate[l.date] ?? 0) + 1;
+  }
+
+  int streak = 0;
+  var day = DateTime.now();
+
+  // Today: full → counts; partial or zero → does NOT break (day in progress).
+  final todayCount = byDate[AppDateUtils.toDateString(day)] ?? 0;
+  if (todayCount >= target) streak++;
+  day = day.subtract(const Duration(days: 1));
+
+  // Past days: full → +1; partial → survive (skip); zero → break.
+  var guard = 0;
+  while (guard++ < 3660) {
+    final count = byDate[AppDateUtils.toDateString(day)] ?? 0;
+    if (count >= target) {
+      streak++;
+    } else if (count > 0) {
+      // partial — streak survives, no increment
+    } else {
+      break; // missed a full past day
+    }
+    day = day.subtract(const Duration(days: 1));
+  }
+  return streak;
+}
+```
+
+**Caveat (acceptable for v1):** past days are compared to the *current* target. If the user later changes reminder count, historical fractions shift. Fine for now.
+
+---
+
+### Step 2 — `habit_card.dart` (Kebiasaan list)
+
+- If `dailyTarget(habit) == 1` → keep the existing single check-circle UI and tap behavior unchanged.
+- If `dailyTarget(habit) > 1` → render a **row of small dots** (one per target) below the title.
+  - Dot ~16px. Filled (index < completionsToday) = habit color + small check icon. Empty = outline `AppTheme.muted`.
+  - **Rating-style tap** on dot index `i`:
+    - if `i + 1 == completionsToday` → `setCompletionsToday(habit, i)` (tapping the topmost filled dot clears one — undo)
+    - else → `setCompletionsToday(habit, i + 1)`
+  - Haptics: increasing → `HapticsService.tap()`; reaching full → `HapticsService.success()`; decreasing → `HapticsService.softTap()`.
+  - The card's done-styling (tinted bg) applies only when fully complete (`isCompletedToday`).
+
+---
+
+### Step 3 — `home_screen.dart` (`_TodayHabitRow`)
+
+Mirror the same dot row when `target > 1` (tappable, same rating logic). Single-target habits keep the existing check circle. The "X / Y selesai" summary already works unchanged — `isCompletedToday` is now target-aware so only fully-done habits count.
+
+---
+
+### Step 4 — `morning_gate_screen.dart`
+
+In the habits card, show the dots **read-only** (filled/empty per `completionsToday` vs target) — the gate is a read-only dashboard, not tappable.
+
+---
+
+### Verify
+- `dart analyze` on all four files — no errors
+- Manual: habit with 2 reminders → tap 1 dot → shows 1/2, card not marked fully done, streak survives but doesn't grow. Tap 2nd → full, streak grows next day. Tap a filled dot → undoes.
+
+### What NOT to do
+- No Hive model/adapter change (multiple HabitLog rows already work)
+- No notification suppression — all reminders keep firing
+- Do not change `markDone` callers' signatures; keep single-target UX identical
