@@ -167,5 +167,17 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Empty states
 - [x] UI redesign pass
 - [ ] Medal/profile collection screen
+
+## ADA Portfolio Prep
+- [ ] App icon (final, production-ready)
+- [ ] Splash screen
+- [ ] Onboarding flow (3–5 screens: problem, solution, permissions ask)
+- [ ] Play Store listing copy (ID + EN): short description, full description, feature graphic
+- [ ] Play Store screenshots (6 screens: Home, Medicine, Water, Habits, Sleep Gate, Game)
+- [ ] App pitch deck / one-pager (problem → solution → impact → TB stats)
+- [ ] Demo video / screen recording (30–60s walkthrough)
+- [ ] README polish (GitHub repo, for ADA reviewers who look at code)
+- [ ] Internal beta on Play Store (so ADA can install directly)
+- [ ] Crash-free rate check (Firebase Crashlytics or at minimum no known crashes)
 - [ ] Data backup / JSON export
 - [ ] Play Store listing
