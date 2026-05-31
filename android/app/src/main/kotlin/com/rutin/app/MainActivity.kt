@@ -17,6 +17,15 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+
+    companion object {
+        private var bgMusic: MediaPlayer? = null
+
+        fun stopBgMusic() {
+            bgMusic?.runCatching { stop(); release() }
+            bgMusic = null
+        }
+    }
     private val channelName = "habit_app/native_reminder"
     private val sleepChannelName = "rutin/sleep"
 
@@ -144,6 +153,18 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(null)
                     }
+                    "startMusic" -> {
+                        stopBgMusic()
+                        bgMusic = MediaPlayer.create(applicationContext, R.raw.ringtone)?.apply {
+                            isLooping = true
+                            start()
+                        }
+                        result.success(null)
+                    }
+                    "stopMusic" -> {
+                        stopBgMusic()
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -233,12 +254,14 @@ class MainActivity : FlutterActivity() {
                         val sleepStart = call.argument<Int>("sleepStartMin") ?: 1260
                         val wakeStart = call.argument<Int>("wakeWindowStart") ?: 300
                         val wakeEnd = call.argument<Int>("wakeWindowEnd") ?: 600
+                        val enabled = call.argument<Boolean>("enabled") ?: false
                         applicationContext.getSharedPreferences(
                             "sleep_settings_native", Context.MODE_PRIVATE
                         ).edit()
                             .putInt("sleep_start_min", sleepStart)
                             .putInt("wake_window_start", wakeStart)
                             .putInt("wake_window_end", wakeEnd)
+                            .putBoolean("enabled", enabled)
                             .apply()
                         result.success(null)
                     }

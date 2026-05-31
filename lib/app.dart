@@ -92,7 +92,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/wakeup-game',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const WakeupGameScreen(),
+      builder: (_, state) => WakeupGameScreen(forceGameIndex: state.extra as int?),
     ),
   ],
 );

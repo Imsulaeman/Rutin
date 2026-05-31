@@ -214,10 +214,24 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen> {
             ),
           ]),
           const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/wakeup-game'),
-            icon: const Icon(Icons.videogame_asset_rounded),
-            label: const Text('Coba Game Bangun Tidur'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push('/wakeup-game', extra: 0),
+                  icon: const Icon(Icons.grid_view_rounded, size: 18),
+                  label: const Text('Test Sequence'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push('/wakeup-game', extra: 2),
+                  icon: const Icon(Icons.music_note_rounded, size: 18),
+                  label: const Text('Test Rhythm'),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
         ],
