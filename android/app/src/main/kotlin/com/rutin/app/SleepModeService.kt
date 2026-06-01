@@ -93,8 +93,11 @@ class SleepModeService : Service() {
         stillAwakeReceiver?.let { runCatching { unregisterReceiver(it) } }
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
             .putBoolean(KEY_SERVICE_RUNNING, false)
-            .putBoolean(KEY_SLEEP_ACTIVE, false)
             .apply()
+        // KEY_SLEEP_ACTIVE is intentionally NOT cleared here — if Android kills the
+        // service before the user wakes up, the flag must survive so the gate can still
+        // fire on the next unlock. It is cleared by WakeUpTriggerReceiver (on fire) and
+        // SleepScheduleReceiver.finishNight (end of night window).
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

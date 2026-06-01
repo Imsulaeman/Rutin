@@ -19,6 +19,7 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 - Direct and fast — no filler, no over-explaining
 - Simple over clever — if there's a 10-line solution and you wrote 50, rewrite it
 - Ask before any visual/design decision — never guess on UI
+- Treat localization as a product requirement, not polish - no mixed-language UI, no hardcoded visible strings on user-facing screens, and no manual Indonesian-only date/day/month labels when locale-aware formatting exists
 - No Inter/Roboto fonts
 - Glassmorphism and gradients are allowed if used with intention and taste — not as defaults
 
@@ -48,6 +49,7 @@ Full details: `docs/ARCHITECTURE.md`
 ## Key Decisions Already Made
 
 - **Bahasa Indonesia default**, English secondary
+- **Localization must stay complete in both supported languages** - every new visible string, dialog, snackbar, helper text, empty state, mascot nudge, and date/day/month label must respect the selected locale
 - **Offline-first** — no account, no internet required, ever
 - **Free forever** — no paywalls, no premium tier
 - **Medicine reminder is alarm-grade** — re-notifies every 1 min until taken
@@ -116,11 +118,37 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 ---
 
 **2026-05-31 - Codex**
+- **History navigation and UX corrected**: the overall History feed now lives in the hamburger/Profile menu rather than Settings, and the screen no longer uses the sideways reversed day strip. It now shows a normal vertical layout with a recent-day picker, per-feature summary, and newest-first feed for the selected day.
+- **Habits history corrected to helicopter view**: per-habit calendar entry points were removed from habit cards. Habits now exposes one top-bar calendar action, matching Medicine, and `HabitHistoryScreen` was repurposed into an overall habits monthly overview with selected-day breakdown.
+- **Verified:** focused `dart analyze` on `app.dart`, habits history/card/screen, and `history_screen.dart` passed with info-level lints only.
+
+---
+
+**2026-05-31 - Codex**
+- **Wake-up Game 5 rewritten to Flow Free-style**: the old numbered-dot activity is now a 6×6 `Connect the Colors` puzzle with four seeded color pairs, orthogonal drag paths, path overwrite on crossing, and a win only when all pairs connect and the full board is filled.
+- **Verified:** `dart analyze lib/features/sleep/presentation/wakeup_game_screen.dart` passed after the rewrite. Device/manual puzzle playthrough is now tracked in `MANUAL_TEST_CHECKLIST.md`.
+
+---
+
+**2026-05-31 - Codex**
 - **Four pending product specs shipped**: Connect the Dots wake-up game, medicine streak badges, habit history calendar, and the Profile-accessible Settings screen.
 - **Connect the Dots** joins the daily wake-up rotation with seeded 1→8 drag progression, haptics, persistent connected lines, and no fail state.
 - **Computed adherence surfaces**: medicine cards now show consecutive fully-taken day streaks, while habit cards expose a read-only monthly calendar with full, partial, and missed states from existing logs.
 - **Settings screen**: Mode Tidur link, live accessibility status, persisted language preference, and About/version details. Locale wiring remains intentionally deferred.
 - **Verified:** targeted and full `dart analyze` report no errors; only existing info-level notices remain.
+
+---
+
+**2026-06-02 - Claude**
+- **Connect the Dots: procedural generation** — replaced 5 hardcoded puzzles with Warnsdorff's Hamiltonian path algorithm. Finds a path covering all 36 cells, splits at 3 random cut points into 4 segments, each segment's endpoints become a color pair. Seed is still date-based (same puzzle per day, different every day, no cycle). Fallback to boustrophedon snake if Warnsdorff fails (rare on 6×6).
+- **Connect the Dots: touch offset bug fixed** — `GestureDetector` was wrapping the full `LayoutBuilder` area, but the board `SizedBox` was `Center`-ed inside it. `localPosition` was measured from the outer container, not the board, causing touch to be offset by `(maxHeight − boardSize) / 2`. Fixed by moving `GestureDetector` inside `Center`.
+
+---
+
+**2026-06-02 - Claude**
+- **Sleep mode cold-start gate drop fixed**: `WakeUpTriggerReceiver` launches `MainActivity` with `route="/morning-gate"` extra. On cold start (app process dead), Android calls `onCreate`/`configureFlutterEngine` — not `onNewIntent` — so the route extra was silently dropped and the gate never appeared. Fix: Dart's `_LaunchGameListenerState.initState` now calls `checkPendingGate` on the native channel immediately after registering the `launchGame` handler; native reads `intent.getStringExtra("route")` (always available on the Activity) and returns true if the gate is pending, then clears the extra.
+- **`KEY_SLEEP_ACTIVE` no longer cleared on service destroy**: `SleepModeService.onDestroy` was setting `KEY_SLEEP_ACTIVE = false`, which meant if Android killed the service overnight (battery optimization), the gate would silently fail even if sleep had been detected. The flag now persists until properly cleared by `WakeUpTriggerReceiver` (on gate fire) or `SleepScheduleReceiver.finishNight` (end of window).
+- **Root cause confirmed by**: test button (warm-start path) worked → overnight trigger (cold-start path) didn't.
 
 ---
 
@@ -1420,7 +1448,7 @@ double adherenceScore(TBTreatmentProfile profile, MedicineRepository repo) {
 
 ---
 
-## Pending Task — Flow Free Connect the Dots (rewrite Game 5)
+## Completed Task — Flow Free Connect the Dots (rewrite Game 5)
 
 **File:** `lib/features/sleep/presentation/wakeup_game_screen.dart` only.
 
@@ -1703,62 +1731,111 @@ A single screen showing combined chronological activity across all features: med
 
 ```
 Scaffold → CustomScrollView
-  SliverAppBar(pinned, title: 'History')
-  SliverToBoxAdapter → _CalendarStrip (horizontal 4-week scroll, today highlighted)
+  SliverAppBar(pinned, title: 'Riwayat' / 'History')
+    actions: [_DatePickerButton]
   SliverList → activity feed items (newest first, filtered to selected day)
+  if empty: SliverFillRemaining → empty state
 ```
 
-### `_CalendarStrip`
+No calendar strip. Day selection lives entirely in the AppBar action.
 
-Horizontal `ListView` of the past 28 days + today. Each day = 48×56 column:
-- Day letter (M T W T F S S) — 11pt _grey
-- Day number — 15pt bold white
-- Activity dot (8px circle) below: habitsColor if any habit done, medicineColor if any medicine taken, waterColor if any water logged, transparent if nothing
-- Selected day: white background, dark text
+---
 
-Tapping a day filters the feed below to that day. Default = today.
+### `_DatePickerButton`
 
-### Feed items
-
-For the selected day, collect:
-
-**Medicine:** for each `MedicineLog` where `takenAt` is on that day and `status == 'taken'`:
-```
-Row: pink dot | "Took [medicine name]" | time (HH:mm)
-```
-
-**Habits:** for each `HabitLog` where `date == dateStr`:
-```
-Row: purple dot | "[emoji] [habit name]" | "completed"
-```
-
-**Water:** for each `WaterLog` where date matches:
-```
-Row: blue dot | "Drank [Xml] of water" | time (if available) or just "logged"
-```
-
-Sort all feed items by time (descending). If nothing: empty state "Nothing logged on this day."
-
-### Settings entry
-
-In `settings_screen.dart`, add a card at the top (above Sleep Mode):
+A text button in the AppBar showing the currently selected date. Tapping opens Flutter's standard `showDatePicker`.
 
 ```dart
-Card(
-  child: ListTile(
-    leading: Icon(Icons.history_rounded, color: AppTheme.habitsColor),
-    title: Text('History'),
-    subtitle: Text('Activity log across all features'),
-    trailing: Icon(Icons.chevron_right_rounded),
-    onTap: () => context.push('/history'),
-  ),
+TextButton.icon(
+  icon: const Icon(Icons.calendar_today_rounded, size: 16),
+  label: Text(_selectedDay == _today ? localized(context, id: 'Hari ini', en: 'Today') : _fmtShort(_selectedDay)),
+  style: TextButton.styleFrom(foregroundColor: Colors.white70),
+  onPressed: () async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDay,
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) setState(() => _selectedDay = picked);
+  },
 )
 ```
 
+`_fmtShort` → `DateFormat('d MMM', locale).format(day)` via `intl`.
+
+Default `_selectedDay = DateTime.now()`.
+
+---
+
+### Feed items
+
+For the selected day, collect all events across boxes. Sort by time descending. Each item is a slim row inside a `Card`:
+
+```
+Card(margin: h16/v4)
+  ListTile(dense: true)
+    leading: Container(10×10 circle, color: featureColor)
+    title: Text(description)        // e.g. "💊 Amoxicillin", "⭐ Morning Run"
+    trailing: Text(timeStr, _muted) // "08:30" or ""
+```
+
+**Medicine:** `MedicineLog` where `takenAt.date == selectedDay` and log is a taken entry.
+- color: `medicineColor` (pink `#EE5A8C`)
+- description: `"💊 ${medicine.name}"`
+- time: `DateFormat('HH:mm').format(log.takenAt)`
+
+**Habits:** `HabitLog` where `date == dateStr`.
+- color: `habitsColor` (purple `#7C3AED`)
+- description: `"${habit.emoji} ${habit.name}"`
+- time: `""` (HabitLog has no timestamp — omit)
+
+**Water:** `WaterLog` where `date == dateStr`.
+- color: `waterColor` (blue `#3E8BF0`)
+- description: `localized(id: 'Minum ${log.mlLogged} ml', en: 'Drank ${log.mlLogged} ml')`
+- time: `""` (WaterLog has no timestamp — omit)
+
+**Empty state** (no items for selected day):
+```dart
+Column(mainAxisAlignment: center, children: [
+  const Text('📭', style: TextStyle(fontSize: 48)),
+  const SizedBox(height: 12),
+  Text(localized(context, id: 'Tidak ada aktivitas hari ini', en: 'Nothing logged on this day'),
+      style: TextStyle(color: _muted)),
+])
+```
+
+---
+
+### Lookup helpers
+
+```dart
+// Resolve habit name/emoji from habitId
+Habit? _habitFor(String id) => Hive.box<Habit>('habits').get(id);
+
+// Resolve medicine name from medicineId
+Medicine? _medicineFor(String id) => Hive.box<Medicine>('medicines').get(id);
+
+// Date equality helper
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+```
+
+---
+
+### Settings entry (profile_screen.dart — already has History card)
+
+The History card is already in `profile_screen.dart` pointing to `/history`. No change needed there.
+In `settings_screen.dart`, add the same card above Sleep Mode if not already present.
+
+---
+
 ### What NOT to do
-- No new Hive boxes — read directly from existing `medicine_logs`, `habit_logs`, `water_logs` boxes
+- No calendar strip — date picker in AppBar is the only day selector
+- No new Hive boxes — read directly from existing `medicine_logs`, `habit_logs`, `water_logs`, `habits`, `medicines` boxes
 - Do not modify existing data models
 - Keep it read-only — no actions in the feed
+- Do not try to show timestamps for habit/water logs — they don't store one
 
 ---
 
@@ -1848,3 +1925,415 @@ Font size: 14 → 12.
 - Do not change `_CompletionDots` logic or size
 - Do not change `onTap`, `onMoreTap`, or any other behavior
 - Do not touch `habits_screen.dart`
+
+---
+
+## Pending Task — Home Navbar: Solid Background
+
+**File:** `lib/features/home/presentation/home_screen.dart` only.
+
+The top navbar (`_Header`) currently floats transparently over the hero image — icons and text are readable but the bar has no background, making it feel like it blends into the sky. Fix: give the header a solid, non-transparent background surface.
+
+---
+
+### Change — `_Header.build()`
+
+Wrap the existing `Padding` in a `DecoratedBox` with a solid `_bgTop` background:
+
+```dart
+@override
+Widget build(BuildContext context) {
+  return DecoratedBox(
+    decoration: const BoxDecoration(color: _bgTop),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _IconButton(icon: Icons.menu_rounded, onTap: onMenu),
+              Expanded(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+              _IconButton(icon: Icons.calendar_today_rounded, onTap: onMenu),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(date, style: const TextStyle(fontSize: 13, color: _muted)),
+        ],
+      ),
+    ),
+  );
+}
+```
+
+The bottom padding increases from `0` to `10` so the date label doesn't sit flush against the hero image edge.
+
+### What NOT to do
+- Do not add a blur effect (`BackdropFilter`) — keep it simple and solid
+- Do not change `_HomeHero`, the scroll physics, or layout of any other widget
+- Do not touch anything outside `_Header`
+
+---
+
+## Pending Task — Profile Page: User Identity + Avatar
+
+**Files:**
+- New: `lib/features/profile/data/user_profile_model.dart` + `user_profile_model.g.dart` (hand-edit)
+- Modified: `lib/features/profile/presentation/profile_screen.dart`
+- Modified: `lib/main.dart` (open new box)
+
+**Goal:** Let the user set their name, age, and pick an avatar character. Show the avatar + name prominently in the profile header alongside the existing streak and medals. All data is local (Hive).
+
+---
+
+### Step 1 — Data model (`user_profile_model.dart`)
+
+```dart
+import 'package:hive/hive.dart';
+
+part 'user_profile_model.g.dart';
+
+@HiveType(typeId: 12)
+class UserProfile extends HiveObject {
+  @HiveField(0)
+  String name = '';
+
+  @HiveField(1)
+  int age = 0;       // 0 = not set
+
+  @HiveField(2)
+  int avatarId = 0;  // 0–9, maps to avatar asset filenames
+}
+```
+
+**Hand-edit `user_profile_model.g.dart`** (standard Hive adapter boilerplate, typeId: 12, 3 fields).
+
+**Register in `main.dart`:**
+```dart
+Hive.registerAdapter(UserProfileAdapter());
+// in _openHiveBoxes():
+Hive.openBox<UserProfile>('user_profile'),
+```
+
+---
+
+### Step 2 — Avatar assets
+
+10 diverse multicultural characters. User generates on **white background** (not checkerboard), cleans via `preview/clean_mascot.py`, converts to WebP at 82 quality.
+
+Asset filenames: `assets/avatar_0.webp` through `assets/avatar_9.webp`.
+
+**Character prompts** (3D chibi/cartoon style, consistent with the app's existing mascot art — rounded shapes, soft lighting, transparent bg on white, bust portrait 512×512):
+
+```
+Shared style block for all 10:
+"3D cartoon chibi portrait, soft rounded shapes, pastel shading, subtle rim light, 
+white background, bust shot centered, friendly expression, high detail, 
+consistent style across all characters, no text"
+
+0 — Ayu (Indonesian girl): warm brown skin, hijab in dusty peach, 
+    soft dark eyes, gentle smile, simple modest top
+
+1 — Kai (Japanese boy): light skin, neat short black hair with a slight 
+    side part, athletic jacket in navy-white, sporty grin
+
+2 — Priya (South Asian girl): medium-brown skin, long straight black 
+    hair, small bindi, violet kurta top, warm expression
+
+3 — Marcus (Black/African-American boy): deep brown skin, tight fade 
+    haircut with a shape-up, grey hoodie, bright wide smile
+
+4 — Yusuf (Middle Eastern young man): olive skin, short trimmed beard, 
+    white thobe collar, calm thoughtful look
+
+5 — Elena (Eastern European girl): pale skin, platinum blonde hair in 
+    a loose braid, mint-green sweater, soft cheerful expression
+
+6 — Diego (Latin/Hispanic boy): warm tan skin, messy wavy dark hair, 
+    colorful patchwork jacket in orange and teal, energetic grin
+
+7 — Amara (West African girl): deep brown skin, full natural afro, 
+    golden hoop earrings, bright yellow ankara-print top
+
+8 — Sora (Korean nonbinary): light skin, lavender-tipped black bob, 
+    minimalist white jacket with a small pin badge, subtle smile
+
+9 — Lani (Pacific Islander/Filipino girl): medium brown skin, long 
+    wavy dark hair with a flower tucked in, tropical teal top
+```
+
+> Store prompts in `preview/AVATAR_PROMPTS.md`. Run `clean_mascot.py` on each generated PNG before shipping.
+
+---
+
+### Step 3 — `profile_screen.dart` changes
+
+**State additions:**
+```dart
+late Box<UserProfile> _profileBox;
+UserProfile? _profile;
+
+// Controllers for the edit sheet
+final _nameCtrl = TextEditingController();
+final _ageCtrl = TextEditingController();
+int _editAvatarId = 0;
+```
+
+In `initState`:
+```dart
+_profileBox = Hive.box<UserProfile>('user_profile');
+_profile = _profileBox.getAt(0);
+```
+
+**Replace `_buildHeader`** with the new version below. Keep all existing content (streak, medals section) — only the top portion of the header changes.
+
+#### New `_buildHeader` layout:
+
+```
+Container(gradient: navy top→bottom, padding: h24/top60/bottom32)
+  Column
+    // — Avatar row —
+    Stack
+      GestureDetector(onTap: _openEditSheet)
+        Container(80×80, shape: circle,
+          decoration: gradient ring (habitColor → medicineColor, width 3px))
+          ClipOval
+            _profile?.avatarId != null
+              ? Image.asset('assets/avatar_${_profile!.avatarId}.webp', fit: cover)
+              : Icon(Icons.person_rounded, size: 40, color: white54)
+      // Edit badge
+      Positioned(bottom:0, right:0)
+        Container(22×22, circle, bg: _bgTop, border: white10)
+          Icon(Icons.edit_rounded, size: 12, color: white70)
+
+    SizedBox(height: 12)
+
+    // — Name / age —
+    if (_profile?.name.isNotEmpty == true)
+      Text(_profile!.name, 22pt bold white, letterSpacing: -0.5)
+    else
+      GestureDetector(onTap: _openEditSheet)
+        Text('Tap to set your name', 15pt, white38)
+
+    if (_profile?.age != null && _profile!.age > 0)
+      Text('${_profile!.age} years old', 13pt white54)
+
+    SizedBox(height: 24)
+
+    // — Streak (existing, unchanged) —
+    [animated flame + streak number + "best streak days" label]
+
+    SizedBox(height: 16)
+
+    // — Win streak chip row —
+    _WinStreakRow(bestStreak: _bestActiveStreak)
+
+    SizedBox(height: 24)
+
+    // — Medals title (existing) —
+    [medals label + subtitle]
+```
+
+#### `_WinStreakRow` widget:
+
+A horizontal row of stat chips. Each chip: rounded container, icon + value + label.
+
+```
+Row(mainAxisAlignment: center)
+  _StatChip(icon: '🔥', value: '$_bestActiveStreak', label: localized 'Best streak')
+  SizedBox(16)
+  _StatChip(icon: '🏅', value: '${_list.length}', label: localized 'Medals')
+  SizedBox(16)
+  _StatChip(icon: '📅', value: '$_habitsDoneTotal', label: localized 'Habits done')
+```
+
+`_habitsDoneTotal`: count of all `HabitLog` entries = `Hive.box<HabitLog>('habit_logs').length`.
+
+```dart
+class _StatChip extends StatelessWidget {
+  const _StatChip({required this.icon, required this.value, required this.label});
+  final String icon, value, label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xCC111A2A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF26324A)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 20)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF9AA3B2))),
+        ],
+      ),
+    );
+  }
+}
+```
+
+---
+
+### Step 4 — Edit bottom sheet (`_openEditSheet`)
+
+```dart
+void _openEditSheet() {
+  final profile = _profile ?? UserProfile();
+  _nameCtrl.text = profile.name;
+  _ageCtrl.text = profile.age > 0 ? '${profile.age}' : '';
+  setState(() => _editAvatarId = profile.avatarId);
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF111A2A),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheet) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          left: 24, right: 24, top: 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar grid (2 rows × 5 cols)
+            const Text('Choose your character',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 5, mainAxisSpacing: 8, crossAxisSpacing: 8,
+              ),
+              itemCount: 10,
+              itemBuilder: (_, i) => GestureDetector(
+                onTap: () => setSheet(() => _editAvatarId = i),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _editAvatarId == i
+                          ? const Color(0xFFF4A92B)
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset('assets/avatar_$i.webp', fit: BoxFit.cover),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Name field
+            TextField(
+              controller: _nameCtrl,
+              maxLength: 30,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: localized(context, id: 'Nama', en: 'Name'),
+                labelStyle: const TextStyle(color: Color(0xFF9AA3B2)),
+                counterStyle: const TextStyle(color: Color(0xFF9AA3B2)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF26324A)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFF4A92B)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Age field
+            TextField(
+              controller: _ageCtrl,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: localized(context, id: 'Usia', en: 'Age'),
+                labelStyle: const TextStyle(color: Color(0xFF9AA3B2)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF26324A)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFF4A92B)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Save button
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFF4A92B),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () {
+                  final p = _profile ?? UserProfile();
+                  p.name = _nameCtrl.text.trim();
+                  p.age = int.tryParse(_ageCtrl.text) ?? 0;
+                  p.avatarId = _editAvatarId;
+                  if (_profile == null) {
+                    _profileBox.add(p);
+                  } else {
+                    p.save();
+                  }
+                  setState(() => _profile = p);
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(localized(context, id: 'Simpan', en: 'Save')),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+```
+
+---
+
+### Verify
+- `dart analyze` on both files — no errors
+- Profile header shows avatar circle, name, age, stat chips
+- Tapping avatar / pencil badge opens the sheet
+- Avatar grid shows all 10 characters; selected one has gold ring
+- Save persists across app restarts (Hive box)
+- Medals section and menu links (History, Sleep Mode, Treatment, Settings) are unchanged
+
+### What NOT to do
+- Do not add a separate "profile edit" screen — use the bottom sheet
+- Do not remove or reorder existing menu links
+- Do not change medal card logic
+- Do not run build_runner — hand-edit the adapter

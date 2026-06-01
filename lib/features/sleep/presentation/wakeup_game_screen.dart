@@ -199,8 +199,16 @@ class _Header extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   streak == 0
-                      ? localized(context, id: 'Hari pertama!', en: 'First day!')
-                      : localized(context, id: 'Hari ke-$streak', en: 'Day $streak'),
+                      ? localized(
+                          context,
+                          id: 'Hari pertama!',
+                          en: 'First day!',
+                        )
+                      : localized(
+                          context,
+                          id: 'Hari ke-$streak',
+                          en: 'Day $streak',
+                        ),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -369,8 +377,16 @@ class _SequenceGameState extends State<_SequenceGame>
           duration: const Duration(milliseconds: 300),
           child: Text(
             _isPlaying
-                ? localized(context, id: 'Perhatikan...', en: 'Watch closely...')
-                : localized(context, id: 'Ketuk urutannya!', en: 'Tap the sequence!'),
+                ? localized(
+                    context,
+                    id: 'Perhatikan...',
+                    en: 'Watch closely...',
+                  )
+                : localized(
+                    context,
+                    id: 'Ketuk urutannya!',
+                    en: 'Tap the sequence!',
+                  ),
             key: ValueKey(_isPlaying),
             style: TextStyle(
               fontSize: 20,
@@ -382,7 +398,11 @@ class _SequenceGameState extends State<_SequenceGame>
         const SizedBox(height: 8),
         Text(
           _isPlaying
-              ? localized(context, id: 'Putaran ${_round + 1}/3  •  ${_sequence.length} warna', en: 'Round ${_round + 1}/3  •  ${_sequence.length} colors')
+              ? localized(
+                  context,
+                  id: 'Putaran ${_round + 1}/3  •  ${_sequence.length} warna',
+                  en: 'Round ${_round + 1}/3  •  ${_sequence.length} colors',
+                )
               : '${_userInput.length}/${_sequence.length}',
           style: const TextStyle(color: Colors.white38, fontSize: 13),
         ),
@@ -449,7 +469,11 @@ class _SequenceGameState extends State<_SequenceGame>
         const SizedBox(height: 24),
         if (_wrongTap)
           Text(
-            localized(context, id: 'Salah! Ulangi putaran...', en: 'Wrong! Repeat the round...'),
+            localized(
+              context,
+              id: 'Salah! Ulangi putaran...',
+              en: 'Wrong! Repeat the round...',
+            ),
             style: TextStyle(
               color: Colors.red.shade400,
               fontSize: 13,
@@ -877,54 +901,305 @@ class _ConnectDotsGame extends StatefulWidget {
   State<_ConnectDotsGame> createState() => _ConnectDotsGameState();
 }
 
-class _ConnectDotsGameState extends State<_ConnectDotsGame> {
-  List<Offset>? _dots;
-  final List<Offset> _path = [];
-  int _nextDot = 0;
-  bool _done = false;
-  Size _gameSize = Size.zero;
+typedef _Grid = List<List<int>>;
+typedef _FlowCell = (int, int);
 
-  static List<Offset> _computeDots() {
+class _Pair {
+  _Pair({required this.colorIdx, required this.a, required this.b});
+
+  final int colorIdx;
+  final _FlowCell a;
+  final _FlowCell b;
+  bool connected = false;
+  List<_FlowCell> path = [];
+}
+
+class _ConnectDotsGameState extends State<_ConnectDotsGame> {
+  static const int _gridSize = 6;
+
+  late final List<_Pair> _pairs;
+  late final _Grid _grid;
+  int? _activePair;
+  List<_FlowCell> _activePath = [];
+  bool _done = false;
+
+  @override
+  void initState() {
+    super.initState();
     final now = DateTime.now();
     final seed = now.year * 10000 + now.month * 100 + now.day;
-    final rng = Random(seed);
-    const pX = 0.12, pY = 0.12;
-    const cols = 4, rows = 2;
-    const cW = (1.0 - 2 * pX) / cols;
-    const cH = (1.0 - 2 * pY) / rows;
-    final pts = <Offset>[];
-    for (int r = 0; r < rows; r++) {
-      for (int c = 0; c < cols; c++) {
-        pts.add(
-          Offset(
-            pX + c * cW + cW / 2 + (rng.nextDouble() - 0.5) * cW * 0.55,
-            pY + r * cH + cH / 2 + (rng.nextDouble() - 0.5) * cH * 0.5,
-          ),
-        );
-      }
+    _pairs = _generatePairs(seed);
+    _grid = List.generate(_gridSize, (_) => List.filled(_gridSize, -1));
+    for (final pair in _pairs) {
+      _grid[pair.a.$1][pair.a.$2] = pair.colorIdx;
+      _grid[pair.b.$1][pair.b.$2] = pair.colorIdx;
     }
-    pts.shuffle(rng);
-    return pts;
   }
 
-  void _onPanUpdate(Offset local) {
-    if (_done) return;
-    setState(() => _path.add(local));
-    final dot = _dots![_nextDot];
-    final dotPx = Offset(dot.dx * _gameSize.width, dot.dy * _gameSize.height);
-    if ((local - dotPx).distance < 30) {
-      HapticsService.tap();
-      setState(() => _nextDot++);
-      if (_nextDot == 8) {
-        setState(() => _done = true);
-        HapticsService.success();
-        Future.delayed(const Duration(milliseconds: 300), widget.onComplete);
+  // Procedural puzzle generation via Hamiltonian path decomposition.
+  // Warnsdorff's heuristic finds a path covering all 36 cells, then 3 random
+  // cut points split it into 4 segments — each segment's two ends are a pair.
+  // Guaranteed solvable: the path itself is a valid solution.
+  static List<_Pair> _generatePairs(int seed) {
+    final rng = Random(seed);
+    final path = _hamiltonianPath(rng);
+    // Split into 4 segments, each at least 4 cells.
+    // Segment boundaries: [0..c1], [c1+1..c2], [c2+1..c3], [c3+1..35]
+    final c1 = (8 + rng.nextInt(7) - 3).clamp(3, 23);
+    final c2 = (c1 + 5 + rng.nextInt(7) - 3).clamp(c1 + 4, 27);
+    final c3 = (c2 + 5 + rng.nextInt(7) - 3).clamp(c2 + 4, 31);
+    final colors = [0, 1, 2, 3]..shuffle(rng);
+    return [
+      _Pair(colorIdx: colors[0], a: path[0],      b: path[c1]),
+      _Pair(colorIdx: colors[1], a: path[c1 + 1], b: path[c2]),
+      _Pair(colorIdx: colors[2], a: path[c2 + 1], b: path[c3]),
+      _Pair(colorIdx: colors[3], a: path[c3 + 1], b: path[35]),
+    ];
+  }
+
+  static List<_FlowCell> _hamiltonianPath(Random rng) {
+    final starts = List.generate(
+      _gridSize * _gridSize,
+      (i) => (i ~/ _gridSize, i % _gridSize),
+    )..shuffle(rng);
+    for (final start in starts.take(10)) {
+      final path = _warnsdorff(start, rng);
+      if (path.length == _gridSize * _gridSize) return path;
+    }
+    // Fallback: boustrophedon snake (always Hamiltonian)
+    return [
+      for (int row = 0; row < _gridSize; row++)
+        ...(row.isEven
+            ? List.generate(_gridSize, (col) => (row, col))
+            : List.generate(_gridSize, (col) => (row, _gridSize - 1 - col))),
+    ];
+  }
+
+  static List<_FlowCell> _warnsdorff(_FlowCell start, Random rng) {
+    final visited =
+        List.generate(_gridSize, (_) => List.filled(_gridSize, false));
+    final path = <_FlowCell>[start];
+    visited[start.$1][start.$2] = true;
+    while (path.length < _gridSize * _gridSize) {
+      final nbrs = _freeNeighbors(path.last, visited);
+      if (nbrs.isEmpty) break;
+      // Shuffle first so equal-score cells are picked randomly, then stable-sort
+      // by Warnsdorff count (fewest onward moves = less likely to isolate cells).
+      nbrs.shuffle(rng);
+      nbrs.sort((a, b) => _freeNeighbors(a, visited).length
+          .compareTo(_freeNeighbors(b, visited).length));
+      final next = nbrs.first;
+      visited[next.$1][next.$2] = true;
+      path.add(next);
+    }
+    return path;
+  }
+
+  static List<_FlowCell> _freeNeighbors(
+      _FlowCell cell, List<List<bool>> visited) {
+    final (r, c) = cell;
+    return [
+      for (final (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)])
+        if (r + dr >= 0 &&
+            r + dr < _gridSize &&
+            c + dc >= 0 &&
+            c + dc < _gridSize &&
+            !visited[r + dr][c + dc])
+          (r + dr, c + dc),
+    ];
+  }
+
+  int _connectedCount() => _pairs.where((pair) => pair.connected).length;
+
+  _FlowCell? _cellAt(Offset local, double cellSize) {
+    final col = (local.dx / cellSize).floor();
+    final row = (local.dy / cellSize).floor();
+    if (row < 0 || row >= _gridSize || col < 0 || col >= _gridSize) {
+      return null;
+    }
+    return (row, col);
+  }
+
+  bool _isEndpoint(_FlowCell cell, _Pair pair) =>
+      cell == pair.a || cell == pair.b;
+
+  int? _pairIndexForEndpoint(_FlowCell cell) {
+    for (int i = 0; i < _pairs.length; i++) {
+      if (_isEndpoint(cell, _pairs[i])) {
+        return i;
       }
+    }
+    return null;
+  }
+
+  bool _isAdjacent(_FlowCell a, _FlowCell b) {
+    final dr = (a.$1 - b.$1).abs();
+    final dc = (a.$2 - b.$2).abs();
+    return dr + dc == 1;
+  }
+
+  _FlowCell _targetEndpoint(_Pair pair) {
+    return _activePath.first == pair.a ? pair.b : pair.a;
+  }
+
+  void _restoreEndpoints(_Pair pair) {
+    _grid[pair.a.$1][pair.a.$2] = pair.colorIdx;
+    _grid[pair.b.$1][pair.b.$2] = pair.colorIdx;
+  }
+
+  void _clearPairPath(int pairIndex) {
+    final pair = _pairs[pairIndex];
+    for (final cell in pair.path) {
+      if (!_isEndpoint(cell, pair)) {
+        _grid[cell.$1][cell.$2] = -1;
+      }
+    }
+    pair.path = [];
+    pair.connected = false;
+    _restoreEndpoints(pair);
+  }
+
+  int? _pairIndexOwningPathCell(_FlowCell cell) {
+    for (int i = 0; i < _pairs.length; i++) {
+      final pair = _pairs[i];
+      if (pair.path.contains(cell) && !_isEndpoint(cell, pair)) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  void _writeActivePathToGrid(int pairIndex) {
+    final pair = _pairs[pairIndex];
+    for (final cell in pair.path) {
+      if (!_isEndpoint(cell, pair)) {
+        _grid[cell.$1][cell.$2] = -1;
+      }
+    }
+    pair.path = List<_FlowCell>.from(_activePath);
+    pair.connected =
+        _activePath.length > 1 &&
+        (_activePath.last == pair.a || _activePath.last == pair.b);
+    for (final cell in pair.path) {
+      _grid[cell.$1][cell.$2] = pair.colorIdx;
+    }
+    _restoreEndpoints(pair);
+  }
+
+  void _startPath(_FlowCell cell) {
+    if (_done) return;
+
+    // Case 1: endpoint — clear that pair's path and start fresh.
+    final epIndex = _pairIndexForEndpoint(cell);
+    if (epIndex != null) {
+      setState(() {
+        _clearPairPath(epIndex);
+        _activePair = epIndex;
+        _activePath = [cell];
+        _writeActivePathToGrid(epIndex);
+      });
+      HapticsService.softTap();
+      return;
+    }
+
+    // Case 2: mid-path cell — truncate that pair's path to this point and resume.
+    for (int i = 0; i < _pairs.length; i++) {
+      final pathIdx = _pairs[i].path.indexOf(cell);
+      if (pathIdx < 0) continue;
+      setState(() {
+        _activePair = i;
+        _activePath = _pairs[i].path.sublist(0, pathIdx + 1);
+        _writeActivePathToGrid(i);
+      });
+      HapticsService.softTap();
+      return;
+    }
+  }
+
+  void _onPanStart(Offset local, double cellSize) {
+    final cell = _cellAt(local, cellSize);
+    if (cell != null) {
+      _startPath(cell);
+    }
+  }
+
+  Future<void> _finishIfSolved() async {
+    if (_done) {
+      return;
+    }
+    final filled = _grid.every((row) => row.every((cell) => cell >= 0));
+    final allConnected = _pairs.every((pair) => pair.connected);
+    if (!filled || !allConnected) {
+      return;
+    }
+    setState(() => _done = true);
+    HapticsService.success();
+    await Future.delayed(const Duration(milliseconds: 300));
+    widget.onComplete();
+  }
+
+  void _onPanUpdate(Offset local, double cellSize) {
+    final pairIndex = _activePair;
+    if (_done || pairIndex == null) {
+      return;
+    }
+    final cell = _cellAt(local, cellSize);
+    if (cell == null) {
+      return;
+    }
+
+    final last = _activePath.last;
+    if (cell == last || !_isAdjacent(last, cell)) {
+      return;
+    }
+
+    final pair = _pairs[pairIndex];
+    final targetEndpoint = _targetEndpoint(pair);
+    if (_activePath.contains(cell)) {
+      final cut = _activePath.indexOf(cell);
+      setState(() {
+        _activePath = _activePath.sublist(0, cut + 1);
+        _writeActivePathToGrid(pairIndex);
+      });
+      HapticsService.softTap();
+      return;
+    }
+
+    final endpointOwner = _pairIndexForEndpoint(cell);
+    if (endpointOwner != null && endpointOwner != pairIndex) {
+      return;
+    }
+
+    final blockingOwner = _pairIndexOwningPathCell(cell);
+    setState(() {
+      if (blockingOwner != null && blockingOwner != pairIndex) {
+        _clearPairPath(blockingOwner);
+      }
+      if (endpointOwner == pairIndex && cell != targetEndpoint) {
+        return;
+      }
+      _activePath = [..._activePath, cell];
+      _writeActivePathToGrid(pairIndex);
+      if (cell == targetEndpoint) {
+        _activePair = null;
+      }
+    });
+    HapticsService.tap();
+
+    if (cell == targetEndpoint) {
+      _activePath = [];
+      _finishIfSolved();
     }
   }
 
   void _onPanEnd() {
-    if (!_done) setState(_path.clear);
+    if (_activePair == null) {
+      return;
+    }
+    setState(() {
+      _activePair = null;
+      _activePath = [];
+    });
   }
 
   @override
@@ -937,16 +1212,16 @@ class _ConnectDotsGameState extends State<_ConnectDotsGame> {
             children: [
               const Expanded(
                 child: Text(
-                  'Hubungkan titik berurutan',
+                  'Connect the Colors',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               Text(
-                '$_nextDot/8 titik',
+                '${_connectedCount()}/4',
                 style: const TextStyle(
                   color: Colors.white54,
                   fontSize: 13,
@@ -959,19 +1234,33 @@ class _ConnectDotsGameState extends State<_ConnectDotsGame> {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              _gameSize = Size(constraints.maxWidth, constraints.maxHeight);
-              _dots ??= _computeDots();
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanUpdate: (details) => _onPanUpdate(details.localPosition),
-                onPanEnd: (_) => _onPanEnd(),
-                child: CustomPaint(
-                  painter: _DotsPainter(
-                    dots: _dots!,
-                    path: List.unmodifiable(_path),
-                    nextDot: _nextDot,
+              final boardSize = min(
+                constraints.maxWidth,
+                constraints.maxHeight,
+              );
+              final cellSize = boardSize / _gridSize;
+              return Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onPanStart: (details) =>
+                      _onPanStart(details.localPosition, cellSize),
+                  onPanUpdate: (details) =>
+                      _onPanUpdate(details.localPosition, cellSize),
+                  onPanEnd: (_) => _onPanEnd(),
+                  child: SizedBox(
+                    width: boardSize,
+                    height: boardSize,
+                    child: CustomPaint(
+                      painter: _DotsPainter(
+                        pairs: _pairs,
+                        grid: _grid,
+                        activePath: List.unmodifiable(_activePath),
+                        activePairIdx: _activePair,
+                        cellSize: cellSize,
+                      ),
+                      child: const SizedBox.expand(),
+                    ),
                   ),
-                  child: const SizedBox.expand(),
                 ),
               );
             },
@@ -983,95 +1272,117 @@ class _ConnectDotsGameState extends State<_ConnectDotsGame> {
 }
 
 class _DotsPainter extends CustomPainter {
-  _DotsPainter({required this.dots, required this.path, required this.nextDot});
+  _DotsPainter({
+    required this.pairs,
+    required this.grid,
+    required this.activePath,
+    required this.activePairIdx,
+    required this.cellSize,
+  });
 
-  final List<Offset> dots;
-  final List<Offset> path;
-  final int nextDot;
+  final List<_Pair> pairs;
+  final _Grid grid;
+  final List<_FlowCell> activePath;
+  final int? activePairIdx;
+  final double cellSize;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (nextDot > 1) {
-      final paint = Paint()
-        ..color = const Color(0xFF7C3AED)
-        ..strokeWidth = 3
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-      final line = Path()
-        ..moveTo(dots[0].dx * size.width, dots[0].dy * size.height);
-      for (int i = 1; i < nextDot; i++) {
-        line.lineTo(dots[i].dx * size.width, dots[i].dy * size.height);
-      }
-      canvas.drawPath(line, paint);
+    final gridPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.08)
+      ..strokeWidth = 1;
+    for (int i = 0; i <= _ConnectDotsGameState._gridSize; i++) {
+      final offset = i * cellSize;
+      canvas.drawLine(
+        Offset(offset, 0),
+        Offset(offset, size.height),
+        gridPaint,
+      );
+      canvas.drawLine(Offset(0, offset), Offset(size.width, offset), gridPaint);
     }
 
-    if (path.length >= 2) {
-      final paint = Paint()
-        ..color = const Color(0xFF7C3AED).withValues(alpha: 0.45)
-        ..strokeWidth = 2.5
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-      final trace = Path()..moveTo(path.first.dx, path.first.dy);
-      for (final point in path.skip(1)) {
-        trace.lineTo(point.dx, point.dy);
-      }
-      canvas.drawPath(trace, paint);
-    }
-
-    for (int i = 0; i < dots.length; i++) {
-      final center = Offset(dots[i].dx * size.width, dots[i].dy * size.height);
-      final connected = i < nextDot;
-      final isNext = i == nextDot;
-      final radius = connected
-          ? 20.0
-          : isNext
-          ? 18.0
-          : 16.0;
-
-      canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..color = connected
-              ? const Color(0xFF7C3AED)
-              : isNext
-              ? const Color(0xFF7C3AED).withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.1),
-      );
-      canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..color = connected
-              ? const Color(0xFF7C3AED)
-              : isNext
-              ? const Color(0xFF7C3AED).withValues(alpha: 0.8)
-              : Colors.white.withValues(alpha: 0.3)
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke,
-      );
-
-      final label = TextPainter(
-        text: TextSpan(
-          text: '${i + 1}',
-          style: TextStyle(
-            color: connected || isNext ? Colors.white : Colors.white54,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
+    for (int row = 0; row < _ConnectDotsGameState._gridSize; row++) {
+      for (int col = 0; col < _ConnectDotsGameState._gridSize; col++) {
+        final owner = grid[row][col];
+        if (owner < 0) {
+          continue;
+        }
+        final rect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            col * cellSize + 4,
+            row * cellSize + 4,
+            cellSize - 8,
+            cellSize - 8,
           ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      label.paint(
+          const Radius.circular(12),
+        );
+        canvas.drawRRect(
+          rect,
+          Paint()..color = _laneColors[owner].withValues(alpha: 0.35),
+        );
+      }
+    }
+
+    for (final pair in pairs) {
+      _paintPath(canvas, pair.path, _laneColors[pair.colorIdx]);
+    }
+    if (activePairIdx != null && activePath.isNotEmpty) {
+      _paintPath(
         canvas,
-        Offset(center.dx - label.width / 2, center.dy - label.height / 2),
+        activePath,
+        _laneColors[pairs[activePairIdx!].colorIdx],
       );
     }
+
+    for (final pair in pairs) {
+      for (final endpoint in [pair.a, pair.b]) {
+        final center = _cellCenter(endpoint);
+        canvas.drawCircle(
+          center,
+          cellSize * 0.38,
+          Paint()..color = _laneColors[pair.colorIdx],
+        );
+        canvas.drawCircle(
+          center,
+          cellSize * 0.38,
+          Paint()
+            ..color = Colors.white
+            ..strokeWidth = 2
+            ..style = PaintingStyle.stroke,
+        );
+      }
+    }
+  }
+
+  void _paintPath(Canvas canvas, List<_FlowCell> path, Color color) {
+    if (path.length < 2) {
+      return;
+    }
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = cellSize * 0.45
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final drawPath = Path()
+      ..moveTo(_cellCenter(path.first).dx, _cellCenter(path.first).dy);
+    for (final cell in path.skip(1)) {
+      final center = _cellCenter(cell);
+      drawPath.lineTo(center.dx, center.dy);
+    }
+    canvas.drawPath(drawPath, paint);
+  }
+
+  Offset _cellCenter(_FlowCell cell) {
+    return Offset((cell.$2 + 0.5) * cellSize, (cell.$1 + 0.5) * cellSize);
   }
 
   @override
   bool shouldRepaint(_DotsPainter oldDelegate) {
-    return oldDelegate.path != path || oldDelegate.nextDot != nextDot;
+    return oldDelegate.grid != grid ||
+        oldDelegate.activePath != activePath ||
+        oldDelegate.activePairIdx != activePairIdx ||
+        oldDelegate.pairs != pairs;
   }
 }
 
@@ -1145,7 +1456,11 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    localized(context, id: 'Selamat pagi! 🔥', en: 'Good morning! 🔥'),
+                    localized(
+                      context,
+                      id: 'Selamat pagi! 🔥',
+                      en: 'Good morning! 🔥',
+                    ),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -1155,7 +1470,11 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    localized(context, id: 'Game selesai. Selamat beraktivitas!', en: 'Game complete. Have a great day!'),
+                    localized(
+                      context,
+                      id: 'Game selesai. Selamat beraktivitas!',
+                      en: 'Game complete. Have a great day!',
+                    ),
                     style: TextStyle(color: Colors.white54, fontSize: 14),
                   ),
                 ],

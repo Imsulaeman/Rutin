@@ -305,6 +305,11 @@ class MainActivity : FlutterActivity() {
                             })
                         }
                     }
+                    "checkPendingGate" -> {
+                        val hasPending = intent?.getStringExtra("route") == "/morning-gate"
+                        if (hasPending) intent?.removeExtra("route")
+                        result.success(hasPending)
+                    }
                     "setGameDismissedNormally" -> {
                         val value = call.arguments as? Boolean ?: true
                         applicationContext.getSharedPreferences(

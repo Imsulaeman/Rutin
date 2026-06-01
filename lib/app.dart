@@ -9,6 +9,7 @@ import 'features/habits/data/habit_model.dart';
 import 'features/habits/presentation/add_habit_screen.dart';
 import 'features/habits/presentation/habit_history_screen.dart';
 import 'features/habits/presentation/habits_screen.dart';
+import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/medicine/presentation/add_medicine_screen.dart';
 import 'features/medicine/presentation/medicine_archive_screen.dart';
@@ -20,6 +21,8 @@ import 'features/settings/presentation/settings_screen.dart';
 import 'features/sleep/presentation/morning_gate_screen.dart';
 import 'features/sleep/presentation/sleep_settings_screen.dart';
 import 'features/sleep/presentation/wakeup_game_screen.dart';
+import 'features/tb/presentation/treatment_detail_screen.dart';
+import 'features/tb/presentation/treatment_onboarding_screen.dart';
 import 'features/water/presentation/water_screen.dart';
 import 'l10n/l10n.dart';
 
@@ -95,15 +98,29 @@ final appRouter = GoRouter(
       builder: (_, state) => AddHabitScreen(habit: state.extra as Habit?),
     ),
     GoRoute(
-      path: '/habits/history/:id',
+      path: '/habits/history',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, state) =>
-          HabitHistoryScreen(habitId: state.pathParameters['id']!),
+      builder: (_, __) => const HabitHistoryScreen(),
     ),
     GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (_, __) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/history',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const HistoryScreen(),
+    ),
+    GoRoute(
+      path: '/treatment/onboarding',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const TreatmentOnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/treatment/detail',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const TreatmentDetailScreen(),
     ),
     GoRoute(
       path: '/sleep-settings',
@@ -176,10 +193,7 @@ class ShellScaffold extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.star_rounded, color: Color(0xFFF4A92B)),
-              title: Text(
-                l10n.addHabit,
-                style: TextStyle(color: Colors.white),
-              ),
+              title: Text(l10n.addHabit, style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 context.push('/habits/add');
@@ -382,6 +396,14 @@ class _LaunchGameListenerState extends State<_LaunchGameListener> {
         appRouter.push('/morning-gate');
       }
     });
+    _checkPendingGate();
+  }
+
+  Future<void> _checkPendingGate() async {
+    try {
+      final pending = await _ch.invokeMethod<bool>('checkPendingGate') ?? false;
+      if (pending && mounted) appRouter.push('/morning-gate');
+    } catch (_) {}
   }
 
   @override
