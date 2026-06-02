@@ -2641,3 +2641,394 @@ correctly; the fix is entirely in `ReminderActivity` and the manifest.
 - If Rutin is already foregrounded, the full-screen reminder takeover works.
 - If another app is foregrounded, the phone may fall back to a heads-up notification plus alarm sound.
 - The owner has accepted this behavior for now, so further escalation is optional rather than required.
+
+---
+
+## Pending Task — Custom Fonts (Bricolage Grotesque + DM Sans)
+
+**Goal:** Replace system default Roboto with Bricolage Grotesque (display headings) and DM Sans (body/UI). This is the single biggest design quality gap for ADA portfolio presentation.
+
+**Files:** `pubspec.yaml`, `lib/core/theme/app_theme.dart`
+
+---
+
+### Step 1 — `pubspec.yaml`
+
+Add `google_fonts` dependency:
+
+```yaml
+dependencies:
+  google_fonts: ^6.2.1
+```
+
+---
+
+### Step 2 — `lib/core/theme/app_theme.dart`
+
+Import and apply fonts in both `light()` and `dark()` theme builders. The pattern: Bricolage Grotesque for display/headline styles (large, impactful text), DM Sans for title/body/label styles (UI chrome, cards, labels).
+
+```dart
+import 'package:google_fonts/google_fonts.dart';
+```
+
+Replace the static `_textTheme` constant with a function that builds the text theme with fonts applied:
+
+```dart
+static TextTheme _buildTextTheme() {
+  const base = TextTheme(
+    displayLarge:  TextStyle(fontSize: 56, fontWeight: FontWeight.w800, letterSpacing: -2.0),
+    displayMedium: TextStyle(fontSize: 48, fontWeight: FontWeight.w800, letterSpacing: -1.5),
+    displaySmall:  TextStyle(fontSize: 36, fontWeight: FontWeight.w800, letterSpacing: -1.0),
+    headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+    headlineMedium:TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+    titleLarge:    TextStyle(fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: -0.2),
+    titleMedium:   TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+    bodyLarge:     TextStyle(fontSize: 16),
+    bodyMedium:    TextStyle(fontSize: 14),
+    bodySmall:     TextStyle(fontSize: 12),
+    labelMedium:   TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.1),
+  );
+
+  // Bricolage Grotesque for display + headline (large, expressive)
+  final display = GoogleFonts.bricolageGrotesqueTextTheme(base);
+
+  // DM Sans for title + body + label (UI chrome, readable at small sizes)
+  return display.copyWith(
+    titleLarge:   GoogleFonts.dmSans(textStyle: base.titleLarge),
+    titleMedium:  GoogleFonts.dmSans(textStyle: base.titleMedium),
+    bodyLarge:    GoogleFonts.dmSans(textStyle: base.bodyLarge),
+    bodyMedium:   GoogleFonts.dmSans(textStyle: base.bodyMedium),
+    bodySmall:    GoogleFonts.dmSans(textStyle: base.bodySmall),
+    labelMedium:  GoogleFonts.dmSans(textStyle: base.labelMedium),
+  );
+}
+```
+
+In both `light()` and `dark()`, replace `textTheme: _textTheme` with `textTheme: _buildTextTheme()`.
+
+Also apply DM Sans to `AppBarTheme.titleTextStyle` and `NavigationBarTheme.labelTextStyle`:
+
+```dart
+// In AppBarTheme:
+titleTextStyle: GoogleFonts.dmSans(
+  fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3, color: cs.onSurface,
+),
+
+// In NavigationBarTheme.labelTextStyle:
+labelTextStyle: WidgetStateProperty.resolveWith(
+  (s) => GoogleFonts.dmSans(
+    fontSize: 11,
+    fontWeight: s.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+  ),
+),
+```
+
+### Verify
+- `flutter pub get` — no errors
+- App runs; home screen hero title renders in Bricolage Grotesque, card body text in DM Sans
+- `dart analyze lib/core/theme/app_theme.dart` — no errors
+
+### What NOT to do
+- Do not bundle font files manually — `google_fonts` fetches and caches at runtime
+- Do not change any TextStyle `fontSize` or `fontWeight` values — only change the font family
+- Do not touch any screen files — all font changes flow through `AppTheme`
+
+---
+
+## Pending Task — Permission Dialog Rewrite (Step-by-Step Bottom Sheet)
+
+**Goal:** Replace the current `AlertDialog` with 3 disconnected buttons with a guided bottom sheet that walks through each permission one at a time.
+
+**File:** `lib/features/home/presentation/home_screen.dart` only.
+
+---
+
+### Problem with current code (line 816–872)
+
+`showDialog` presents one dialog with three `TextButton`s. Each button grants one permission and then calls `Navigator.pop()` — the dialog disappears after the first tap. The user never sees the remaining two permissions.
+
+---
+
+### New behavior
+
+Show a `showModalBottomSheet` with 3 steps. Each step has:
+- Icon + title + one-sentence explanation
+- A primary `FilledButton` to grant that permission
+- A secondary `TextButton('Lewati / Skip')` to skip to the next step
+- Step indicator dots at the top
+
+When all steps are done (granted or skipped), the sheet closes.
+
+---
+
+### Implementation
+
+Replace `_maybeShowPermissionWizard` with:
+
+```dart
+Future<void> _maybeShowPermissionWizard(BuildContext context) async {
+  if (_permissionDialogShown || !context.mounted) return;
+
+  // Persist the flag so it doesn't repeat on every cold start
+  await Hive.box<String>('app_settings').put('permission_wizard_shown', 'true');
+  _permissionDialogShown = true;
+
+  final android = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  if (android == null) return;
+
+  final notifEnabled = await android.areNotificationsEnabled() ?? false;
+  final exactEnabled = await android.canScheduleExactNotifications() ?? false;
+  if (notifEnabled && exactEnabled) return;
+  if (!context.mounted) return;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF131C2B),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (sheetCtx) => _PermissionWizard(android: android),
+  );
+}
+```
+
+New `_PermissionWizard` widget (private, same file):
+
+```dart
+class _PermissionWizard extends StatefulWidget {
+  const _PermissionWizard({required this.android});
+  final AndroidFlutterLocalNotificationsPlugin android;
+
+  @override
+  State<_PermissionWizard> createState() => _PermissionWizardState();
+}
+
+class _PermissionWizardState extends State<_PermissionWizard> {
+  int _step = 0;
+
+  static const _steps = [
+    (
+      icon: Icons.notifications_rounded,
+      color: Color(0xFF4CC56A),
+      titleId: 'Izinkan Notifikasi',
+      titleEn: 'Allow Notifications',
+      bodyId: 'Diperlukan agar pengingat obat dan air muncul di layar.',
+      bodyEn: 'Required so medicine and water reminders appear on screen.',
+    ),
+    (
+      icon: Icons.alarm_rounded,
+      color: Color(0xFFF4A92B),
+      titleId: 'Izinkan Exact Alarm',
+      titleEn: 'Allow Exact Alarm',
+      bodyId: 'Agar pengingat muncul tepat waktu — buka Alarm & Pengingat lalu aktifkan Rutin.',
+      bodyEn: 'So reminders appear on time — open Alarms & Reminders and enable Rutin.',
+    ),
+    (
+      icon: Icons.fullscreen_rounded,
+      color: Color(0xFF3E8BF0),
+      titleId: 'Izinkan Layar Penuh',
+      titleEn: 'Allow Full Screen',
+      bodyId: 'Pengingat obat muncul menyeluruh saat layar terkunci.',
+      bodyEn: 'Medicine reminders appear full screen when the device is locked.',
+    ),
+  ];
+
+  Future<void> _grant() async {
+    switch (_step) {
+      case 0: await widget.android.requestNotificationsPermission();
+      case 1: await widget.android.requestExactAlarmsPermission();
+      case 2: await widget.android.requestFullScreenIntentPermission();
+    }
+    _next();
+  }
+
+  void _next() {
+    if (_step >= _steps.length - 1) {
+      Navigator.pop(context);
+    } else {
+      setState(() => _step++);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = _steps[_step];
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Step dots
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_steps.length, (i) => Container(
+              width: i == _step ? 20 : 6,
+              height: 6,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                color: i == _step ? s.color : Colors.white24,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            )),
+          ),
+          const SizedBox(height: 28),
+          Icon(s.icon, color: s.color, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            localized(context, id: s.titleId, en: s.titleEn),
+            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            localized(context, id: s.bodyId, en: s.bodyEn),
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.45),
+          ),
+          const SizedBox(height: 28),
+          FilledButton(
+            onPressed: _grant,
+            style: FilledButton.styleFrom(backgroundColor: s.color),
+            child: Text(localized(context, id: 'Izinkan', en: 'Allow')),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _next,
+            child: Text(
+              localized(context, id: 'Lewati', en: 'Skip'),
+              style: const TextStyle(color: Colors.white54),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+Also update the `_permissionDialogShown` static bool to check Hive on init:
+
+```dart
+// In _HomeScreenState.initState(), replace the static bool check:
+@override
+void initState() {
+  super.initState();
+  // ... existing code ...
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final shown = Hive.box<String>('app_settings').get('permission_wizard_shown') == 'true';
+    if (!shown) _maybeShowPermissionWizard(context);
+  });
+}
+```
+
+Remove `_permissionDialogShown` static bool entirely.
+
+### Verify
+- `dart analyze lib/features/home/presentation/home_screen.dart` — no errors
+- First launch: bottom sheet appears with 3 steps, step indicator advances, sheet closes after step 3
+- Second cold start: sheet does not appear (Hive flag persists)
+- Granting on step 1 does not dismiss the sheet; continues to step 2
+
+### What NOT to do
+- Do not change any other screen files
+- Do not remove `_maybeShowPermissionWizard` — just rewrite its body
+- Do not import new packages — `showModalBottomSheet` is already used in `app.dart`
+
+---
+
+## Pending Task — Hive Encryption for Sensitive Health Data
+
+**Goal:** Encrypt the three most sensitive Hive boxes (`medicines`, `medicine_logs`, `tb_profiles`) using `HiveAesCipher`. The key is stored in `flutter_secure_storage` (Android Keystore-backed). Other boxes remain unencrypted — no need to encrypt habits, water, streaks, settings.
+
+**Files:** `pubspec.yaml`, `lib/main.dart`
+
+---
+
+### Step 1 — `pubspec.yaml`
+
+```yaml
+dependencies:
+  flutter_secure_storage: ^9.2.2
+```
+
+---
+
+### Step 2 — `lib/main.dart`
+
+Add the key generation + box opening helper. Call it before `_openHiveBoxes`.
+
+```dart
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+Future<HiveAesCipher> _getOrCreateCipher() async {
+  const storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  const keyName = 'rutin_hive_key';
+  String? stored = await storage.read(key: keyName);
+  if (stored == null) {
+    final key = Hive.generateSecureKey();
+    stored = base64.encode(key);
+    await storage.write(key: keyName, value: stored);
+  }
+  return HiveAesCipher(base64.decode(stored));
+}
+```
+
+In `_openHiveBoxes()` (or wherever Hive boxes are opened in `main.dart`), change the three sensitive boxes to use the cipher:
+
+```dart
+Future<void> _openHiveBoxes() async {
+  final cipher = await _getOrCreateCipher();
+
+  await Future.wait([
+    // Sensitive boxes — encrypted
+    Hive.openBox<Medicine>('medicines', encryptionCipher: cipher),
+    Hive.openBox<MedicineLog>('medicine_logs', encryptionCipher: cipher),
+    Hive.openBox<TBTreatmentProfile>('tb_profiles', encryptionCipher: cipher),
+
+    // Non-sensitive boxes — unchanged
+    Hive.openBox<WaterGoal>('water_goals'),
+    Hive.openBox<WaterLog>('water_logs'),
+    Hive.openBox<Habit>('habits'),
+    Hive.openBox<HabitLog>('habit_logs'),
+    Hive.openBox<HabitGroup>('habit_groups'),
+    Hive.openBox<Routine>('routines'),
+    Hive.openBox<RoutineLog>('routine_logs'),
+    Hive.openBox<Medal>('medals'),
+    Hive.openBox<UserProfile>('user_profile'),
+    Hive.openBox<SleepSettings>('sleep_settings'),
+    Hive.openBox<int>('morning_streaks'),
+    Hive.openBox<String>('app_settings'),
+  ]);
+}
+```
+
+**Migration note:** Existing unencrypted boxes cannot be re-opened with a cipher. On first install after this change, existing users will get an error trying to open an already-created unencrypted box with a cipher. To handle gracefully, add a migration try/catch:
+
+```dart
+Future<Box<Medicine>> _openMedicinesBox(HiveAesCipher cipher) async {
+  try {
+    return await Hive.openBox<Medicine>('medicines', encryptionCipher: cipher);
+  } catch (_) {
+    // Existing unencrypted box — delete and re-open encrypted (data loss on migration)
+    await Hive.deleteBoxFromDisk('medicines');
+    return Hive.openBox<Medicine>('medicines', encryptionCipher: cipher);
+  }
+}
+```
+
+Apply same pattern for `medicine_logs` and `tb_profiles`. Users will lose existing data once on upgrade — acceptable for a first release with no prior published version.
+
+### Verify
+- `flutter pub get` — no errors
+- App cold starts without errors
+- Medicine added → app killed → reopened → medicine still present (cipher key persisted correctly)
+- `dart analyze lib/main.dart` — no errors
+
+### What NOT to do
+- Do not encrypt `habits`, `water_goals`, `water_logs`, `app_settings` — unnecessary overhead
+- Do not hardcode the cipher key — always read from secure storage
+- Do not use `EncryptedSharedPreferences` directly — `flutter_secure_storage` wraps Android Keystore correctly

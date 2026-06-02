@@ -205,8 +205,34 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [ ] README polish (GitHub repo, for ADA reviewers who look at code)
 - [~] Internal beta on Play Store — not required for ADA; skip for now
 - [ ] Crash-free rate check (Firebase Crashlytics or at minimum no known crashes)
-- [ ] **Post-MVP design polish pass** (only once MVP is done + launch-ready): run `/emil-design-eng`, `/impeccable`, `/gpt-taste` across all screens for final visual refinement
+- [x] **Post-MVP design polish pass** (only once MVP is done + launch-ready): run `/emil-design-eng`, `/impeccable`, `/gpt-taste` across all screens for final visual refinement — full report in `report.md`
 - [ ] Play Store listing
+
+## From Review Report (report.md) — 2026-06-02
+
+### P1 — Immediate
+- [ ] **Custom font**: add Bricolage Grotesque (display) + DM Sans (body) via `google_fonts`; apply in `AppTheme`
+- [ ] **Permission dialog rewrite**: replace single `AlertDialog` with step-by-step bottom sheet (one permission per step, stays open)
+- [ ] **Hive encryption**: encrypt `medicines`, `medicine_logs`, `tb_profiles` with `HiveAesCipher` + `flutter_secure_storage`
+
+### P2 — Before Play Store
+- [ ] **Checkbox AnimatedContainer curve**: add `curve: Curves.easeOut` to the habit checkbox container in `home_screen.dart:1344`
+- [ ] **FAB press feedback**: wrap FAB `GestureDetector` in `_Pressable` in `app.dart`
+- [ ] **Dependency injection**: move `WaterRepository()` and `HabitRepository()` in `HomeScreen` to Riverpod providers
+- [ ] **Permission flag persistence**: save `_permissionDialogShown` to Hive `app_settings` instead of static bool
+- [ ] **Battery optimization rationale**: show explanation dialog before calling `requestIgnoreBatteryOptimizations`
+
+### P3 — Polish
+- [ ] **GoRouter page transitions**: add `CustomTransitionPage` with fade (280ms easeOut) for shell routes
+- [ ] **Calendar icon in home header**: wire to `/history` or remove
+- [ ] **Migrate `localized()` calls to ARB**: move all inline `localized(context, id:..., en:...)` strings to `app_en.arb` and `app_id.arb`
+- [ ] **Ambient sun easing**: apply `CurvedAnimation(curve: Curves.easeInOut)` to `_ambient` controller to smooth sine reversal
+
+### P4 — Backlog
+- [ ] **Unit tests**: add tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`
+- [ ] **Play Store**: add Accessibility Service `android:description` in manifest narrowing use case
+- [ ] **Play Store**: audit Firebase Analytics event params — confirm no PII or medication names sent
+- [ ] **Lazy Hive box opening**: open non-critical boxes (`medals`, `morning_streaks`) after first frame via `addPostFrameCallback`
 
 ## Phase 2
 - [ ] Custom sound import/upload for reminders
