@@ -119,6 +119,19 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 ---
 
 **2026-06-02 - Claude**
+- **Play Store prep in progress — paused at account verification**:
+  - Studio name: **Benih Studio** (chosen over personal name)
+  - Play Console account registered, awaiting Google verification before publishing
+  - Release APK built: `build/app/outputs/flutter-apk/app-release.apk` (78MB, signed)
+  - Keystore: `android/rutin-release.jks` — alias `rutin`, password stored in `android/key.properties` (gitignored). **Back up the .jks to Google Drive.**
+  - Store listing copy: `store_listing.md` — ID + EN short desc, full desc, category, keywords
+  - Privacy policy live: `https://imsulaeman.me/rutin-privacy/`
+  - Gradle JVM raised to 4GB heap / 1GB metaspace (was OOM at 512m)
+  - Pending after verification: upload APK, fill store listing, screenshots, feature graphic, content rating, Settings About section → update to Benih Studio
+
+---
+
+**2026-06-02 - Claude**
 - **Coach marks tutorial fixed (3 bugs from source read):**
   1. `enableOverlayTab` defaults to `false` in the library — every `TargetFocus` was missing `enableOverlayTab: true`, so tapping the dark overlay did nothing. Fixed on all targets.
   2. Wrong overlay level — was using `Navigator.of(context, rootNavigator: true).context` which resolves incorrectly. Correct API is `show(context: context, rootOverlay: true)`, which calls `Overlay.of(context, rootOverlay: true)` and also makes `getTargetCurrent` use root overlay coordinates. Fixed.

@@ -193,12 +193,17 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Onboarding flow (3–5 screens: problem, solution, permissions ask)
 - [x] Coach marks tutorial (5-step overlay: header, FAB, medicine tab, water tab, habits tab)
 - [x] Privacy policy page (hosted URL required — Firebase Analytics makes this a hard Play Store blocker)
-- [ ] Play Store listing copy (ID + EN): short description, full description, feature graphic
+- [x] Play Store listing copy (ID + EN): short description, full description, feature graphic — see store_listing.md
 - [ ] Play Store screenshots (6 screens: Home, Medicine, Water, Habits, Sleep Gate, Game)
+- [ ] Feature graphic (1024×500px banner)
+- [ ] Update Settings About + privacy policy contact → Benih Studio
+- [ ] Upload signed APK to Play Console (awaiting account verification)
+- [ ] Fill store listing in Play Console (copy ready in store_listing.md)
+- [ ] Complete content rating questionnaire in Play Console
 - [-] App pitch deck / one-pager — structure in `deck.md`
 - [ ] Demo video / screen recording (30–60s walkthrough)
 - [ ] README polish (GitHub repo, for ADA reviewers who look at code)
-- [ ] Internal beta on Play Store (so ADA can install directly)
+- [~] Internal beta on Play Store — not required for ADA; skip for now
 - [ ] Crash-free rate check (Firebase Crashlytics or at minimum no known crashes)
 - [ ] **Post-MVP design polish pass** (only once MVP is done + launch-ready): run `/emil-design-eng`, `/impeccable`, `/gpt-taste` across all screens for final visual refinement
 - [ ] Play Store listing
