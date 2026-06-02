@@ -115,6 +115,42 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
     }
   }
 
+  Future<void> _openBatteryOptimization() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          localized(
+            dialogContext,
+            id: 'Izinkan Berjalan di Latar',
+            en: 'Allow Background Activity',
+          ),
+        ),
+        content: Text(
+          localized(
+            dialogContext,
+            id: 'Rutin perlu dikecualikan dari optimasi baterai agar alarm obat, air, dan Mode Tidur tetap muncul tepat waktu.',
+            en: 'Rutin needs a battery-optimization exemption so medicine alarms, water reminders, and Sleep Mode can still appear on time.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(localized(dialogContext, id: 'Nanti', en: 'Later')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(context.l10n.configure),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _ch.invokeMethod('openBatteryOptimization');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -262,7 +298,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                 title: Text(context.l10n.batteryOptimization),
                 subtitle: Text(context.l10n.allowBackground),
                 trailing: TextButton(
-                  onPressed: () => _ch.invokeMethod('openBatteryOptimization'),
+                  onPressed: _openBatteryOptimization,
                   child: Text(context.l10n.configure),
                 ),
               ),

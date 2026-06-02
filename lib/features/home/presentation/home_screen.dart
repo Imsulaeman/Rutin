@@ -55,8 +55,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   final _headerKey = GlobalKey();
 
-  final _waterRepo = WaterRepository();
-  final _habitRepo = HabitRepository();
+  WaterRepository get _waterRepo => ref.read(waterRepositoryProvider);
+  HabitRepository get _habitRepo => ref.read(habitRepositoryProvider);
 
   int _waterMl = 0;
   int _waterTargetMl = 2000;
@@ -1531,6 +1531,7 @@ class _TodayHabitRow extends StatelessWidget {
               const SizedBox(width: 10),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(

@@ -216,11 +216,11 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] **Hive encryption**: encrypt `medicines`, `medicine_logs`, `tb_profiles` with `HiveAesCipher` + `flutter_secure_storage`
 
 ### P2 — Before Play Store
-- [ ] **Checkbox AnimatedContainer curve**: add `curve: Curves.easeOut` to the habit checkbox container in `home_screen.dart:1344`
-- [ ] **FAB press feedback**: wrap FAB `GestureDetector` in `_Pressable` in `app.dart`
-- [ ] **Dependency injection**: move `WaterRepository()` and `HabitRepository()` in `HomeScreen` to Riverpod providers
+- [x] **Checkbox AnimatedContainer curve**: add `curve: Curves.easeOut` to the habit checkbox container in `home_screen.dart:1344`
+- [x] **FAB press feedback**: wrap FAB `GestureDetector` in `_Pressable` in `app.dart`
+- [x] **Dependency injection**: move `WaterRepository()` and `HabitRepository()` in `HomeScreen` to Riverpod providers
 - [x] **Permission flag persistence**: save `_permissionDialogShown` to Hive `app_settings` instead of static bool
-- [ ] **Battery optimization rationale**: show explanation dialog before calling `requestIgnoreBatteryOptimizations`
+- [x] **Battery optimization rationale**: show explanation dialog before calling `requestIgnoreBatteryOptimizations`
 
 ### P3 — Polish
 - [ ] **GoRouter page transitions**: add `CustomTransitionPage` with fade (280ms easeOut) for shell routes

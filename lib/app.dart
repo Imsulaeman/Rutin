@@ -314,7 +314,7 @@ class _BottomNav extends StatelessWidget {
             left: 0,
             right: 0,
             child: Center(
-              child: GestureDetector(
+              child: _Pressable(
                 key: ShellScaffold.fabKey,
                 onTap: onAdd,
                 child: Container(
@@ -391,6 +391,37 @@ class _Tab extends StatelessWidget {
 }
 
 // ─── Native→Flutter game launch listener ─────────────────────────────────────
+
+class _Pressable extends StatefulWidget {
+  const _Pressable({super.key, required this.child, required this.onTap});
+
+  final Widget child;
+  final VoidCallback onTap;
+
+  @override
+  State<_Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<_Pressable> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _down = true),
+      onTapUp: (_) => setState(() => _down = false),
+      onTapCancel: () => setState(() => _down = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _down ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    );
+  }
+}
 
 class _LaunchGameListener extends StatefulWidget {
   const _LaunchGameListener({required this.child});
