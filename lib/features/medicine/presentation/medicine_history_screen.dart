@@ -33,6 +33,11 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
     final now = DateTime.now();
     _month = DateTime(now.year, now.month);
     _selectedDay = DateTime(now.year, now.month, now.day);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(medicineRepositoryProvider).finalizeMissedDoses().then((added) {
+        if (added > 0 && mounted) setState(() {});
+      });
+    });
   }
 
   @override
@@ -47,7 +52,9 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: Text(localized(context, id: 'Riwayat Obat', en: 'Medicine History')),
+        title: Text(
+          localized(context, id: 'Riwayat Obat', en: 'Medicine History'),
+        ),
       ),
       body: ValueListenableBuilder<Box<MedicineLog>>(
         valueListenable: Hive.box<MedicineLog>('medicine_logs').listenable(),
@@ -78,7 +85,9 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
                   children: [
                     Row(
                       children: [
-                        for (final label in ['M', 'S', 'S', 'R', 'K', 'J', 'S'])
+                        for (final label in localizedWeekdayShortLabels(
+                          context,
+                        ))
                           Expanded(
                             child: Text(
                               label,
@@ -182,7 +191,7 @@ class _MonthHeader extends StatelessWidget {
         _NavCircle(icon: Icons.chevron_left_rounded, onTap: onPrev),
         Expanded(
           child: Text(
-            _monthLabel(month),
+            _monthLabel(context, month),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -224,10 +233,19 @@ class _Legend extends StatelessWidget {
       spacing: 12,
       runSpacing: 8,
       children: [
-        _LegendItem(label: localized(context, id: 'Semua diminum', en: 'All taken'), color: _green),
-        _LegendItem(label: localized(context, id: 'Sebagian', en: 'Partial'), color: _amber),
+        _LegendItem(
+          label: localized(context, id: 'Semua diminum', en: 'All taken'),
+          color: _green,
+        ),
+        _LegendItem(
+          label: localized(context, id: 'Sebagian', en: 'Partial'),
+          color: _amber,
+        ),
         _LegendItem(label: context.l10n.missed, color: _red),
-        _LegendItem(label: localized(context, id: 'Belum ada jadwal', en: 'No schedule'), color: _grey),
+        _LegendItem(
+          label: localized(context, id: 'Belum ada jadwal', en: 'No schedule'),
+          color: _grey,
+        ),
       ],
     );
   }
@@ -280,7 +298,7 @@ class _SelectedDayCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _dayLabel(day),
+            _dayLabel(context, day),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 17,
@@ -289,13 +307,21 @@ class _SelectedDayCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            localized(context, id: 'Lihat dosis yang diminum, terlewat, atau belum jatuh tempo.', en: 'Review doses that were taken, missed, or are not due yet.'),
+            localized(
+              context,
+              id: 'Lihat dosis yang diminum, terlewat, atau belum jatuh tempo.',
+              en: 'Review doses that were taken, missed, or are not due yet.',
+            ),
             style: TextStyle(color: _grey, fontSize: 12),
           ),
           const SizedBox(height: 16),
           if (doses.isEmpty)
             Text(
-              localized(context, id: 'Tidak ada jadwal obat di hari ini.', en: 'No medicine scheduled for this day.'),
+              localized(
+                context,
+                id: 'Tidak ada jadwal obat di hari ini.',
+                en: 'No medicine scheduled for this day.',
+              ),
               style: TextStyle(color: _grey),
             )
           else
@@ -465,6 +491,7 @@ String _dayState(
 
 String _historyStatus(MedicineRepository repo, _HistoryDose dose) {
   if (repo.isTaken(dose.medicine.id, dose.scheduled)) return 'taken';
+  if (repo.isMissed(dose.medicine.id, dose.scheduled)) return 'missed';
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final doseDay = DateTime(
@@ -472,8 +499,8 @@ String _historyStatus(MedicineRepository repo, _HistoryDose dose) {
     dose.scheduled.month,
     dose.scheduled.day,
   );
-  // Past days with no log entry = no data, not missed.
-  // Only today's overdue doses count as missed.
+  // Past-day misses should already be finalized into logs.
+  // Today still uses live overdue state.
   if (doseDay.isBefore(today)) return 'upcoming';
   if (dose.scheduled.isAfter(now)) return 'upcoming';
   return 'missed';
@@ -501,39 +528,8 @@ String _fmtClock(DateTime dateTime) {
   return '$hour:$minute';
 }
 
-String _monthLabel(DateTime month) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'Mei',
-    'Jun',
-    'Jul',
-    'Agu',
-    'Sep',
-    'Okt',
-    'Nov',
-    'Des',
-  ];
-  return '${months[month.month - 1]} ${month.year}';
-}
+String _monthLabel(BuildContext context, DateTime month) =>
+    formatMonthYear(context, month);
 
-String _dayLabel(DateTime day) {
-  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'Mei',
-    'Jun',
-    'Jul',
-    'Agu',
-    'Sep',
-    'Okt',
-    'Nov',
-    'Des',
-  ];
-  return '${days[day.weekday % 7]}, ${day.day} ${months[day.month - 1]} ${day.year}';
-}
+String _dayLabel(BuildContext context, DateTime day) =>
+    formatLongDate(context, day);

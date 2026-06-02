@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:hive_flutter/hive_flutter.dart';
 import 'medicine_model.dart';
 
@@ -13,15 +15,17 @@ class MedicineRepository {
   Future<void> archive(String id) async {
     final medicine = _medicines.get(id);
     if (medicine == null) return;
-    medicine.isActive = false;
-    await medicine.save();
+    final archived = _copyMedicine(medicine)..isActive = false;
+    await _medicines.put(id, archived);
+    _debugLogState('archive($id)');
   }
 
   Future<void> unarchive(String id) async {
     final medicine = _medicines.get(id);
     if (medicine == null) return;
-    medicine.isActive = true;
-    await medicine.save();
+    final restored = _copyMedicine(medicine)..isActive = true;
+    await _medicines.put(id, restored);
+    _debugLogState('unarchive($id)');
   }
 
   Medicine? getById(String id) => _medicines.get(id);
@@ -42,6 +46,50 @@ class MedicineRepository {
 
   Future<void> saveLog(MedicineLog log) => _logs.add(log);
 
+  Future<int> finalizeMissedDoses({DateTime? now}) async {
+    final current = now ?? DateTime.now();
+    final today = DateTime(current.year, current.month, current.day);
+    final existing = <String>{
+      for (final log in _logs.values) _doseKey(log.medicineId, log.scheduledTime),
+    };
+    final pending = <MedicineLog>[];
+
+    for (final medicine in _medicines.values) {
+      if (medicine.scheduleTimes.isEmpty) continue;
+      final createdAt = _createdAtFor(medicine);
+      if (createdAt == null) continue;
+
+      var day = DateTime(createdAt.year, createdAt.month, createdAt.day);
+      while (day.isBefore(today)) {
+        for (final minute in medicine.scheduleTimes) {
+          final scheduled = DateTime(
+            day.year,
+            day.month,
+            day.day,
+            minute ~/ 60,
+            minute % 60,
+          );
+          if (scheduled.isBefore(createdAt)) continue;
+          final key = _doseKey(medicine.id, scheduled);
+          if (existing.contains(key)) continue;
+          pending.add(
+            MedicineLog()
+              ..medicineId = medicine.id
+              ..scheduledTime = scheduled
+              ..takenAt = null
+              ..status = 'missed',
+          );
+          existing.add(key);
+        }
+        day = day.add(const Duration(days: 1));
+      }
+    }
+
+    if (pending.isEmpty) return 0;
+    await _logs.addAll(pending);
+    return pending.length;
+  }
+
   // ── Per-dose taken state ──────────────────────────────────────────────────
   // A dose is keyed by (medicineId, minute-truncated local scheduledTime).
   // The medicine list is the only writer, so this key is the single source.
@@ -58,6 +106,9 @@ class MedicineRepository {
 
   bool isTaken(String medicineId, DateTime scheduled) =>
       findLog(medicineId, scheduled)?.status == 'taken';
+
+  bool isMissed(String medicineId, DateTime scheduled) =>
+      findLog(medicineId, scheduled)?.status == 'missed';
 
   int getMedicineStreak(String medicineId) {
     final medicine = _medicines.get(medicineId);
@@ -119,5 +170,36 @@ class MedicineRepository {
     } else if (existing != null) {
       await existing.delete();
     }
+  }
+
+  Medicine _copyMedicine(Medicine source) {
+    return Medicine()
+      ..id = source.id
+      ..name = source.name
+      ..dosage = source.dosage
+      ..scheduleTimes = List<int>.from(source.scheduleTimes)
+      ..isActive = source.isActive
+      ..colorValue = source.colorValue
+      ..mealTimingKey = source.mealTimingKey;
+  }
+
+  DateTime? _createdAtFor(Medicine medicine) {
+    final createdMs = int.tryParse(medicine.id);
+    if (createdMs == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(createdMs);
+  }
+
+  String _doseKey(String medicineId, DateTime scheduled) =>
+      '$medicineId|${scheduled.millisecondsSinceEpoch}';
+
+  void _debugLogState(String reason) {
+    final snapshot = _medicines.values
+        .map((m) => '${m.name}:${m.id}:${m.isActive ? 'active' : 'archived'}')
+        .join(' | ');
+    // Temporary device-side archive diagnostics.
+    developer.log(
+      'MedicineRepository $reason -> $snapshot',
+      name: 'archive-debug',
+    );
   }
 }

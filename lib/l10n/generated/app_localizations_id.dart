@@ -209,4 +209,128 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get sleepChannelDescription => 'Layanan deteksi tidur';
+
+  @override
+  String get history => 'Riwayat';
+
+  @override
+  String get activityLogAcrossFeatures => 'Log aktivitas dari semua fitur';
+
+  @override
+  String get treatmentProgram => 'Program Pengobatan';
+
+  @override
+  String get noActiveProgramYet => 'Belum ada program aktif';
+
+  @override
+  String programDay(int count) {
+    return 'hari ke-$count';
+  }
+
+  @override
+  String get routineName => 'Nama rutinitas';
+
+  @override
+  String get habitName => 'Nama kebiasaan';
+
+  @override
+  String get routineLabel => 'RUTINITAS';
+
+  @override
+  String get scheduleLabel => 'JADWAL';
+
+  @override
+  String get reminderLabel => 'PENGINGAT';
+
+  @override
+  String get noHabitsYet => 'Belum ada kebiasaan';
+
+  @override
+  String get noMedicineScheduledToday => 'Belum ada jadwal obat hari ini.';
+
+  @override
+  String get noHabitsScheduledToday =>
+      'Belum ada kebiasaan terjadwal hari ini.';
+
+  @override
+  String get waterProgressToday => 'Progress air hari ini';
+
+  @override
+  String get homePullDownHint =>
+      'Tarik ke bawah, nikmati suasananya.\nScroll sedikit, lihat hari ini.';
+
+  @override
+  String get waterMascotNudge => 'Tetap semangat! Kamu hebat.';
+
+  @override
+  String waterOfMl(Object value) {
+    return 'dari $value ml';
+  }
+
+  @override
+  String waterAmountAdded(int value) {
+    return '+$value ml ditambahkan';
+  }
+
+  @override
+  String get waterWhoGuidance =>
+      'WHO merekomendasikan 2.0L (wanita) - 2.5L (pria) per hari. Di iklim panas seperti Indonesia, tambahkan 0.5-1.0L.';
+
+  @override
+  String waterReminderRange(int minutes) {
+    return 'Setiap $minutes menit dalam rentang aktif';
+  }
+
+  @override
+  String get archiveMedicineTitle => 'Arsipkan obat?';
+
+  @override
+  String archiveMedicineBody(Object name) {
+    return '$name disembunyikan dari daftar hari ini. Riwayat tetap tersimpan.';
+  }
+
+  @override
+  String deleteMedicineBody(Object name) {
+    return '$name akan dihapus permanen beserta riwayatnya.';
+  }
+
+  @override
+  String nextDose(Object dayLabel, Object time) {
+    return 'Berikutnya $dayLabel $time';
+  }
+
+  @override
+  String get bestStreakDays => 'hari streak terbaik';
+
+  @override
+  String get smallStepsBigChange =>
+      'Langkah kecil setiap hari\nmembawa perubahan besar ✨';
+
+  @override
+  String streakDaysRow(int count) {
+    return '$count hari berturut-turut';
+  }
+
+  @override
+  String get noStreakYet => 'Belum ada streak';
+
+  @override
+  String get medals => 'Medali';
+
+  @override
+  String get noMedalsYet => 'Belum ada medali';
+
+  @override
+  String get retireFirstHabitForMedal =>
+      'Pensiun kebiasaan pertamamu\nuntuk mendapatkan medali pertama.';
+
+  @override
+  String bestStreakLabel(int count) {
+    return '🔥 Streak terbaik: $count hari';
+  }
+
+  @override
+  String earnedOn(Object date) {
+    return 'Dicapai $date';
+  }
 }

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -10,8 +8,7 @@ class LanguageService {
 
   static Box<String> get box => Hive.box<String>(_boxName);
 
-  static String get current =>
-      box.get(_key) ?? _normalize(PlatformDispatcher.instance.locale.languageCode);
+  static String get current => box.get(_key) ?? 'en';
 
   static Future<void> initialize() async {
     if (!box.containsKey(_key)) {

@@ -75,5 +75,89 @@
   "sleepWaiting": "Waiting for sleep time...",
   "stillAwake": "I'm still awake",
   "sleepChannel": "Sleep Mode",
-  "sleepChannelDescription": "Sleep detection service"
+  "sleepChannelDescription": "Sleep detection service",
+  "history": "History",
+  "activityLogAcrossFeatures": "Activity log across all features",
+  "treatmentProgram": "Treatment Program",
+  "noActiveProgramYet": "No active program yet",
+  "programDay": "day {count}",
+  "@programDay": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "routineName": "Routine name",
+  "habitName": "Habit name",
+  "routineLabel": "ROUTINE",
+  "scheduleLabel": "SCHEDULE",
+  "reminderLabel": "REMINDER",
+  "noHabitsYet": "No habits yet",
+  "noMedicineScheduledToday": "No medicine scheduled today.",
+  "noHabitsScheduledToday": "No habits scheduled today.",
+  "waterProgressToday": "Water progress today",
+  "homePullDownHint": "Pull down and enjoy the view.\nScroll a little and check today.",
+  "waterMascotNudge": "Keep going. You are doing great.",
+  "waterOfMl": "of {value} ml",
+  "@waterOfMl": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "waterAmountAdded": "+{value} ml added",
+  "@waterAmountAdded": {
+    "placeholders": {
+      "value": { "type": "int" }
+    }
+  },
+  "waterWhoGuidance": "WHO recommends 2.0L (women) - 2.5L (men) per day. In hot climates like Indonesia, add 0.5-1.0L.",
+  "waterReminderRange": "Every {minutes} min within the active window",
+  "@waterReminderRange": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "archiveMedicineTitle": "Archive medicine?",
+  "archiveMedicineBody": "{name} will be hidden from today's list. History stays saved.",
+  "@archiveMedicineBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteMedicineBody": "{name} will be permanently deleted together with its history.",
+  "@deleteMedicineBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "nextDose": "Next {dayLabel} {time}",
+  "@nextDose": {
+    "placeholders": {
+      "dayLabel": {},
+      "time": {}
+    }
+  },
+  "bestStreakDays": "best streak days",
+  "smallStepsBigChange": "Small steps every day\ncreate big change ✨",
+  "streakDaysRow": "{count} days in a row",
+  "@streakDaysRow": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "noStreakYet": "No streak yet",
+  "medals": "Medals",
+  "noMedalsYet": "No medals yet",
+  "retireFirstHabitForMedal": "Retire your first habit\nto earn your first medal.",
+  "bestStreakLabel": "🔥 Best streak: {count} days",
+  "@bestStreakLabel": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "earnedOn": "Earned {date}",
+  "@earnedOn": {
+    "placeholders": {
+      "date": {}
+    }
+  }
 }

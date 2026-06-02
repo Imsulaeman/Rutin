@@ -8,6 +8,7 @@ import 'app.dart';
 import 'features/habits/data/habit_model.dart';
 import 'features/habits/data/medal_model.dart';
 import 'features/medicine/data/medicine_model.dart';
+import 'features/medicine/data/medicine_repository.dart';
 import 'features/notifications/alarm_service.dart';
 import 'features/notifications/notification_handler.dart'
     show NotificationHandler, onBackgroundNotification;
@@ -28,6 +29,7 @@ Future<void> main() async {
   await Hive.initFlutter();
   _registerHiveAdapters();
   await _openHiveBoxes();
+  await MedicineRepository().finalizeMissedDoses();
   await LanguageService.initialize();
   await AlarmService.init();
   await _syncMedicineSchedules();

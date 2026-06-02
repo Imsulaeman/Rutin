@@ -104,7 +104,11 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            localized(context, id: 'Mode tidur belum dapat dijalankan. Coba aktifkan kembali setelah memperbarui aplikasi.', en: 'Sleep mode could not start. Try enabling it again after updating the app.'),
+            localized(
+              context,
+              id: 'Mode tidur belum dapat dijalankan. Coba aktifkan kembali setelah memperbarui aplikasi.',
+              en: 'Sleep mode could not start. Try enabling it again after updating the app.',
+            ),
           ),
         ),
       );
@@ -154,7 +158,11 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            localized(context, id: 'Untuk pengalaman terbaik, aktifkan Accessibility Service.', en: 'For the best experience, enable Accessibility Service.'),
+                            localized(
+                              context,
+                              id: 'Untuk pengalaman terbaik, aktifkan Accessibility Service.',
+                              en: 'For the best experience, enable Accessibility Service.',
+                            ),
                             style: TextStyle(
                               fontSize: 13,
                               color: cs.onErrorContainer,
@@ -164,7 +172,9 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                         TextButton(
                           onPressed: () =>
                               _ch.invokeMethod('openAccessibilitySettings'),
-                          child: Text(localized(context, id: 'Aktifkan', en: 'Enable')),
+                          child: Text(
+                            localized(context, id: 'Aktifkan', en: 'Enable'),
+                          ),
                         ),
                       ],
                     ),
@@ -222,9 +232,21 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                       : Icons.warning_amber_rounded,
                   color: _accessibilityGranted ? Colors.green : cs.error,
                 ),
-                title: const Text('Accessibility Service'),
+                title: Text(
+                  localized(
+                    context,
+                    id: 'Accessibility Service',
+                    en: 'Accessibility Service',
+                  ),
+                ),
                 subtitle: Text(
-                  _accessibilityGranted ? 'Diizinkan ✓' : 'Belum diizinkan',
+                  _accessibilityGranted
+                      ? localized(context, id: 'Diizinkan', en: 'Allowed')
+                      : localized(
+                          context,
+                          id: 'Belum diizinkan',
+                          en: 'Not allowed yet',
+                        ),
                 ),
                 trailing: _accessibilityGranted
                     ? null
@@ -277,14 +299,17 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
               minimumSize: const Size(double.infinity, 48),
             ),
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final message = localized(
+                context,
+                id: 'Gerbang pagi seharusnya muncul sekarang. Jika tidak, cek apakah Mode Tidur aktif.',
+                en: 'The morning gate should appear now. If not, check whether Sleep Mode is enabled.',
+              );
               await _ch.invokeMethod('simulateSleepTrigger');
               if (!mounted) return;
-              // ignore: use_build_context_synchronously
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Morning gate seharusnya muncul sekarang. Jika tidak, cek apakah Mode Tidur aktif.',
-                  ),
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(message),
                   duration: Duration(seconds: 4),
                 ),
               );

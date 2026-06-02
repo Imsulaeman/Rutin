@@ -75,5 +75,89 @@
   "sleepWaiting": "Menunggu waktu tidur...",
   "stillAwake": "Saya masih terjaga",
   "sleepChannel": "Mode Tidur",
-  "sleepChannelDescription": "Layanan deteksi tidur"
+  "sleepChannelDescription": "Layanan deteksi tidur",
+  "history": "Riwayat",
+  "activityLogAcrossFeatures": "Log aktivitas dari semua fitur",
+  "treatmentProgram": "Program Pengobatan",
+  "noActiveProgramYet": "Belum ada program aktif",
+  "programDay": "hari ke-{count}",
+  "@programDay": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "routineName": "Nama rutinitas",
+  "habitName": "Nama kebiasaan",
+  "routineLabel": "RUTINITAS",
+  "scheduleLabel": "JADWAL",
+  "reminderLabel": "PENGINGAT",
+  "noHabitsYet": "Belum ada kebiasaan",
+  "noMedicineScheduledToday": "Belum ada jadwal obat hari ini.",
+  "noHabitsScheduledToday": "Belum ada kebiasaan terjadwal hari ini.",
+  "waterProgressToday": "Progress air hari ini",
+  "homePullDownHint": "Tarik ke bawah, nikmati suasananya.\nScroll sedikit, lihat hari ini.",
+  "waterMascotNudge": "Tetap semangat! Kamu hebat.",
+  "waterOfMl": "dari {value} ml",
+  "@waterOfMl": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "waterAmountAdded": "+{value} ml ditambahkan",
+  "@waterAmountAdded": {
+    "placeholders": {
+      "value": { "type": "int" }
+    }
+  },
+  "waterWhoGuidance": "WHO merekomendasikan 2.0L (wanita) - 2.5L (pria) per hari. Di iklim panas seperti Indonesia, tambahkan 0.5-1.0L.",
+  "waterReminderRange": "Setiap {minutes} menit dalam rentang aktif",
+  "@waterReminderRange": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "archiveMedicineTitle": "Arsipkan obat?",
+  "archiveMedicineBody": "{name} disembunyikan dari daftar hari ini. Riwayat tetap tersimpan.",
+  "@archiveMedicineBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteMedicineBody": "{name} akan dihapus permanen beserta riwayatnya.",
+  "@deleteMedicineBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "nextDose": "Berikutnya {dayLabel} {time}",
+  "@nextDose": {
+    "placeholders": {
+      "dayLabel": {},
+      "time": {}
+    }
+  },
+  "bestStreakDays": "hari streak terbaik",
+  "smallStepsBigChange": "Langkah kecil setiap hari\nmembawa perubahan besar ✨",
+  "streakDaysRow": "{count} hari berturut-turut",
+  "@streakDaysRow": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "noStreakYet": "Belum ada streak",
+  "medals": "Medali",
+  "noMedalsYet": "Belum ada medali",
+  "retireFirstHabitForMedal": "Pensiun kebiasaan pertamamu\nuntuk mendapatkan medali pertama.",
+  "bestStreakLabel": "🔥 Streak terbaik: {count} hari",
+  "@bestStreakLabel": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "earnedOn": "Dicapai {date}",
+  "@earnedOn": {
+    "placeholders": {
+      "date": {}
+    }
+  }
 }

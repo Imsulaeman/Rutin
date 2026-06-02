@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../habits/data/habit_repository.dart';
 import '../../habits/data/medal_model.dart';
 import '../../habits/data/medal_repository.dart';
+import '../../tb/data/tb_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _habits = HabitRepository();
   List<Medal> _list = [];
   int _bestActiveStreak = 0;
+  TBTreatmentProfile? _treatment;
 
   @override
   void initState() {
@@ -38,6 +41,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _list = sorted;
       _bestActiveStreak = best;
+      _treatment = Hive.box<TBTreatmentProfile>(
+        'tb_profiles',
+      ).values.where((profile) => profile.isActive).firstOrNull;
     });
   }
 
@@ -53,6 +59,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Card(
                 child: ListTile(
                   leading: const Icon(
+                    Icons.history_rounded,
+                    color: AppTheme.habitsColor,
+                  ),
+                  title: Text(
+                    context.l10n.history,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(context.l10n.activityLogAcrossFeatures),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/history'),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(
                     Icons.bedtime_rounded,
                     color: Color(0xFF7C3AED),
                   ),
@@ -60,13 +86,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context.l10n.sleepMode,
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(localized(
-                    context,
-                    id: 'Pengaturan & game bangun pagi',
-                    en: 'Settings & morning wake-up games',
-                  )),
+                  subtitle: Text(
+                    localized(
+                      context,
+                      id: 'Pengaturan & game bangun pagi',
+                      en: 'Settings & morning wake-up games',
+                    ),
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/sleep-settings'),
+                ),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.health_and_safety_rounded,
+                    color: AppTheme.medicineColor,
+                  ),
+                  title: Text(
+                    context.l10n.treatmentProgram,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    _treatment == null
+                        ? context.l10n.noActiveProgramYet
+                        : '${_treatment!.conditionName} - ${context.l10n.programDay(_treatmentDay(_treatment!))}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push(
+                    _treatment == null
+                        ? '/treatment/onboarding'
+                        : '/treatment/detail',
+                  ),
                 ),
               ),
             ),
@@ -84,11 +140,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context.l10n.settings,
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(localized(
-                    context,
-                    id: 'Bahasa, aksesibilitas, tentang',
-                    en: 'Language, accessibility, about',
-                  )),
+                  subtitle: Text(
+                    localized(
+                      context,
+                      id: 'Bahasa, aksesibilitas, tentang',
+                      en: 'Language, accessibility, about',
+                    ),
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings'),
                 ),
@@ -149,19 +207,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              localized(context, id: 'hari streak terbaik', en: 'best streak days'),
+              localized(
+                context,
+                id: 'hari streak terbaik',
+                en: 'best streak days',
+              ),
               style: TextStyle(fontSize: 15, color: Colors.white60),
             ),
             const SizedBox(height: 24),
             Text(
-              'Medali',
+              context.l10n.medals,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 2),
             Text(
-              localized(context, id: 'Kebiasaan yang sudah kamu capai', en: 'Habits you have achieved'),
+              localized(
+                context,
+                id: 'Kebiasaan yang sudah kamu capai',
+                en: 'Habits you have achieved',
+              ),
               style: TextStyle(fontSize: 13, color: Colors.white54),
             ),
           ],
@@ -181,12 +247,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Text('🏅', style: TextStyle(fontSize: 56)),
             const SizedBox(height: 16),
             Text(
-              'Belum ada medali',
+              context.l10n.noMedalsYet,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 6),
             Text(
-              'Pensiun kebiasaan pertamamu\nuntuk mendapatkan medali pertama.',
+              context.l10n.retireFirstHabitForMedal,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -204,22 +270,7 @@ class _MedalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final awarded = medal.awardedAt;
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    final dateStr =
-        '${awarded.day} ${months[awarded.month - 1]} ${awarded.year}';
+    final dateStr = formatLongDate(context, awarded);
 
     return Card(
       child: Padding(
@@ -248,7 +299,7 @@ class _MedalCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '🔥 Streak terbaik: ${medal.peakStreak} hari',
+                    context.l10n.bestStreakLabel(medal.peakStreak),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.streakColor,
                       fontWeight: FontWeight.w600,
@@ -256,7 +307,7 @@ class _MedalCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Dicapai $dateStr',
+                    context.l10n.earnedOn(dateStr),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -268,3 +319,6 @@ class _MedalCard extends StatelessWidget {
     );
   }
 }
+
+int _treatmentDay(TBTreatmentProfile profile) =>
+    DateTime.now().difference(profile.startDate).inDays + 1;

@@ -493,6 +493,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sleep detection service'**
   String get sleepChannelDescription;
+
+  /// No description provided for @history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get history;
+
+  /// No description provided for @activityLogAcrossFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity log across all features'**
+  String get activityLogAcrossFeatures;
+
+  /// No description provided for @treatmentProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'Treatment Program'**
+  String get treatmentProgram;
+
+  /// No description provided for @noActiveProgramYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No active program yet'**
+  String get noActiveProgramYet;
+
+  /// No description provided for @programDay.
+  ///
+  /// In en, this message translates to:
+  /// **'day {count}'**
+  String programDay(int count);
+
+  /// No description provided for @routineName.
+  ///
+  /// In en, this message translates to:
+  /// **'Routine name'**
+  String get routineName;
+
+  /// No description provided for @habitName.
+  ///
+  /// In en, this message translates to:
+  /// **'Habit name'**
+  String get habitName;
+
+  /// No description provided for @routineLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ROUTINE'**
+  String get routineLabel;
+
+  /// No description provided for @scheduleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SCHEDULE'**
+  String get scheduleLabel;
+
+  /// No description provided for @reminderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'REMINDER'**
+  String get reminderLabel;
+
+  /// No description provided for @noHabitsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No habits yet'**
+  String get noHabitsYet;
+
+  /// No description provided for @noMedicineScheduledToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No medicine scheduled today.'**
+  String get noMedicineScheduledToday;
+
+  /// No description provided for @noHabitsScheduledToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No habits scheduled today.'**
+  String get noHabitsScheduledToday;
+
+  /// No description provided for @waterProgressToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Water progress today'**
+  String get waterProgressToday;
+
+  /// No description provided for @homePullDownHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull down and enjoy the view.\nScroll a little and check today.'**
+  String get homePullDownHint;
+
+  /// No description provided for @waterMascotNudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep going. You are doing great.'**
+  String get waterMascotNudge;
+
+  /// No description provided for @waterOfMl.
+  ///
+  /// In en, this message translates to:
+  /// **'of {value} ml'**
+  String waterOfMl(Object value);
+
+  /// No description provided for @waterAmountAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'+{value} ml added'**
+  String waterAmountAdded(int value);
+
+  /// No description provided for @waterWhoGuidance.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO recommends 2.0L (women) - 2.5L (men) per day. In hot climates like Indonesia, add 0.5-1.0L.'**
+  String get waterWhoGuidance;
+
+  /// No description provided for @waterReminderRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Every {minutes} min within the active window'**
+  String waterReminderRange(int minutes);
+
+  /// No description provided for @archiveMedicineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive medicine?'**
+  String get archiveMedicineTitle;
+
+  /// No description provided for @archiveMedicineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will be hidden from today\'s list. History stays saved.'**
+  String archiveMedicineBody(Object name);
+
+  /// No description provided for @deleteMedicineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will be permanently deleted together with its history.'**
+  String deleteMedicineBody(Object name);
+
+  /// No description provided for @nextDose.
+  ///
+  /// In en, this message translates to:
+  /// **'Next {dayLabel} {time}'**
+  String nextDose(Object dayLabel, Object time);
+
+  /// No description provided for @bestStreakDays.
+  ///
+  /// In en, this message translates to:
+  /// **'best streak days'**
+  String get bestStreakDays;
+
+  /// No description provided for @smallStepsBigChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Small steps every day\ncreate big change ✨'**
+  String get smallStepsBigChange;
+
+  /// No description provided for @streakDaysRow.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days in a row'**
+  String streakDaysRow(int count);
+
+  /// No description provided for @noStreakYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No streak yet'**
+  String get noStreakYet;
+
+  /// No description provided for @medals.
+  ///
+  /// In en, this message translates to:
+  /// **'Medals'**
+  String get medals;
+
+  /// No description provided for @noMedalsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No medals yet'**
+  String get noMedalsYet;
+
+  /// No description provided for @retireFirstHabitForMedal.
+  ///
+  /// In en, this message translates to:
+  /// **'Retire your first habit\nto earn your first medal.'**
+  String get retireFirstHabitForMedal;
+
+  /// No description provided for @bestStreakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'🔥 Best streak: {count} days'**
+  String bestStreakLabel(int count);
+
+  /// No description provided for @earnedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Earned {date}'**
+  String earnedOn(Object date);
 }
 
 class _AppLocalizationsDelegate

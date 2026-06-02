@@ -26,6 +26,52 @@ Build: Debug - full native rebuild required
 
 ---
 
+## Session 22 - 2026-06-02
+
+Date: 2026-06-02
+Device: Realme GT 2 Pro / current test phone
+Build: Debug - hot restart sufficient for latest Dart-only Obat fix, full restart required for prior native alarm settings change
+
+### Obat - delete-only flow
+
+- [ ] Open `Obat`.
+- [ ] Expected: no archive button appears in the top-right header.
+- [ ] Swipe a medicine card from right to left.
+- [ ] Expected: only the red delete affordance appears.
+- [ ] Confirm delete.
+- [ ] Expected: the medicine disappears and does not return after reopening Obat.
+
+### Obat - empty schedule safety
+
+- [ ] Open `Obat` with any existing medicine data, including legacy data if present.
+- [ ] Expected: the screen does not red-screen even if a medicine has no valid dose chips.
+- [ ] If a malformed medicine exists with no schedule times, expected: the card shows `Belum ada jadwal dosis` instead of crashing.
+
+### Medicine alarm - full-screen permission path
+
+- [ ] Open `Profile` -> `Settings`.
+- [ ] Find the `Full-screen alarm` row under medicine alarm settings.
+- [ ] If it shows not allowed, tap `Allow`.
+- [ ] Expected: Android opens the app-specific full-screen intent settings page.
+- [ ] Enable full-screen alarms, return to Rutin, and reopen Settings.
+- [ ] Expected: the row now shows allowed state.
+- [x] Trigger a medicine alarm while Rutin is already foregrounded.
+- [x] Expected: `ReminderActivity` takes over full-screen.
+- [x] Trigger a medicine alarm while another app is in the foreground.
+- [x] Observed on target phone: fallback is notification + alarm sound, which is accepted for now.
+
+### Medicine history - missed finalization
+
+- [ ] Create or keep a medicine with at least one scheduled dose.
+- [ ] Let one dose pass without tapping `Sudah diminum`.
+- [ ] On the same day, open `Riwayat Obat`.
+- [ ] Expected: today's overdue untaken dose can show as missed in the UI, even before finalization.
+- [ ] After the calendar day rolls over, reopen Rutin or open `Obat` / `Riwayat Obat`.
+- [ ] Expected: yesterday's untaken dose now exists as a persisted missed log entry.
+- [ ] Expected: the previous day in `Riwayat Obat` remains missed consistently after app restart.
+
+---
+
 ## Session 20 - 2026-05-31
 
 Date: 2026-05-31
@@ -42,22 +88,31 @@ Build: Debug
 
 ### Habit history calendar
 
-- [ ] Tap the calendar icon on a habit card.
-- [ ] Expected: the habit name and emoji appear in the AppBar.
-- [ ] Expected: full days are purple, partial days amber, missed days dim white, and future days have no dot.
+- [ ] Open `Kebiasaan` and tap the top-bar calendar button.
+- [ ] Expected: the overall habit history screen opens, not a single-habit page.
+- [ ] Expected: full days are purple, partial days amber, missed days dim white, and off-days stay muted.
 - [ ] Expected: previous and next month buttons work.
+- [ ] Tap a day and confirm the per-day habit breakdown below the calendar updates.
+
+### Overall history
+
+- [ ] Open `Profile` and tap `History`.
+- [ ] Expected: the overall history screen opens from the hamburger/Profile area, not Settings.
+- [ ] Expected: the day picker uses wrapped cards, not a sideways sliding strip.
+- [ ] Expected: feed entries stack vertically and stay newest-first within the selected day.
 
 ### Medicine streak
 
 - [ ] Open Obat with a medicine that has consecutive completed days.
 - [ ] Expected: the card shows a `🔥 N` badge only when its computed streak is greater than zero.
 
-### Wake-up game - Connect the Dots
+### Wake-up game - Connect the Colors
 
 - [ ] Open Mode Tidur and launch `/wakeup-game` with game index `5`.
-- [ ] Expected: eight numbered dots appear in a seeded daily layout.
-- [ ] Draw through dots `1` to `8` in order, lifting your finger between attempts if needed.
-- [ ] Expected: connected progress remains, haptics fire, and completion shows the celebration.
+- [ ] Expected: a seeded 6×6 board appears with four colored endpoint pairs.
+- [ ] Drag from one endpoint to its matching color using orthogonal moves only.
+- [ ] Expected: cells snap into the path, crossing another path erases that older path, and partial paths remain when you lift your finger.
+- [ ] Expected: when all four pairs are connected and all 36 cells are filled, the celebration appears.
 
 ---
 

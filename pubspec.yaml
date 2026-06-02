@@ -18,12 +18,12 @@ dependencies:
   hive_flutter: ^1.1.0
   flutter_local_notifications: ^17.2.4
   android_alarm_manager_plus: ^5.0.0
-  go_router: ^14.6.2
+  go_router: ^17.2.3
   pdf: ^3.11.1
   printing: ^5.13.2
   intl: ^0.20.2
-  firebase_core: ^3.6.0
-  firebase_analytics: ^11.3.3
+  firebase_core: ^4.10.0
+  firebase_analytics: ^12.4.2
 
 dev_dependencies:
   flutter_test:
@@ -31,6 +31,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.4.13
   hive_generator: ^2.0.1
+  flutter_native_splash: ^2.4.5
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
@@ -46,3 +48,18 @@ flutter:
     - assets/star_mascot.webp
     - assets/flame_mascot.webp
     - assets/moon_mascot.webp
+    - assets/rutin-icon.png
+    - assets/rutin-icon-clean.png
+flutter_native_splash:
+  color: "#0B0E1A"
+  android_12:
+    color: "#0B0E1A"
+    image: assets/rutin-icon-clean.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/rutin-icon.png
+  adaptive_icon_background: "#0B0E1A"
+  adaptive_icon_foreground: assets/rutin-icon-clean.png
+  min_sdk_android: 26

@@ -46,6 +46,7 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _finalizeMissedDoses();
     _drainPending();
     _refreshReminderDebug(ref.read(medicineRepositoryProvider));
   }
@@ -59,8 +60,17 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _finalizeMissedDoses();
       _drainPending();
       _refreshReminderDebug(ref.read(medicineRepositoryProvider), force: true);
+    }
+  }
+
+  Future<void> _finalizeMissedDoses() async {
+    final repo = ref.read(medicineRepositoryProvider);
+    final added = await repo.finalizeMissedDoses();
+    if (added > 0 && mounted) {
+      setState(() {});
     }
   }
 
@@ -182,23 +192,6 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     }
     await repo.delete(medicine.id);
     AnalyticsService.medicineDeleted();
-    await _refreshReminderDebug(repo, force: true);
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _executeArchive(
-    MedicineRepository repo,
-    Medicine medicine,
-  ) async {
-    for (final minutes in medicine.scheduleTimes) {
-      await AlarmService.cancelAllForAlarm(
-        AlarmService.medicineRootAlarmId(medicine.id, minutes),
-      );
-    }
-    await repo.archive(medicine.id);
-    AnalyticsService.medicineArchived();
-    await _refreshReminderDebug(repo, force: true);
-    if (mounted) setState(() {});
   }
 
   String? _debugTextFor(_Dose dose) {
@@ -213,11 +206,11 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     final base = DateTime.fromMillisecondsSinceEpoch(baseMillis);
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final dayLabel = _sameDay(base, DateTime.now())
-        ? 'hari ini'
+        ? 'today'
         : _sameDay(base, tomorrow)
-        ? 'besok'
+        ? 'tomorrow'
         : '${base.day}/${base.month}';
-    return 'Berikutnya $dayLabel ${_fmtClock(base)}';
+    return context.l10n.nextDose(dayLabel, _fmtClock(base));
   }
 
   @override
@@ -284,11 +277,6 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                                 ),
                               ),
                               _HeaderButton(
-                                icon: Icons.archive_outlined,
-                                onTap: () => context.push('/medicine/archive'),
-                              ),
-                              const SizedBox(width: 4),
-                              _HeaderButton(
                                 icon: Icons.calendar_month_rounded,
                                 onTap: () => context.push('/medicine/history'),
                               ),
@@ -325,8 +313,11 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                           child: _SwipeMedicine(
                             key: ValueKey('med_${medicine.id}'),
                             medicine: medicine,
-                            onDelete: () => _executeDelete(repo, medicine),
-                            onArchive: () => _executeArchive(repo, medicine),
+                            onDeleteConfirmed: () => _executeDelete(repo, medicine),
+                            onDismissedRefresh: () async {
+                              await _refreshReminderDebug(repo, force: true);
+                              if (mounted) setState(() {});
+                            },
                             child: _MedicineCard(
                               medicine: medicine,
                               doses: dosesByMedicine[medicine.id] ?? [],
@@ -393,13 +384,29 @@ class _DayBanner extends StatelessWidget {
     final String statusText;
 
     if (nowCount > 0) {
-      statusText = localized(context, id: '$nowCount perlu diminum', en: '$nowCount due now');
+      statusText = localized(
+        context,
+        id: '$nowCount perlu diminum',
+        en: '$nowCount due now',
+      );
     } else if (missedCount > 0) {
-      statusText = localized(context, id: '$missedCount terlewat', en: '$missedCount missed');
+      statusText = localized(
+        context,
+        id: '$missedCount terlewat',
+        en: '$missedCount missed',
+      );
     } else if (taken == total) {
-      statusText = localized(context, id: 'Semua sudah diminum', en: 'All taken');
+      statusText = localized(
+        context,
+        id: 'Semua sudah diminum',
+        en: 'All taken',
+      );
     } else {
-      statusText = localized(context, id: '$taken/$total selesai', en: '$taken/$total done');
+      statusText = localized(
+        context,
+        id: '$taken/$total selesai',
+        en: '$taken/$total done',
+      );
     }
 
     return Container(
@@ -423,7 +430,7 @@ class _DayBanner extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            _todayLabel(),
+            _todayLabel(context),
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.78),
               fontSize: 13,
@@ -472,14 +479,18 @@ class _MedicineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    _Dose? relevantDose;
+    for (final dose in doses) {
+      final bucket = bucketFor(dose);
+      if (bucket == _DoseBucket.now || bucket == _DoseBucket.upcoming) {
+        relevantDose = dose;
+        break;
+      }
+    }
     // Show next alarm for the most relevant dose:
     // prefer upcoming/now doses; fall back to any dose if all taken/missed.
-    final relevantDose = doses.firstWhere((d) {
-      final b = bucketFor(d);
-      return b == _DoseBucket.now || b == _DoseBucket.upcoming;
-    }, orElse: () => doses.first);
     final debugText =
-        debugTextFor(relevantDose) ??
+        (relevantDose != null ? debugTextFor(relevantDose) : null) ??
         doses.map(debugTextFor).where((t) => t != null).firstOrNull;
 
     return Container(
@@ -530,19 +541,29 @@ class _MedicineCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final dose in doses)
-                _DoseChip(
-                  dose: dose,
-                  bucket: bucketFor(dose),
-                  onTap: () =>
-                      onToggle(dose, bucketFor(dose) != _DoseBucket.taken),
-                ),
-            ],
-          ),
+          if (doses.isEmpty)
+            Text(
+              localized(
+                context,
+                id: 'Belum ada jadwal dosis',
+                en: 'No dose schedule yet',
+              ),
+              style: const TextStyle(color: _grey, fontSize: 13),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final dose in doses)
+                  _DoseChip(
+                    dose: dose,
+                    bucket: bucketFor(dose),
+                    onTap: () =>
+                        onToggle(dose, bucketFor(dose) != _DoseBucket.taken),
+                  ),
+              ],
+            ),
           if (debugText != null) ...[
             const SizedBox(height: 8),
             _Badge(
@@ -677,31 +698,22 @@ class _SwipeMedicine extends StatelessWidget {
   const _SwipeMedicine({
     required super.key,
     required this.medicine,
-    required this.onDelete,
-    required this.onArchive,
+    required this.onDeleteConfirmed,
+    required this.onDismissedRefresh,
     required this.child,
   });
 
   final Medicine medicine;
-  final Future<void> Function() onDelete;
-  final Future<void> Function() onArchive;
+  final Future<void> Function() onDeleteConfirmed;
+  final Future<void> Function() onDismissedRefresh;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return Dismissible(
       key: key!,
-      // swipe right → archive (amber)
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF4A92B),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: const Icon(Icons.archive_outlined, color: Colors.white),
-      ),
-      // swipe left → delete (red)
+      direction: DismissDirection.endToStart,
+      background: const SizedBox.shrink(),
       secondaryBackground: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -715,73 +727,45 @@ class _SwipeMedicine extends StatelessWidget {
         ),
       ),
       confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          return await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: _surface,
-                  title: Text(
-                    'Arsipkan obat?',
-                    style: TextStyle(color: Colors.white),
+        final confirmed =
+            await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: _surface,
+                title: Text(
+                  localized(
+                    context,
+                    id: 'Hapus obat?',
+                    en: 'Delete medicine?',
                   ),
-                  content: Text(
-                    '${medicine.name} disembunyikan dari daftar hari ini. Riwayat tetap tersimpan.',
-                    style: const TextStyle(color: _grey),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text(context.l10n.cancel),
-                    ),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFF4A92B),
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text(context.l10n.archive),
-                    ),
-                  ],
+                  style: TextStyle(color: Colors.white),
                 ),
-              ) ??
-              false;
-        } else {
-          return await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: _surface,
-                  title: Text(
-                    localized(context, id: 'Hapus obat?', en: 'Delete medicine?'),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  content: Text(
-                    '${medicine.name} akan dihapus permanen beserta riwayatnya.',
-                    style: const TextStyle(color: _grey),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text(context.l10n.cancel),
-                    ),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _medGradient.last,
-                      ),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text(context.l10n.delete),
-                    ),
-                  ],
+                content: Text(
+                  context.l10n.deleteMedicineBody(medicine.name),
+                  style: const TextStyle(color: _grey),
                 ),
-              ) ??
-              false;
-        }
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(context.l10n.cancel),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _medGradient.last,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(context.l10n.delete),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+        if (!confirmed) return false;
+        await onDeleteConfirmed();
+        return true;
       },
-      onDismissed: (direction) {
-        if (direction == DismissDirection.startToEnd) {
-          onArchive();
-        } else {
-          onDelete();
-        }
+      onDismissed: (_) {
+        onDismissedRefresh();
       },
       child: child,
     );
@@ -814,7 +798,11 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              localized(context, id: 'Belum ada obat hari ini', en: 'No medicine today'),
+              localized(
+                context,
+                id: 'Belum ada obat hari ini',
+                en: 'No medicine today',
+              ),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -823,7 +811,11 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              localized(context, id: 'Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di sini.', en: "Add a medicine schedule with + so today's doses appear here."),
+              localized(
+                context,
+                id: 'Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di sini.',
+                en: "Add a medicine schedule with + so today's doses appear here.",
+              ),
               textAlign: TextAlign.center,
               style: TextStyle(color: _grey, fontSize: 13, height: 1.45),
             ),
@@ -851,22 +843,5 @@ String _fmtClock(DateTime dateTime) {
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-String _todayLabel() {
-  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'Mei',
-    'Jun',
-    'Jul',
-    'Agu',
-    'Sep',
-    'Okt',
-    'Nov',
-    'Des',
-  ];
-  final now = DateTime.now();
-  return '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
-}
+String _todayLabel(BuildContext context) =>
+    formatLongDate(context, DateTime.now());

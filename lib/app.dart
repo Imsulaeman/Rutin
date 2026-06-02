@@ -12,7 +12,6 @@ import 'features/habits/presentation/habits_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/medicine/presentation/add_medicine_screen.dart';
-import 'features/medicine/presentation/medicine_archive_screen.dart';
 import 'features/medicine/presentation/medicine_history_screen.dart';
 import 'features/medicine/presentation/medicine_list_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
@@ -42,36 +41,33 @@ final appRouter = GoRouter(
       branches: [
         StatefulShellBranch(
           navigatorKey: _shellHomeKey,
-          routes: [GoRoute(path: '/', builder: (_, __) => const HomeScreen())],
+          routes: [GoRoute(path: '/', builder: (_, _) => const HomeScreen())],
         ),
         StatefulShellBranch(
           navigatorKey: _shellMedicineKey,
           routes: [
             GoRoute(
               path: '/medicine',
-              builder: (_, __) => const MedicineListScreen(),
+              builder: (_, _) => const MedicineListScreen(),
             ),
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellWaterKey,
           routes: [
-            GoRoute(path: '/water', builder: (_, __) => const WaterScreen()),
+            GoRoute(path: '/water', builder: (_, _) => const WaterScreen()),
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellHabitsKey,
           routes: [
-            GoRoute(path: '/habits', builder: (_, __) => const HabitsScreen()),
+            GoRoute(path: '/habits', builder: (_, _) => const HabitsScreen()),
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellProfileKey,
           routes: [
-            GoRoute(
-              path: '/profile',
-              builder: (_, __) => const ProfileScreen(),
-            ),
+            GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
           ],
         ),
       ],
@@ -80,17 +76,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/medicine/add',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const AddMedicineScreen(),
+      builder: (_, _) => const AddMedicineScreen(),
     ),
     GoRoute(
       path: '/medicine/history',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const MedicineHistoryScreen(),
-    ),
-    GoRoute(
-      path: '/medicine/archive',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const MedicineArchiveScreen(),
+      builder: (_, _) => const MedicineHistoryScreen(),
     ),
     GoRoute(
       path: '/habits/add',
@@ -100,37 +91,37 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/habits/history',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const HabitHistoryScreen(),
+      builder: (_, _) => const HabitHistoryScreen(),
     ),
     GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const SettingsScreen(),
+      builder: (_, _) => const SettingsScreen(),
     ),
     GoRoute(
       path: '/history',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const HistoryScreen(),
+      builder: (_, _) => const HistoryScreen(),
     ),
     GoRoute(
       path: '/treatment/onboarding',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const TreatmentOnboardingScreen(),
+      builder: (_, _) => const TreatmentOnboardingScreen(),
     ),
     GoRoute(
       path: '/treatment/detail',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const TreatmentDetailScreen(),
+      builder: (_, _) => const TreatmentDetailScreen(),
     ),
     GoRoute(
       path: '/sleep-settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const SleepSettingsScreen(),
+      builder: (_, _) => const SleepSettingsScreen(),
     ),
     GoRoute(
       path: '/morning-gate',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const MorningGateScreen(),
+      builder: (_, _) => const MorningGateScreen(),
     ),
     GoRoute(
       path: '/wakeup-game',
@@ -316,7 +307,7 @@ class _BottomNav extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: _green.withOpacity(0.5),
+                        color: _green.withValues(alpha: 0.5),
                         blurRadius: 18,
                         offset: const Offset(0, 6),
                       ),
@@ -428,7 +419,7 @@ class _AppRouter extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Box<String>>(
       valueListenable: LanguageService.box.listenable(keys: const ['language']),
-      builder: (context, _, __) => MaterialApp.router(
+      builder: (context, _, _) => MaterialApp.router(
         onGenerateTitle: (context) => context.l10n.appTitle,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),

@@ -209,4 +209,127 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleepChannelDescription => 'Sleep detection service';
+
+  @override
+  String get history => 'History';
+
+  @override
+  String get activityLogAcrossFeatures => 'Activity log across all features';
+
+  @override
+  String get treatmentProgram => 'Treatment Program';
+
+  @override
+  String get noActiveProgramYet => 'No active program yet';
+
+  @override
+  String programDay(int count) {
+    return 'day $count';
+  }
+
+  @override
+  String get routineName => 'Routine name';
+
+  @override
+  String get habitName => 'Habit name';
+
+  @override
+  String get routineLabel => 'ROUTINE';
+
+  @override
+  String get scheduleLabel => 'SCHEDULE';
+
+  @override
+  String get reminderLabel => 'REMINDER';
+
+  @override
+  String get noHabitsYet => 'No habits yet';
+
+  @override
+  String get noMedicineScheduledToday => 'No medicine scheduled today.';
+
+  @override
+  String get noHabitsScheduledToday => 'No habits scheduled today.';
+
+  @override
+  String get waterProgressToday => 'Water progress today';
+
+  @override
+  String get homePullDownHint =>
+      'Pull down and enjoy the view.\nScroll a little and check today.';
+
+  @override
+  String get waterMascotNudge => 'Keep going. You are doing great.';
+
+  @override
+  String waterOfMl(Object value) {
+    return 'of $value ml';
+  }
+
+  @override
+  String waterAmountAdded(int value) {
+    return '+$value ml added';
+  }
+
+  @override
+  String get waterWhoGuidance =>
+      'WHO recommends 2.0L (women) - 2.5L (men) per day. In hot climates like Indonesia, add 0.5-1.0L.';
+
+  @override
+  String waterReminderRange(int minutes) {
+    return 'Every $minutes min within the active window';
+  }
+
+  @override
+  String get archiveMedicineTitle => 'Archive medicine?';
+
+  @override
+  String archiveMedicineBody(Object name) {
+    return '$name will be hidden from today\'s list. History stays saved.';
+  }
+
+  @override
+  String deleteMedicineBody(Object name) {
+    return '$name will be permanently deleted together with its history.';
+  }
+
+  @override
+  String nextDose(Object dayLabel, Object time) {
+    return 'Next $dayLabel $time';
+  }
+
+  @override
+  String get bestStreakDays => 'best streak days';
+
+  @override
+  String get smallStepsBigChange =>
+      'Small steps every day\ncreate big change ✨';
+
+  @override
+  String streakDaysRow(int count) {
+    return '$count days in a row';
+  }
+
+  @override
+  String get noStreakYet => 'No streak yet';
+
+  @override
+  String get medals => 'Medals';
+
+  @override
+  String get noMedalsYet => 'No medals yet';
+
+  @override
+  String get retireFirstHabitForMedal =>
+      'Retire your first habit\nto earn your first medal.';
+
+  @override
+  String bestStreakLabel(int count) {
+    return '🔥 Best streak: $count days';
+  }
+
+  @override
+  String earnedOn(Object date) {
+    return 'Earned $date';
+  }
 }

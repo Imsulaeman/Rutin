@@ -39,6 +39,14 @@ class ReminderActivity : Activity() {
             setTurnScreenOn(true)
         }
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O_MR1) {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+                    android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
 
         // Edge-to-edge: let the pink scene fill behind a transparent status/nav
         // bar (the dp(48) top padding keeps content clear of the status bar).
@@ -143,6 +151,12 @@ class ReminderActivity : Activity() {
 
         root.addView(content)
         setContentView(root)
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recreate()
     }
 
     // Small UI builders.

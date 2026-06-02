@@ -16,6 +16,7 @@ import '../../habits/data/habit_model.dart';
 import '../../habits/data/habit_repository.dart';
 import '../../medicine/data/medicine_model.dart';
 import '../../medicine/data/medicine_repository.dart';
+import '../../tb/data/tb_model.dart';
 import '../../water/data/water_model.dart';
 import '../../water/data/water_repository.dart';
 import '../../water/presentation/water_progress_widget.dart';
@@ -60,6 +61,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Map<String, HabitGroup> _groupMap = {};
   int _habitsDue = 0;
   int _habitsDone = 0;
+  TBTreatmentProfile? _treatment;
 
   late final AnimationController _entrance;
   late final AnimationController _ambient;
@@ -69,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final ValueListenable<Box<HabitLog>> _habitLogsL;
   late final ValueListenable<Box<Medicine>> _medicinesL;
   late final ValueListenable<Box<MedicineLog>> _medicineLogsL;
+  late final ValueListenable<Box<TBTreatmentProfile>> _treatmentsL;
 
   @override
   void initState() {
@@ -88,11 +91,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _habitLogsL = Hive.box<HabitLog>('habit_logs').listenable();
     _medicinesL = Hive.box<Medicine>('medicines').listenable();
     _medicineLogsL = Hive.box<MedicineLog>('medicine_logs').listenable();
+    _treatmentsL = Hive.box<TBTreatmentProfile>('tb_profiles').listenable();
     _waterLogsL.addListener(_load);
     _habitsL.addListener(_load);
     _habitLogsL.addListener(_load);
     _medicinesL.addListener(_load);
     _medicineLogsL.addListener(_load);
+    _treatmentsL.addListener(_load);
 
     _load();
     _entrance.forward();
@@ -108,6 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _habitLogsL.removeListener(_load);
     _medicinesL.removeListener(_load);
     _medicineLogsL.removeListener(_load);
+    _treatmentsL.removeListener(_load);
     WidgetsBinding.instance.removeObserver(this);
     _entrance.dispose();
     _ambient.dispose();
@@ -130,6 +136,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         .toList();
 
     final groupBox = Hive.box<HabitGroup>('habit_groups');
+    final treatments = Hive.box<TBTreatmentProfile>(
+      'tb_profiles',
+    ).values.where((profile) => profile.isActive);
     setState(() {
       _waterMl = logToday?.mlLogged ?? 0;
       _waterTargetMl = goal.dailyTargetMl;
@@ -139,6 +148,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _habitsDone = todayHabits
           .where((habit) => _habitRepo.isCompletedToday(habit.id))
           .length;
+      _treatment = treatments.isEmpty ? null : treatments.first;
     });
   }
 
@@ -282,12 +292,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 end: 0.60,
                                 child: _SectionCard(
                                   title: context.l10n.medicine.toUpperCase(),
-                                  actionLabel: localized(context, id: 'Semua', en: 'All'),
+                                  actionLabel: localized(
+                                    context,
+                                    id: 'Semua',
+                                    en: 'All',
+                                  ),
                                   onAction: () => context.go('/medicine'),
                                   child: medicines.isEmpty
-                                      ? const _EmptyHint(
-                                          text:
-                                              'Belum ada jadwal obat hari ini.',
+                                      ? _EmptyHint(
+                                          text: context
+                                              .l10n
+                                              .noMedicineScheduledToday,
                                         )
                                       : Column(
                                           children: [
@@ -320,13 +335,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 ),
                               ),
                               const SizedBox(height: 14),
+                              if (_treatment != null) ...[
+                                _FadeSlideIn(
+                                  animation: _entrance,
+                                  start: 0.25,
+                                  end: 0.75,
+                                  child: _TreatmentCountdownCard(
+                                    profile: _treatment!,
+                                    onTap: () =>
+                                        context.push('/treatment/detail'),
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                              ],
                               _FadeSlideIn(
                                 animation: _entrance,
                                 start: 0.20,
                                 end: 0.70,
                                 child: _SectionCard(
                                   title: context.l10n.water.toUpperCase(),
-                                  actionLabel: localized(context, id: 'Semua', en: 'All'),
+                                  actionLabel: localized(
+                                    context,
+                                    id: 'Semua',
+                                    en: 'All',
+                                  ),
                                   onAction: () => context.go('/water'),
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(18),
@@ -365,9 +397,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                const Text(
-                                                  'Progress air hari ini',
-                                                  style: TextStyle(
+                                                Text(
+                                                  context
+                                                      .l10n
+                                                      .waterProgressToday,
+                                                  style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 15,
                                                     fontWeight: FontWeight.w700,
@@ -397,12 +431,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 end: 0.80,
                                 child: _SectionCard(
                                   title: context.l10n.habitsToday,
-                                  actionLabel: localized(context, id: 'Semua', en: 'All'),
+                                  actionLabel: localized(
+                                    context,
+                                    id: 'Semua',
+                                    en: 'All',
+                                  ),
                                   onAction: () => context.go('/habits'),
                                   child: _todayHabits.isEmpty
-                                      ? const _EmptyHint(
-                                          text:
-                                              'Belum ada kebiasaan terjadwal hari ini.',
+                                      ? _EmptyHint(
+                                          text: context
+                                              .l10n
+                                              .noHabitsScheduledToday,
                                         )
                                       : Column(
                                           crossAxisAlignment:
@@ -490,12 +529,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                                         ],
                                                       ),
                                                     ),
-                                                    for (
-                                                      int i = 0;
-                                                      i < habits.length;
-                                                      i++
-                                                    )
-                                                      Padding(
+                                                    ...List.generate(habits.length, (i) {
+                                                      final h = habits[i];
+                                                      return Padding(
                                                         padding:
                                                             const EdgeInsets.only(
                                                               bottom: 6,
@@ -529,44 +565,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                                               ),
                                                               Expanded(
                                                                 child: _TodayHabitRow(
-                                                                  habit:
-                                                                      habits[i],
+                                                                  habit: h,
                                                                   done: _habitRepo
-                                                                      .isCompletedToday(
-                                                                        habits[i]
-                                                                            .id,
-                                                                      ),
+                                                                      .isCompletedToday(h.id),
                                                                   streak: _habitRepo
-                                                                      .getStreak(
-                                                                        habits[i]
-                                                                            .id,
-                                                                      ),
+                                                                      .getStreak(h.id),
                                                                   target: _habitRepo
-                                                                      .dailyTarget(
-                                                                        habits[i],
-                                                                      ),
+                                                                      .dailyTarget(h),
                                                                   completions: _habitRepo
-                                                                      .completionsToday(
-                                                                        habits[i]
-                                                                            .id,
-                                                                      ),
-                                                                  onSetCompletions:
-                                                                      (
-                                                                        count,
-                                                                      ) => _setHabitCompletions(
-                                                                        habits[i],
-                                                                        count,
-                                                                      ),
+                                                                      .completionsToday(h.id),
+                                                                  onSetCompletions: (count) =>
+                                                                      _setHabitCompletions(h, count),
                                                                   onTap: () =>
-                                                                      _markHabitDone(
-                                                                        habits[i],
-                                                                      ),
+                                                                      _markHabitDone(h),
                                                                 ),
                                                               ),
                                                             ],
                                                           ),
                                                         ),
-                                                      ),
+                                                      );
+                                                    }),
                                                   ],
                                                 ),
                                               );
@@ -574,7 +592,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                             if (hiddenHabitCount > 0) ...[
                                               const SizedBox(height: 2),
                                               Text(
-                                                '+ $hiddenHabitCount lainnya',
+                                                localized(
+                                                  context,
+                                                  id: '+ $hiddenHabitCount lainnya',
+                                                  en: '+ $hiddenHabitCount more',
+                                                ),
                                                 style: const TextStyle(
                                                   color: _muted,
                                                   fontSize: 13,
@@ -584,7 +606,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               const SizedBox(height: 8),
                                             ],
                                             Text(
-                                              '$_habitsDone / $_habitsDue selesai',
+                                              localized(
+                                                context,
+                                                id: '$_habitsDone / $_habitsDue selesai',
+                                                en: '$_habitsDone / $_habitsDue done',
+                                              ),
                                               style: const TextStyle(
                                                 color: _habitColor,
                                                 fontSize: 13,
@@ -627,22 +653,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   static String _formattedDate(BuildContext context) {
-    final isId = Localizations.localeOf(context).languageCode == 'id';
-    final days = isId
-        ? const ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
-        : const ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    final months = isId
-        ? const ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-        : const ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final now = DateTime.now();
-    return '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+    return formatLongDate(context, DateTime.now());
   }
 
   static String _timeGreeting(BuildContext context) {
     final hour = DateTime.now().hour;
-    if (hour < 11) return localized(context, id: 'Selamat pagi', en: 'Good morning');
-    if (hour < 15) return localized(context, id: 'Selamat siang', en: 'Good afternoon');
-    if (hour < 19) return localized(context, id: 'Selamat sore', en: 'Good evening');
+    if (hour < 11) {
+      return localized(context, id: 'Selamat pagi', en: 'Good morning');
+    }
+    if (hour < 15) {
+      return localized(context, id: 'Selamat siang', en: 'Good afternoon');
+    }
+    if (hour < 19) {
+      return localized(context, id: 'Selamat sore', en: 'Good evening');
+    }
     return localized(context, id: 'Selamat malam', en: 'Good night');
   }
 
@@ -665,12 +689,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(localized(context, id: 'Izin Wajib', en: 'Required Permissions')),
+        title: Text(
+          localized(context, id: 'Izin Wajib', en: 'Required Permissions'),
+        ),
         content: Text(
-          localized(context, id: 'Aktifkan semua izin agar reminder jalan:\n', en: 'Enable all permissions so reminders work:\n') +
-          '1) Notifikasi\n'
-          '2) Exact alarm (Alarms & reminders)\n'
-          '3) Full-screen intent',
+          localized(
+                context,
+                id: 'Aktifkan semua izin agar reminder jalan:\n',
+                en: 'Enable all permissions so reminders work:\n',
+              ) +
+              localized(
+                context,
+                id: '1) Notifikasi\n2) Exact alarm (Alarm & pengingat)\n3) Full-screen intent',
+                en: '1) Notifications\n2) Exact alarm (Alarms & reminders)\n3) Full-screen intent',
+              ),
         ),
         actions: [
           TextButton(
@@ -679,7 +711,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               if (!context.mounted) return;
               Navigator.of(context).pop();
             },
-            child: const Text('Notifikasi'),
+            child: Text(
+              localized(context, id: 'Notifikasi', en: 'Notifications'),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -687,7 +721,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               if (!context.mounted) return;
               Navigator.of(context).pop();
             },
-            child: const Text('Exact Alarm'),
+            child: Text(
+              localized(context, id: 'Exact Alarm', en: 'Exact Alarm'),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -695,7 +731,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               if (!context.mounted) return;
               Navigator.of(context).pop();
             },
-            child: const Text('Full Screen'),
+            child: Text(
+              localized(context, id: 'Layar Penuh', en: 'Full Screen'),
+            ),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -782,7 +820,7 @@ class _HomeHero extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Tarik ke bawah, nikmati suasananya.\nScroll sedikit, lihat hari ini.',
+                        context.l10n.homePullDownHint,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.88),
                           fontSize: 15,
@@ -1081,7 +1119,11 @@ class _TodayHabitRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: target == 1 ? onTap : null,
+      onTap: target == 1
+          ? onTap
+          : completions < target
+              ? () => onSetCompletions(completions + 1)
+              : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -1205,35 +1247,105 @@ class _HomeCompletionDots extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (int i = 0; i < target; i++) ...[
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onTap(i),
-            child: Padding(
-              padding: const EdgeInsets.all(2),
-              child: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: i < completions ? _habitColor : Colors.transparent,
-                  border: Border.all(
-                    color: i < completions ? _habitColor : _muted,
-                  ),
+        // List.generate gives each i as a fresh function parameter,
+        // avoiding the for-loop closure capture bug.
+        ...List.generate(target, (i) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onTap(i),
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: i < completions ? _habitColor : Colors.transparent,
+                border: Border.all(
+                  color: i < completions ? _habitColor : _muted,
                 ),
-                child: i < completions
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 11,
-                        color: Colors.white,
-                      )
-                    : null,
               ),
+              child: i < completions
+                  ? const Icon(Icons.check_rounded, size: 11, color: Colors.white)
+                  : null,
             ),
           ),
-          if (i != target - 1) const SizedBox(width: 2),
-        ],
+        )).expand((dot) => [dot, const SizedBox(width: 2)]).take(target * 2 - 1),
       ],
+    );
+  }
+}
+
+class _TreatmentCountdownCard extends StatelessWidget {
+  const _TreatmentCountdownCard({required this.profile, required this.onTap});
+
+  final TBTreatmentProfile profile;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = (DateTime.now().difference(profile.startDate).inDays + 1).clamp(
+      1,
+      profile.durationDays,
+    );
+    final left = (profile.durationDays - day).clamp(0, profile.durationDays);
+    return _Pressable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _panel,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _panelLine),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _medGradient.first.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Icon(
+                Icons.health_and_safety_rounded,
+                color: Color(0xFFEE5A8C),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    profile.conditionName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    left == 0
+                        ? localized(
+                            context,
+                            id: 'Program selesai',
+                            en: 'Program complete',
+                          )
+                        : localized(
+                            context,
+                            id: 'Hari ke-$day - $left hari tersisa',
+                            en: 'Day $day - $left days remaining',
+                          ),
+                    style: const TextStyle(color: _muted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: _muted),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -27,7 +27,7 @@ A Flutter Android app for daily health habits and reminders. Built by Ilham Maul
 
 See `TODO.md` for full task list with statuses.
 
-**Phase:** Medicine ✅ Water ✅ Habits ✅ Home today view ✅ Firebase Analytics ✅ Archive ✅ Sleep Mode ✅ Morning Gate ✅
+**Phase:** Medicine ✅ Water ✅ Habits ✅ Home today view ✅ Firebase Analytics ✅ Sleep Mode ✅ Morning Gate ✅
 **App name:** Rutin — Package: `com.rutin.app`
 
 ## Tech Stack
@@ -117,6 +117,16 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 
 ---
 
+**2026-06-02 - Codex**
+- **Medicine flow simplified after repeated archive failures**: the Archive feature was removed from the live Obat flow. The archive header entry, archive route, and archive screen were deleted, and medicine cards now support delete-only swipe from right to left.
+- **Splash red-screen fix shipped**: `main.dart` now launches `HabitApp()` directly and no longer renders the deleted Flutter splash widget layer.
+- **Obat red-screen after archive removal fixed**: medicine cards now tolerate medicines whose `scheduleTimes` are empty instead of assuming `doses.first` always exists.
+- **Missed-dose finalization policy shipped**: any past-day medicine dose with no existing log is now backfilled into `medicine_logs` as `missed` when the app starts and when medicine/history screens open. Today remains live: overdue untaken doses can still appear missed in UI immediately, but only completed past days are finalized into stored logs.
+- **Full-screen medicine alarm status accepted for now**: on the target phone, `ReminderActivity` takes over reliably when Rutin is already foregrounded. When another app is foregrounded, the phone still falls back to notification + alarm sound. The owner is satisfied with this current behavior, so it is no longer treated as an active blocker.
+- **Verified:** focused `dart analyze` passed for `main.dart`, `app.dart`, `medicine_list_screen.dart`, `medicine_repository.dart`, and `settings_screen.dart`; native Kotlin compile passed for the reminder/settings channel changes.
+
+---
+
 **2026-05-31 - Codex**
 - **History navigation and UX corrected**: the overall History feed now lives in the hamburger/Profile menu rather than Settings, and the screen no longer uses the sideways reversed day strip. It now shows a normal vertical layout with a recent-day picker, per-feature summary, and newest-first feed for the selected day.
 - **Habits history corrected to helicopter view**: per-habit calendar entry points were removed from habit cards. Habits now exposes one top-bar calendar action, matching Medicine, and `HabitHistoryScreen` was repurposed into an overall habits monthly overview with selected-day breakdown.
@@ -136,6 +146,11 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 - **Computed adherence surfaces**: medicine cards now show consecutive fully-taken day streaks, while habit cards expose a read-only monthly calendar with full, partial, and missed states from existing logs.
 - **Settings screen**: Mode Tidur link, live accessibility status, persisted language preference, and About/version details. Locale wiring remains intentionally deferred.
 - **Verified:** targeted and full `dart analyze` report no errors; only existing info-level notices remain.
+
+---
+
+**2026-06-02 - Claude**
+- **Three bug-fix specs written** (see Bug Fix sections at bottom of file): splash red-screen (remove `_SplashPage` from `main.dart`), medicine archive not persisting (explicit `put` + move write into `confirmDismiss`), medicine alarm not forced when phone in use (`singleTask` → `singleTop` + `onNewIntent` + legacy window flags).
 
 ---
 
@@ -2337,3 +2352,253 @@ void _openEditSheet() {
 - Do not remove or reorder existing menu links
 - Do not change medal card logic
 - Do not run build_runner — hand-edit the adapter
+
+---
+
+## Bug Fix — Splash Red Screen
+
+**Status:** Done
+
+### What's wrong
+`lib/main.dart` has a Flutter-level `_SplashPage` widget that calls
+`Image.asset('assets/splash-screen.png')`. That file was deleted and removed
+from `pubspec.yaml`. Any Flutter error during init also surfaces as a red screen
+through this widget. The widget is redundant: `flutter_native_splash` already
+renders the native splash before Flutter paints a single frame — a Flutter-level
+splash widget adds nothing except a 2-second delay and a crash vector.
+
+### Fix
+**File: `lib/main.dart`**
+
+1. Delete the entire `_SplashPage` class and `_SplashPageState` class.
+2. Delete the entire `_AppRoot` class and `_AppRootState` class.
+3. Change the `runApp` call:
+
+```dart
+// before
+runApp(const ProviderScope(child: _AppRoot()));
+
+// after
+runApp(const ProviderScope(child: HabitApp()));
+```
+
+No other changes. The 2-second delay disappears; the native splash handles the
+visual gap. `HabitApp` is already defined in `lib/app.dart`.
+
+### Verify
+- `dart analyze lib/main.dart` — no errors
+- App cold-starts directly to the home screen with no red screen
+
+---
+
+## Bug Fix — Medicine Archive Not Persisting
+
+**Status:** Superseded
+
+### Product decision
+This spec is no longer the active direction. After repeated failed attempts and device retests, the archive flow was removed from the live medicine product. Obat now uses delete-only behavior instead of archive/unarchive.
+
+### What's wrong
+
+Two problems combine to cause this.
+
+**Problem A — `HiveObject.save()` unreliable with string keys.**
+`MedicineRepository.archive()` in
+`lib/features/medicine/data/medicine_repository.dart` does:
+```dart
+medicine.isActive = false;
+await medicine.save();
+```
+`HiveObject.save()` calls `box.put(hiveObject.key, this)`. With Hive 2.x using
+custom String keys (as this project does), the internal `_key` tracking can
+disagree with the actual box key, causing the write to silently no-op or write
+to the wrong slot. The safe approach: bypass `HiveObject.save()` and call
+`_medicines.put(id, medicine)` directly — this is always correct regardless of
+how the internal key tracking behaves.
+
+**Problem B — archive runs fire-and-forget after Dismissible already closes.**
+`_SwipeMedicine.onDismissed` (in
+`lib/features/medicine/presentation/medicine_list_screen.dart`) calls
+`onArchive()` without `await`. The callback resolves to `_executeArchive`, an
+async method. Dismissible finishes animating the card away before
+`repo.archive()` has run. If the user navigates to the archive screen in that
+window, the medicine is still `isActive == true` in Hive and does not appear.
+
+The correct pattern: perform the archive/delete operation fully inside
+`confirmDismiss` (awaited), so the card only animates away after the data write
+completes. `onDismissed` then only handles UI refresh.
+
+### Fix
+
+**File: `lib/features/medicine/data/medicine_repository.dart`**
+
+Replace `medicine.save()` with explicit `put` in both `archive` and `unarchive`:
+
+```dart
+Future<void> archive(String id) async {
+  final medicine = _medicines.get(id);
+  if (medicine == null) return;
+  medicine.isActive = false;
+  await _medicines.put(id, medicine);
+}
+
+Future<void> unarchive(String id) async {
+  final medicine = _medicines.get(id);
+  if (medicine == null) return;
+  medicine.isActive = true;
+  await _medicines.put(id, medicine);
+}
+```
+
+**File: `lib/features/medicine/presentation/medicine_list_screen.dart`**
+
+1. Add two new async callback fields to `_SwipeMedicine`:
+   - `Future<void> Function() onArchiveConfirmed`
+   - `Future<void> Function() onDeleteConfirmed`
+
+   Remove the old `Future<void> Function() onArchive` and
+   `Future<void> Function() onDelete` fields.
+
+2. Rewrite `confirmDismiss` to do the work (dialog + actual operation) fully
+   awaited before returning `true`:
+
+```dart
+confirmDismiss: (direction) async {
+  if (direction == DismissDirection.startToEnd) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        // ... existing archive dialog unchanged ...
+      ),
+    ) ?? false;
+    if (!confirmed) return false;
+    await onArchiveConfirmed();
+    return true;
+  } else {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        // ... existing delete dialog unchanged ...
+      ),
+    ) ?? false;
+    if (!confirmed) return false;
+    await onDeleteConfirmed();
+    return true;
+  }
+},
+```
+
+3. `onDismissed` becomes UI-only — no data operations:
+
+```dart
+onDismissed: (direction) {
+  // data is already saved; just refresh UI
+  _refreshReminderDebug(repo, force: true);
+  if (mounted) setState(() {});
+},
+```
+
+4. At the call site in `_MedicineListScreenState.build`, update the
+   `_SwipeMedicine` instantiation:
+
+```dart
+_SwipeMedicine(
+  key: ValueKey('med_${medicine.id}'),
+  medicine: medicine,
+  onArchiveConfirmed: () => _executeArchive(repo, medicine),
+  onDeleteConfirmed: () => _executeDelete(repo, medicine),
+  child: _MedicineCard(...),
+)
+```
+
+5. Strip `setState(() {})` and `_refreshReminderDebug` calls from the END of
+   `_executeArchive` and `_executeDelete` — those now live in `onDismissed`.
+   Keep alarm cancellation and analytics inside `_executeArchive`/`_executeDelete`.
+
+### Verify
+- `dart analyze` on both files — no errors
+- Swipe-archive a medicine → immediately open the archive tab → medicine is
+  listed without waiting
+- Restart app → medicine stays in archive, not in active list
+- Swipe-delete a medicine → medicine is gone from both lists after restart
+
+---
+
+## Bug Fix — Medicine Alarm Not Forced When Phone Is In Use
+
+**Status:** Accepted for now
+
+### What's wrong
+`ReminderActivity` is declared with `launchMode="singleTask"` in the manifest.
+With `singleTask`, if `ReminderActivity` is anywhere in the back stack from a
+prior alarm, a new `startActivity` call fires `onNewIntent` instead of
+`onCreate`. Because `onNewIntent` is not overridden, the activity silently reuses
+stale intent data and may not come to the foreground — on screen-on scenarios
+this means the full-screen takeover is skipped and only a heads-up notification
+shows.
+
+`ReminderAlarmReceiver.kt` already calls `context.startActivity(launchIntent)`
+which is the correct approach (a direct activity launch from an AlarmManager
+exact-alarm receiver is always allowed). The problem is `singleTask` + missing
+`onNewIntent`.
+
+Additionally, `ReminderActivity` is missing legacy window flags for API < 27
+(`FLAG_DISMISS_KEYGUARD`, `FLAG_SHOW_WHEN_LOCKED`, `FLAG_TURN_SCREEN_ON`). The
+`setShowWhenLocked`/`setTurnScreenOn` API calls in `onCreate` only work on
+API 27+; older devices silently ignore them without the deprecated window flags.
+
+### Fix
+
+**File: `android/app/src/main/AndroidManifest.xml`**
+
+Change `ReminderActivity`'s `launchMode` from `singleTask` to `singleTop`:
+
+```xml
+<activity
+    android:name=".ReminderActivity"
+    android:exported="false"
+    android:excludeFromRecents="true"
+    android:launchMode="singleTop"
+    android:showWhenLocked="true"
+    android:turnScreenOn="true"
+    android:theme="@style/LaunchTheme" />
+```
+
+`singleTop` still prevents double-stacking when the activity is already at the
+top of the stack (calls `onNewIntent` only then), but creates a fresh instance
+when it's in the background — which is what we want for alarm interruptions.
+
+**File: `android/app/src/main/kotlin/com/rutin/app/ReminderActivity.kt`**
+
+1. Add `onNewIntent` override immediately after `onCreate`:
+
+```kotlin
+override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    recreate()   // re-run onCreate with the fresh alarm intent
+}
+```
+
+2. Add legacy window flags for API < 27, inside `onCreate` before `setContentView`,
+   right after the existing `window.addFlags(FLAG_KEEP_SCREEN_ON)` line:
+
+```kotlin
+if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O_MR1) {
+    @Suppress("DEPRECATION")
+    window.addFlags(
+        android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+        android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+        android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+    )
+}
+```
+
+No other changes. `ReminderAlarmReceiver.kt` already calls `startActivity`
+correctly; the fix is entirely in `ReminderActivity` and the manifest.
+
+### Verify
+- Current accepted device result on the owner's phone:
+- If Rutin is already foregrounded, the full-screen reminder takeover works.
+- If another app is foregrounded, the phone may fall back to a heads-up notification plus alarm sound.
+- The owner has accepted this behavior for now, so further escalation is optional rather than required.

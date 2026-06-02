@@ -15,4 +15,7 @@ class TBTreatmentProfile extends HiveObject {
 
   @HiveField(3)
   late bool isActive;
+
+  @HiveField(4)
+  String conditionName = 'TB';
 }

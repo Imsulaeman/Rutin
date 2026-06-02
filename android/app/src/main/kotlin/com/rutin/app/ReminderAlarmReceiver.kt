@@ -1,5 +1,6 @@
 package com.rutin.app
 
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.NotificationChannel
 import android.content.ContentResolver
@@ -36,6 +37,15 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         }
 
         showFullScreenNotification(
+            context,
+            rootAlarmId,
+            scheduledMinutes,
+            medicineName,
+            dosage,
+            renotifyMinutes
+        )
+
+        launchReminderActivity(
             context,
             rootAlarmId,
             scheduledMinutes,
@@ -92,19 +102,13 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             nm.createNotificationChannel(channel)
         }
 
-        val activityIntent = Intent(context, ReminderActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra("alarm_id", rootAlarmId)
-            putExtra("scheduled_minutes", scheduledMinutes)
-            putExtra("medicine_name", medicineName)
-            putExtra("dosage", dosage)
-            putExtra("renotify_minutes", renotifyMinutes)
-        }
-        val fullScreenPi = PendingIntent.getActivity(
-            context,
-            rootAlarmId,
-            activityIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val fullScreenPi = reminderActivityPendingIntent(
+            context = context,
+            rootAlarmId = rootAlarmId,
+            scheduledMinutes = scheduledMinutes,
+            medicineName = medicineName,
+            dosage = dosage,
+            renotifyMinutes = renotifyMinutes
         )
 
         val deleteIntent = Intent(context, ReminderDismissReceiver::class.java).apply {
@@ -137,6 +141,87 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             .build()
 
         nm.notify(rootAlarmId, notification)
+    }
+
+    private fun launchReminderActivity(
+        context: Context,
+        rootAlarmId: Int,
+        scheduledMinutes: Int,
+        medicineName: String,
+        dosage: String?,
+        renotifyMinutes: Int
+    ) {
+        val pendingIntent = reminderActivityPendingIntent(
+            context = context,
+            rootAlarmId = rootAlarmId,
+            scheduledMinutes = scheduledMinutes,
+            medicineName = medicineName,
+            dosage = dosage,
+            renotifyMinutes = renotifyMinutes
+        )
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val options = ActivityOptions.makeBasic()
+                    .setPendingIntentBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                    )
+                pendingIntent.send(
+                    context,
+                    0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    options.toBundle()
+                )
+            } else {
+                pendingIntent.send()
+            }
+        } catch (_: PendingIntent.CanceledException) {
+        }
+    }
+
+    private fun reminderActivityPendingIntent(
+        context: Context,
+        rootAlarmId: Int,
+        scheduledMinutes: Int,
+        medicineName: String,
+        dosage: String?,
+        renotifyMinutes: Int
+    ): PendingIntent {
+        val activityIntent = Intent(context, ReminderActivity::class.java).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
+            putExtra("alarm_id", rootAlarmId)
+            putExtra("scheduled_minutes", scheduledMinutes)
+            putExtra("medicine_name", medicineName)
+            putExtra("dosage", dosage)
+            putExtra("renotify_minutes", renotifyMinutes)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val options = ActivityOptions.makeBasic()
+                .setPendingIntentCreatorBackgroundActivityStartMode(
+                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                )
+            PendingIntent.getActivity(
+                context,
+                rootAlarmId,
+                activityIntent,
+                flags,
+                options.toBundle()
+            )
+        } else {
+            PendingIntent.getActivity(
+                context,
+                rootAlarmId,
+                activityIntent,
+                flags
+            )
+        }
     }
 
     private fun nextDayTrigger(scheduledMinutes: Int): Long {

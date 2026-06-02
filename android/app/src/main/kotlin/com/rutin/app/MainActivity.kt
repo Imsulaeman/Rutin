@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
+import android.app.NotificationManager
 import android.os.Build
 import android.os.PowerManager
 import android.os.VibrationEffect
@@ -82,6 +83,13 @@ class MainActivity : FlutterActivity() {
                         val alarmId = call.argument<Int>("alarmId") ?: 0
                         NativeReminderScheduler.cancelLoop(applicationContext, alarmId)
                         result.success(true)
+                    }
+                    "canUseFullScreenIntent" -> {
+                        result.success(canUseFullScreenIntent())
+                    }
+                    "openFullScreenIntentSettings" -> {
+                        openFullScreenIntentSettings()
+                        result.success(null)
                     }
                     "getReminderDebug" -> {
                         val alarmId = call.argument<Int>("alarmId") ?: 0
@@ -176,6 +184,29 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun canUseFullScreenIntent(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return true
+        }
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        return notificationManager?.canUseFullScreenIntent() ?: false
+    }
+
+    private fun openFullScreenIntentSettings() {
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                data = Uri.parse("package:$packageName")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+        } else {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+        }
+        runCatching { startActivity(intent) }
     }
 
     private fun vibrator(): Vibrator? {

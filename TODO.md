@@ -6,12 +6,19 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 
 ## Handoff -> Codex
 
+### Bugs (fix first)
+- [x] Splash red screen — remove `_SplashPage` and `_AppRoot` from `main.dart`, go straight to `HabitApp()` (spec in AGENTS.md)
+- [x] Remove medicine archive flow; use delete-only behavior instead
+- [x] Medicine alarm behavior accepted for now — full takeover works in-app; outside apps it falls back to notification + alarm sound
+- [x] Obat red screen after archive removal — fix `Dismissible` assertion and empty-dose card crash
+- [x] Missed log entry finalization policy at end of day
+
 ### Kebiasaan (Habits)
 - [x] Restore clear stack creation from `Semua`
 - [x] Drag habit onto another habit to create a new stack
 - [x] Move habit reminder time to the right side, Obat-style placement
 - [x] Keep habit reminder pill aligned with Habits theme instead of copying Obat pink literally
-- [-] Rewrite Connect the Dots → Flow Free style (grid, colored pairs, fill all cells) — spec in AGENTS.md
+- [x] Rewrite Connect the Dots → Flow Free style (grid, colored pairs, fill all cells) — spec in AGENTS.md
 - [-] Habit calendar visual — full cell background colors instead of tiny dots — spec in AGENTS.md
 - [-] Compact habit cards (reduce padding, merge streak into name row) — spec in AGENTS.md
 - [-] History screen (overall activity feed + 28-day strip) accessible from Settings — spec in AGENTS.md
@@ -26,7 +33,10 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Separate Riwayat calendar page for medicine adherence
 - [x] RECEIVE_BOOT_COMPLETED reschedule after reboot (medicine and water user-tested)
 - [x] Streak counter per medicine
-- [ ] Missed log entry finalization policy at end of day
+- [x] Remove archive bug surface by deleting archive flow
+- [x] Medicine alarm behavior accepted for now — `ReminderActivity` reliably works in-app; outside apps still behave as heads-up + sound on target device
+- [x] Obat screen stable after archive removal
+- [x] Missed log entry finalization policy at end of day
 
 ### Air (Water)
 - [x] Replace add-water snackbar with persistent inline undo
@@ -110,6 +120,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Combine routines + standalone habits + water progress
 - [x] At-a-glance done / pending / missed
 - [-] Treatment program countdown — spec in AGENTS.md
+- [ ] Navbar solid background (non-transparent) — spec in AGENTS.md
 
 ## Feature: Treatment Program (generic — TB, Tifus, Malaria, ARV, etc.)
 - [x] TBTreatmentProfile data model
@@ -129,7 +140,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
   - [x] Game 2: Tap Rhythm (10 falling circles, hit 7/10)
   - [ ] Game 3: Tile Puzzle (3×3 8-puzzle, daily seed)
   - [ ] Game 4: Daily Quiz (3 questions, 20-question bank, get 2/3)
-  - [x] Game 5: Connect the Dots (8 dots, draw path in order)
+  - [x] Game 5: Connect the Colors (Flow Free-style 6×6 puzzle, 4 colored pairs)
 - [x] **Session C** — Native sleep detection service (Kotlin): foreground service, 3-case logic, ACTION_USER_PRESENT receiver, MethodChannel bridge, launches game screen
 - [x] **Session D** — AccessibilityService (Kotlin): home button intercept during game, touch tracking for sleep detection, XML config
 
@@ -151,6 +162,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 
 ## Settings Screen
 - [x] Sleep mode link + accessibility status
+- [x] Full-screen medicine alarm permission status + settings shortcut
 - [x] Language selector (`🇮🇩 ID` / `🇬🇧 EN`) with immediate runtime switch
 - [x] About / version
 - [ ] Battery optimization guidance
@@ -168,7 +180,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 ## Feature: Analytics + Infrastructure
 - [x] Firebase Analytics setup (`com.rutin.app`)
 - [x] Key events: medicine_taken, medicine_added, medicine_archived, medicine_deleted, habit_completed, habit_added, water_added
-- [x] Medicine archive / unarchive flow (swipe right = arsipkan, history preserved)
+- [x] Medicine list uses delete-only flow; archive removed
 - [x] Multi-dose support (unlimited times per medicine in add flow)
 - [x] RECEIVE_BOOT_COMPLETED reschedule (medicine and water confirmed after reboot)
 - [ ] Accounts / cloud backup (Phase 2 — Supabase, Google/Apple/email auth)
@@ -182,14 +194,15 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Empty states
 - [x] UI redesign pass
 - [ ] Medal/profile collection screen
+- [ ] Profile: user name + age + avatar picker (10 diverse characters) + stat chips — spec in AGENTS.md
 
 ## ADA Portfolio Prep
-- [ ] App icon (final, production-ready)
+- [ ] App icon (final, production-ready) — prompts in `LOGO_PROMPT.md`
 - [ ] Splash screen
 - [ ] Onboarding flow (3–5 screens: problem, solution, permissions ask)
 - [ ] Play Store listing copy (ID + EN): short description, full description, feature graphic
 - [ ] Play Store screenshots (6 screens: Home, Medicine, Water, Habits, Sleep Gate, Game)
-- [ ] App pitch deck / one-pager (problem → solution → impact → TB stats)
+- [-] App pitch deck / one-pager — structure in `deck.md`
 - [ ] Demo video / screen recording (30–60s walkthrough)
 - [ ] README polish (GitHub repo, for ADA reviewers who look at code)
 - [ ] Internal beta on Play Store (so ADA can install directly)

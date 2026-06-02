@@ -23,7 +23,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
   late final TextEditingController _nameController;
   late String _emoji;
 
-  static const _dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
   late final Set<int> _selectedDays;
 
   bool _reminderEnabled = false;
@@ -106,7 +105,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(localized(context, id: 'Rutinitas baru', en: 'New routine')),
+          title: Text(
+            localized(context, id: 'Rutinitas baru', en: 'New routine'),
+          ),
           content: Row(
             children: [
               GestureDetector(
@@ -135,8 +136,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                   controller: nameController,
                   autofocus: true,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama rutinitas',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.routineName,
                   ),
                 ),
               ),
@@ -216,20 +217,31 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            localized(
+              context,
+              id: 'Gagal menyimpan: $e',
+              en: 'Failed to save: $e',
+            ),
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final dayLabels = localizedWeekdayShortLabels(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEdit
-            ? localized(context, id: 'Edit Kebiasaan', en: 'Edit Habit')
-            : context.l10n.addHabit),
+        title: Text(
+          _isEdit
+              ? localized(context, id: 'Edit Kebiasaan', en: 'Edit Habit')
+              : context.l10n.addHabit,
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -243,12 +255,12 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nama kebiasaan',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.habitName,
                     ),
                     textCapitalization: TextCapitalization.sentences,
                     validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Nama wajib diisi'
+                        ? 'Name is required'
                         : null,
                   ),
                 ),
@@ -278,7 +290,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             // Group picker
             Row(
               children: [
-                _label(context, 'RUTINITAS'),
+                _label(context, context.l10n.routineLabel),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: _createGroup,
@@ -293,7 +305,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               runSpacing: 8,
               children: [
                 ChoiceChip(
-                  label: Text(localized(context, id: 'Tanpa rutinitas', en: 'No routine')),
+                  label: Text(
+                    localized(context, id: 'Tanpa rutinitas', en: 'No routine'),
+                  ),
                   selected: _selectedGroupId == null,
                   onSelected: (_) => setState(() => _selectedGroupId = null),
                 ),
@@ -310,7 +324,11 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  localized(context, id: 'Buat rutinitas dulu dari tab Kebiasaan', en: 'Create a routine first from the Habits tab'),
+                  localized(
+                    context,
+                    id: 'Buat rutinitas dulu dari tab Kebiasaan',
+                    en: 'Create a routine first from the Habits tab',
+                  ),
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
@@ -319,7 +337,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             const SizedBox(height: 32),
 
             // Schedule
-            _label(context, 'JADWAL'),
+            _label(context, context.l10n.scheduleLabel),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -328,7 +346,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 final day = i + 1;
                 final selected = _selectedDays.contains(day);
                 return FilterChip(
-                  label: Text(_dayLabels[i]),
+                  label: Text(dayLabels[i]),
                   selected: selected,
                   onSelected: (v) => setState(() {
                     if (v) {
@@ -343,7 +361,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             const SizedBox(height: 32),
 
             // Reminder
-            _label(context, 'PENGINGAT'),
+            _label(context, context.l10n.reminderLabel),
             const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
@@ -362,7 +380,15 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     ),
                     child: Row(
                       children: [
-                        Expanded(child: Text(localized(context, id: 'Aktifkan pengingat', en: 'Enable reminder'))),
+                        Expanded(
+                          child: Text(
+                            localized(
+                              context,
+                              id: 'Aktifkan pengingat',
+                              en: 'Enable reminder',
+                            ),
+                          ),
+                        ),
                         Switch(
                           value: _reminderEnabled,
                           onChanged: _toggleReminder,
@@ -406,7 +432,11 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    localized(context, id: 'Tambah waktu', en: 'Add time'),
+                                    localized(
+                                      context,
+                                      id: 'Tambah waktu',
+                                      en: 'Add time',
+                                    ),
                                     style: TextStyle(
                                       color: AppTheme.habitsColor,
                                       fontSize: 13,
@@ -428,9 +458,11 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
             FilledButton(
               onPressed: _saving ? null : _save,
-              child: Text(_saving
-                  ? localized(context, id: 'Menyimpan...', en: 'Saving...')
-                  : context.l10n.save),
+              child: Text(
+                _saving
+                    ? localized(context, id: 'Menyimpan...', en: 'Saving...')
+                    : context.l10n.save,
+              ),
             ),
           ],
         ),

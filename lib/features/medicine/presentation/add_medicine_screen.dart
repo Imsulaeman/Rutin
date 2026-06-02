@@ -78,7 +78,15 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal jadwalkan alarm: $e')),
+        SnackBar(
+          content: Text(
+            localized(
+              context,
+              id: 'Gagal menjadwalkan alarm: $e',
+              en: 'Failed to schedule alarm: $e',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -135,22 +143,36 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   children: [
                     _TextField(
                       controller: _nameController,
-                      label: localized(context, id: 'Nama obat', en: 'Medicine name'),
+                      label: localized(
+                        context,
+                        id: 'Nama obat',
+                        en: 'Medicine name',
+                      ),
                       validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Nama obat wajib diisi'
+                          ? localized(
+                              context,
+                              id: 'Nama obat wajib diisi',
+                              en: 'Medicine name is required',
+                            )
                           : null,
                     ),
                     const SizedBox(height: 14),
                     _TextField(
                       controller: _dosageController,
                       label: localized(context, id: 'Dosis', en: 'Dosage'),
-                      hintText: localized(context, id: 'Contoh: 1 tablet', en: 'Example: 1 tablet'),
+                      hintText: localized(
+                        context,
+                        id: 'Contoh: 1 tablet',
+                        en: 'Example: 1 tablet',
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 18),
-              _SectionTitle('WAKTU MINUM'),
+              _SectionTitle(
+                localized(context, id: 'WAKTU MINUM', en: 'SCHEDULE TIMES'),
+              ),
               const SizedBox(height: 10),
               _SectionCard(
                 child: Column(
@@ -179,7 +201,11 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              localized(context, id: 'Tambah waktu', en: 'Add time'),
+                              localized(
+                                context,
+                                id: 'Tambah waktu',
+                                en: 'Add time',
+                              ),
                               style: TextStyle(
                                 color: _medGradient.first,
                                 fontSize: 13,
@@ -194,7 +220,9 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              _SectionTitle('ATURAN MAKAN'),
+              _SectionTitle(
+                localized(context, id: 'ATURAN MAKAN', en: 'MEAL RULE'),
+              ),
               const SizedBox(height: 10),
               _SectionCard(
                 child: Wrap(
@@ -218,9 +246,11 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   minimumSize: const Size.fromHeight(54),
                 ),
                 onPressed: _saving ? null : _save,
-                child: Text(_saving
-                    ? localized(context, id: 'Menyimpan...', en: 'Saving...')
-                    : context.l10n.save),
+                child: Text(
+                  _saving
+                      ? localized(context, id: 'Menyimpan...', en: 'Saving...')
+                      : context.l10n.save,
+                ),
               ),
             ],
           ),
@@ -228,7 +258,6 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       ),
     );
   }
-
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -356,8 +385,7 @@ class _TimeRow extends StatelessWidget {
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: _medGradient),
                 borderRadius: BorderRadius.circular(10),
@@ -417,7 +445,9 @@ class _MealChip extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          gradient: selected ? const LinearGradient(colors: _medGradient) : null,
+          gradient: selected
+              ? const LinearGradient(colors: _medGradient)
+              : null,
           color: selected ? null : const Color(0xFF0F1524),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(

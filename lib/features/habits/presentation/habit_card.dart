@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/services/haptics_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -60,22 +59,22 @@ class HabitCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: target == 1 ? onTap : null,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: isDone
                       ? AppTheme.habitsColor.withValues(alpha: 0.2)
                       : AppTheme.surfaceHigh,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
                   child: Text(
                     habit.emoji,
-                    style: const TextStyle(fontSize: 22),
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ),
               ),
@@ -84,12 +83,29 @@ class HabitCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      habit.name,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            habit.name,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        if (streak > 0) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '🔥 $streak',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.streakColor,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (target > 1) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       _CompletionDots(
                         target: target,
                         completions: completions,
@@ -108,28 +124,21 @@ class HabitCard extends StatelessWidget {
                         },
                       ),
                     ],
-                    const SizedBox(height: 2),
-                    Text(
-                      streak > 0
-                          ? '$streak hari beruntun 🔥'
-                          : localized(context, id: 'Mulai hari ini', en: 'Start today'),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: streak > 0
-                            ? AppTheme.streakColor
-                            : cs.onSurfaceVariant,
+                    if (streak == 0)
+                      Text(
+                        localized(
+                          context,
+                          id: 'Mulai hari ini',
+                          en: 'Start today',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.calendar_month_rounded, size: 18),
-                color: AppTheme.muted,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () => context.push('/habits/history/${habit.id}'),
-              ),
               if (nearestReminderMinutes(habit) != null) ...[
                 const SizedBox(width: 10),
                 _TimePill(label: _fmtTime(nearestReminderMinutes(habit)!)),
@@ -234,7 +243,7 @@ class _TimePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: _habitTimeGradient),
         borderRadius: BorderRadius.circular(11),
@@ -243,7 +252,7 @@ class _TimePill extends StatelessWidget {
         label,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 14,
+          fontSize: 12,
           fontWeight: FontWeight.w800,
         ),
       ),

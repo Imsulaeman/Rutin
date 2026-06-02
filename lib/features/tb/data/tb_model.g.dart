@@ -20,13 +20,14 @@ class TBTreatmentProfileAdapter extends TypeAdapter<TBTreatmentProfile> {
       ..startDate = fields[0] as DateTime
       ..durationDays = fields[1] as int
       ..medicineId = fields[2] as String
-      ..isActive = fields[3] as bool;
+      ..isActive = fields[3] as bool
+      ..conditionName = (fields[4] as String?) ?? 'TB';
   }
 
   @override
   void write(BinaryWriter writer, TBTreatmentProfile obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.startDate)
       ..writeByte(1)
@@ -34,7 +35,9 @@ class TBTreatmentProfileAdapter extends TypeAdapter<TBTreatmentProfile> {
       ..writeByte(2)
       ..write(obj.medicineId)
       ..writeByte(3)
-      ..write(obj.isActive);
+      ..write(obj.isActive)
+      ..writeByte(4)
+      ..write(obj.conditionName);
   }
 
   @override

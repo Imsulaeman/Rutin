@@ -22,9 +22,11 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen>
     with WidgetsBindingObserver {
   static const _ch = MethodChannel('rutin/sleep');
+  static const _nativeCh = MethodChannel('habit_app/native_reminder');
 
   SleepSettings? _sleep;
   bool _accessibilityGranted = false;
+  bool _fullScreenIntentAllowed = true;
   String _lang = LanguageService.current;
 
   @override
@@ -33,6 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     WidgetsBinding.instance.addObserver(this);
     _load();
     _checkAccessibility();
+    _checkFullScreenIntent();
   }
 
   @override
@@ -46,6 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     if (state == AppLifecycleState.resumed) {
       _load();
       _checkAccessibility();
+      _checkFullScreenIntent();
     }
   }
 
@@ -71,8 +75,20 @@ class _SettingsScreenState extends State<SettingsScreen>
     if (mounted) setState(() => _lang = lang);
   }
 
+  Future<void> _checkFullScreenIntent() async {
+    try {
+      final allowed =
+          await _nativeCh.invokeMethod<bool>('canUseFullScreenIntent') ?? true;
+      if (mounted) setState(() => _fullScreenIntentAllowed = allowed);
+    } catch (_) {}
+  }
+
   Future<void> _openAccessibilitySettings() async {
     await _ch.invokeMethod('openAccessibilitySettings');
+  }
+
+  Future<void> _openFullScreenIntentSettings() async {
+    await _nativeCh.invokeMethod('openFullScreenIntentSettings');
   }
 
   @override
@@ -139,6 +155,51 @@ class _SettingsScreenState extends State<SettingsScreen>
                               ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+                _SectionLabel(
+                  localized(
+                    context,
+                    id: 'ALARM OBAT',
+                    en: 'MEDICINE ALARM',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      _fullScreenIntentAllowed
+                          ? Icons.fullscreen_rounded
+                          : Icons.warning_amber_rounded,
+                      color: _fullScreenIntentAllowed ? _green : _amber,
+                    ),
+                    title: Text(
+                      localized(
+                        context,
+                        id: 'Alarm layar penuh',
+                        en: 'Full-screen alarm',
+                      ),
+                    ),
+                    subtitle: Text(
+                      _fullScreenIntentAllowed
+                          ? localized(
+                              context,
+                              id: 'Diizinkan, alarm bisa mengambil alih layar',
+                              en: 'Allowed, alarms can take over the screen',
+                            )
+                          : localized(
+                              context,
+                              id: 'Belum diizinkan, alarm bisa turun jadi heads-up saja',
+                              en: 'Not allowed yet, alarms may stay as heads-up only',
+                            ),
+                    ),
+                    trailing: _fullScreenIntentAllowed
+                        ? null
+                        : TextButton(
+                            onPressed: _openFullScreenIntentSettings,
+                            child: Text(context.l10n.allow),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 22),

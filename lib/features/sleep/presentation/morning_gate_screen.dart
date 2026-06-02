@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/services/haptics_service.dart';
 import '../../../l10n/l10n.dart';
@@ -130,7 +129,7 @@ class _MorningGateScreenState extends State<MorningGateScreen>
             dosage: medicine.dosage?.trim().isNotEmpty == true
                 ? medicine.dosage!.trim()
                 : '',
-            timeText: DateFormat('HH:mm').format(scheduled),
+            timeText: _clock(scheduled),
             status: status,
           ),
         );
@@ -190,9 +189,15 @@ class _MorningGateScreenState extends State<MorningGateScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(localized(context, id: 'Lewati gerbang?', en: 'Skip the gate?')),
+        title: Text(
+          localized(context, id: 'Lewati gerbang?', en: 'Skip the gate?'),
+        ),
         content: Text(
-          localized(context, id: 'Game pagi ini akan dilewati. Streak kamu tetap aman.', en: 'This morning game will be skipped. Your streak stays safe.'),
+          localized(
+            context,
+            id: 'Game pagi ini akan dilewati. Streak kamu tetap aman.',
+            en: 'This morning game will be skipped. Your streak stays safe.',
+          ),
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -250,8 +255,8 @@ class _MorningGateScreenState extends State<MorningGateScreen>
           child: Column(
             children: [
               _CompactHeader(
-                timeText: DateFormat('HH:mm').format(_now),
-                dateText: DateFormat('EEE, d MMM', 'id').format(_now),
+                timeText: _clock(_now),
+                dateText: formatShortDate(context, _now),
                 streak: _calcStreak(),
               ),
               Expanded(
@@ -340,6 +345,9 @@ class _CompactHeader extends StatelessWidget {
   }
 }
 
+String _clock(DateTime time) =>
+    '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
 class _StreakPill extends StatelessWidget {
   const _StreakPill({required this.streak});
 
@@ -397,7 +405,13 @@ class _MedicineCard extends StatelessWidget {
       doneCount: doneCount,
       totalCount: totalCount,
       child: rows.isEmpty
-          ? _EmptyCardText(text: localized(context, id: 'Tidak ada obat hari ini', en: 'No medicine today'))
+          ? _EmptyCardText(
+              text: localized(
+                context,
+                id: 'Tidak ada obat hari ini',
+                en: 'No medicine today',
+              ),
+            )
           : Column(
               children: [
                 for (int i = 0; i < rows.length; i++) ...[
@@ -434,7 +448,13 @@ class _HabitsCard extends StatelessWidget {
       doneCount: doneCount,
       totalCount: totalCount,
       child: rows.isEmpty
-          ? _EmptyCardText(text: localized(context, id: 'Tidak ada kebiasaan hari ini', en: 'No habits today'))
+          ? _EmptyCardText(
+              text: localized(
+                context,
+                id: 'Tidak ada kebiasaan hari ini',
+                en: 'No habits today',
+              ),
+            )
           : Column(
               children: [
                 for (int i = 0; i < rows.length; i++) ...[

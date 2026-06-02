@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/utils/date_utils.dart' show AppDateUtils;
 import '../../../l10n/l10n.dart';
 import '../data/habit_model.dart';
+import '../data/habit_repository.dart';
 
 const _navy = Color(0xFF0B0E1A);
 const _surface = Color(0xFF161D2E);
@@ -13,9 +14,7 @@ const _full = Color(0xFF7C3AED);
 const _partial = Color(0xFFF4A92B);
 
 class HabitHistoryScreen extends StatefulWidget {
-  const HabitHistoryScreen({super.key, required this.habitId});
-
-  final String habitId;
+  const HabitHistoryScreen({super.key});
 
   @override
   State<HabitHistoryScreen> createState() => _HabitHistoryScreenState();
@@ -23,170 +22,258 @@ class HabitHistoryScreen extends StatefulWidget {
 
 class _HabitHistoryScreenState extends State<HabitHistoryScreen> {
   late DateTime _month;
+  late DateTime _selectedDay;
+  final _repo = HabitRepository();
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _month = DateTime(now.year, now.month);
+    _selectedDay = DateTime(now.year, now.month, now.day);
   }
 
   @override
   Widget build(BuildContext context) {
-    final habit = Hive.box<Habit>('habits').get(widget.habitId);
-    if (habit == null) {
-      return Scaffold(
-        backgroundColor: _navy,
-        body: Center(
-          child: Text(
-            localized(context, id: 'Kebiasaan tidak ditemukan', en: 'Habit not found'),
-            style: TextStyle(color: Colors.white70),
-          ),
-        ),
-      );
-    }
+    final habits = Hive.box<Habit>('habits').values.toList()
+      ..sort((a, b) => a.sortIndex.compareTo(b.sortIndex));
     final days = _daysForMonth(_month);
+    final selectedRows = _rowsForDay(habits, _selectedDay);
+    final completedCount = selectedRows.where((row) => row.isFull).length;
+    final activeCount = selectedRows.where((row) => !row.isOffDay).length;
 
     return Scaffold(
       backgroundColor: _navy,
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: Text('${habit.emoji} ${habit.name}'),
+        title: Text(
+          localized(context, id: 'Riwayat Kebiasaan', en: 'Habit History'),
+        ),
       ),
       body: ValueListenableBuilder<Box<HabitLog>>(
         valueListenable: Hive.box<HabitLog>('habit_logs').listenable(),
-        builder: (context, _, _) => ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          children: [
-            _MonthHeader(
-              month: _month,
-              onPrev: () => setState(() {
-                _month = DateTime(_month.year, _month.month - 1);
-              }),
-              onNext: () => setState(() {
-                _month = DateTime(_month.year, _month.month + 1);
-              }),
-            ),
-            const SizedBox(height: 14),
-            const _Legend(),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: _surfaceLine),
+        builder: (context, _, _) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            children: [
+              _MonthHeader(
+                month: _month,
+                onPrev: () => setState(() {
+                  _month = DateTime(_month.year, _month.month - 1);
+                }),
+                onNext: () => setState(() {
+                  _month = DateTime(_month.year, _month.month + 1);
+                }),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      for (final label in ['M', 'S', 'S', 'R', 'K', 'J', 'S'])
-                        Expanded(
-                          child: Text(
-                            label,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: _grey,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  GridView.builder(
-                    itemCount: days.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                    itemBuilder: (context, index) {
-                      final day = days[index];
-                      if (day == null) return const SizedBox.shrink();
-                      final state = _dayState(habit, day);
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F1524),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: _surfaceLine),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Text(
-                              '${day.day}',
+              const SizedBox(height: 14),
+              const _Legend(),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: _surface,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: _surfaceLine),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        for (final label in localizedWeekdayShortLabels(
+                          context,
+                        ))
+                          Expanded(
+                            child: Text(
+                              label,
+                              textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: _grey,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            Positioned(
-                              bottom: 6,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: _stateColor(state),
-                                  shape: BoxShape.circle,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      itemCount: days.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 7,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                      itemBuilder: (context, index) {
+                        final day = days[index];
+                        if (day == null) return const SizedBox.shrink();
+                        final state = _dayState(habits, day);
+                        final isSelected = _sameDay(day, _selectedDay);
+                        final isToday = _sameDay(day, DateTime.now());
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedDay = day),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: switch (state) {
+                                'full' => _full.withValues(
+                                  alpha: isSelected ? 0.95 : 0.82,
+                                ),
+                                'partial' => _partial.withValues(
+                                  alpha: isSelected ? 0.92 : 0.72,
+                                ),
+                                'missed' => Colors.white.withValues(
+                                  alpha: isSelected ? 0.12 : 0.06,
+                                ),
+                                'off' => Colors.transparent,
+                                _ => Colors.transparent,
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.white70
+                                    : isToday
+                                    ? Colors.white24
+                                    : state == 'off'
+                                    ? _surfaceLine
+                                    : Colors.transparent,
+                                width: isSelected ? 1.4 : 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  color: state == 'off'
+                                      ? Colors.white24
+                                      : Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: _surface,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: _surfaceLine),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formatLongDate(context, _selectedDay),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      activeCount == 0
+                          ? localized(
+                              context,
+                              id: 'Tidak ada kebiasaan terjadwal.',
+                              en: 'No habits were scheduled.',
+                            )
+                          : localized(
+                              context,
+                              id: '$completedCount dari $activeCount kebiasaan selesai',
+                              en: '$completedCount of $activeCount habits completed',
+                            ),
+                      style: const TextStyle(color: _grey),
+                    ),
+                    const SizedBox(height: 16),
+                    if (selectedRows.isEmpty)
+                      Text(
+                        localized(
+                          context,
+                          id: 'Belum ada kebiasaan.',
+                          en: 'No habits yet.',
+                        ),
+                        style: const TextStyle(color: _grey),
+                      )
+                    else
+                      ...selectedRows.map(
+                        (row) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _HabitDayTile(row: row),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  int _completionsForDay(String habitId, String dateStr) =>
-      Hive.box<HabitLog>('habit_logs').values.where((log) {
-        return log.habitId == habitId && log.date == dateStr;
-      }).length;
+  List<_HabitDayRow> _rowsForDay(List<Habit> habits, DateTime day) {
+    return habits.map((habit) {
+      final target = _repo.dailyTarget(habit);
+      final completions = _completionsForDay(habit.id, day).clamp(0, target);
+      final isOffDay = !_isScheduledDay(habit, day);
+      return _HabitDayRow(
+        habit: habit,
+        target: target,
+        completions: completions,
+        isOffDay: isOffDay,
+      );
+    }).toList();
+  }
 
-  int _targetForHabit(Habit habit) =>
-      habit.reminderTimes.isNotEmpty ? habit.reminderTimes.length : 1;
+  int _completionsForDay(String habitId, DateTime day) {
+    final date = AppDateUtils.toDateString(day);
+    return Hive.box<HabitLog>('habit_logs').values.where((log) {
+      return log.habitId == habitId && log.date == date;
+    }).length;
+  }
 
   bool _isScheduledDay(Habit habit, DateTime day) {
     if (habit.scheduleDays.isEmpty) return true;
     return habit.scheduleDays.contains(day.weekday);
   }
 
-  String _dayState(Habit habit, DateTime day) {
+  String _dayState(List<Habit> habits, DateTime day) {
     final today = DateTime.now();
-    if (day.isAfter(DateTime(today.year, today.month, today.day))) {
-      return 'future';
+    final startOfToday = DateTime(today.year, today.month, today.day);
+    if (day.isAfter(startOfToday)) return 'future';
+
+    var scheduledCount = 0;
+    var fullCount = 0;
+    var partialCount = 0;
+
+    for (final habit in habits) {
+      if (!_isScheduledDay(habit, day)) continue;
+      scheduledCount++;
+      final target = _repo.dailyTarget(habit);
+      final completions = _completionsForDay(habit.id, day);
+      if (completions >= target) {
+        fullCount++;
+      } else if (completions > 0) {
+        partialCount++;
+      }
     }
-    if (!_isScheduledDay(habit, day)) return 'off';
-    final completions = _completionsForDay(
-      habit.id,
-      AppDateUtils.toDateString(day),
-    );
-    final target = _targetForHabit(habit);
-    if (completions >= target) return 'full';
-    if (completions > 0) return 'partial';
+
+    if (scheduledCount == 0) return 'off';
+    if (fullCount == scheduledCount) return 'full';
+    if (fullCount > 0 || partialCount > 0) return 'partial';
     return 'missed';
   }
-
-  Color _stateColor(String state) => switch (state) {
-    'full' => _full,
-    'partial' => _partial,
-    'missed' => Colors.white.withValues(alpha: 0.15),
-    _ => Colors.transparent,
-  };
 }
 
 class _MonthHeader extends StatelessWidget {
@@ -207,7 +294,7 @@ class _MonthHeader extends StatelessWidget {
         _NavCircle(icon: Icons.chevron_left_rounded, onTap: onPrev),
         Expanded(
           child: Text(
-            _monthLabel(month),
+            formatMonthYear(context, month),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -252,8 +339,11 @@ class _Legend extends StatelessWidget {
       runSpacing: 8,
       children: [
         _LegendItem(label: context.l10n.done, color: _full),
-        _LegendItem(label: localized(context, id: 'Sebagian', en: 'Partial'), color: _partial),
-        _LegendItem(label: context.l10n.missed, color: Color(0x26FFFFFF)),
+        _LegendItem(
+          label: localized(context, id: 'Sebagian', en: 'Partial'),
+          color: _partial,
+        ),
+        _LegendItem(label: context.l10n.missed, color: const Color(0x26FFFFFF)),
       ],
     );
   }
@@ -282,6 +372,79 @@ class _LegendItem extends StatelessWidget {
   }
 }
 
+class _HabitDayTile extends StatelessWidget {
+  const _HabitDayTile({required this.row});
+
+  final _HabitDayRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    final stateColor = row.isOffDay
+        ? Colors.white24
+        : row.isFull
+        ? _full
+        : row.completions > 0
+        ? _partial
+        : const Color(0x33FFFFFF);
+    final statusText = row.isOffDay
+        ? localized(context, id: 'Libur', en: 'Off day')
+        : '${row.completions}/${row.target}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F1524),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _surfaceLine),
+      ),
+      child: Row(
+        children: [
+          Text(row.habit.emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              row.habit.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            statusText,
+            style: const TextStyle(color: _grey, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: stateColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HabitDayRow {
+  const _HabitDayRow({
+    required this.habit,
+    required this.target,
+    required this.completions,
+    required this.isOffDay,
+  });
+
+  final Habit habit;
+  final int target;
+  final int completions;
+  final bool isOffDay;
+
+  bool get isFull => !isOffDay && completions >= target;
+}
+
 List<DateTime?> _daysForMonth(DateTime month) {
   final first = DateTime(month.year, month.month);
   final count = DateTime(month.year, month.month + 1, 0).day;
@@ -292,20 +455,5 @@ List<DateTime?> _daysForMonth(DateTime month) {
   ];
 }
 
-String _monthLabel(DateTime month) {
-  const names = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
-  ];
-  return '${names[month.month - 1]} ${month.year}';
-}
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
