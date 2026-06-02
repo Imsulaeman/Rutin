@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static const Color _seed = Color(0xFF2E7D5E);
@@ -17,47 +18,59 @@ class AppTheme {
   static const Color border = Color(0xFF30363D);
   static const Color muted = Color(0xFF8B949E);
 
-  static const TextTheme _textTheme = TextTheme(
-    displayLarge: TextStyle(
-      fontSize: 56,
-      fontWeight: FontWeight.w800,
-      letterSpacing: -2.0,
-    ),
-    displayMedium: TextStyle(
-      fontSize: 48,
-      fontWeight: FontWeight.w800,
-      letterSpacing: -1.5,
-    ),
-    displaySmall: TextStyle(
-      fontSize: 36,
-      fontWeight: FontWeight.w800,
-      letterSpacing: -1.0,
-    ),
-    headlineLarge: TextStyle(
-      fontSize: 28,
-      fontWeight: FontWeight.w800,
-      letterSpacing: -0.5,
-    ),
-    headlineMedium: TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.w700,
-      letterSpacing: -0.3,
-    ),
-    titleLarge: TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      letterSpacing: -0.2,
-    ),
-    titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-    bodyLarge: TextStyle(fontSize: 16),
-    bodyMedium: TextStyle(fontSize: 14),
-    bodySmall: TextStyle(fontSize: 12),
-    labelMedium: TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 1.1,
-    ),
-  );
+  static TextTheme _buildTextTheme() {
+    const base = TextTheme(
+      displayLarge: TextStyle(
+        fontSize: 56,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -2.0,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 48,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -1.5,
+      ),
+      displaySmall: TextStyle(
+        fontSize: 36,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -1.0,
+      ),
+      headlineLarge: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.3,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+      ),
+      titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      bodyLarge: TextStyle(fontSize: 16),
+      bodyMedium: TextStyle(fontSize: 14),
+      bodySmall: TextStyle(fontSize: 12),
+      labelMedium: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.1,
+      ),
+    );
+
+    final display = GoogleFonts.bricolageGrotesqueTextTheme(base);
+    return display.copyWith(
+      titleLarge: GoogleFonts.dmSans(textStyle: base.titleLarge),
+      titleMedium: GoogleFonts.dmSans(textStyle: base.titleMedium),
+      bodyLarge: GoogleFonts.dmSans(textStyle: base.bodyLarge),
+      bodyMedium: GoogleFonts.dmSans(textStyle: base.bodyMedium),
+      bodySmall: GoogleFonts.dmSans(textStyle: base.bodySmall),
+      labelMedium: GoogleFonts.dmSans(textStyle: base.labelMedium),
+    );
+  }
 
   static ThemeData light() {
     final cs = ColorScheme.fromSeed(
@@ -67,7 +80,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: cs,
-      textTheme: _textTheme,
+      textTheme: _buildTextTheme(),
       scaffoldBackgroundColor: cs.surfaceContainerLow,
       appBarTheme: AppBarTheme(
         backgroundColor: cs.surfaceContainerLow,
@@ -79,7 +92,7 @@ class AppTheme {
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
         ),
-        titleTextStyle: TextStyle(
+        titleTextStyle: GoogleFonts.dmSans(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
@@ -106,7 +119,10 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -156,7 +172,7 @@ class AppTheme {
         elevation: 0,
         height: 72,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (s) => TextStyle(
+          (s) => GoogleFonts.dmSans(
             fontSize: 11,
             fontWeight: s.contains(WidgetState.selected)
                 ? FontWeight.w700
@@ -180,7 +196,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: cs,
-      textTheme: _textTheme,
+      textTheme: _buildTextTheme(),
       scaffoldBackgroundColor: bgDark,
       appBarTheme: AppBarTheme(
         backgroundColor: bgDark,
@@ -192,7 +208,7 @@ class AppTheme {
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
         ),
-        titleTextStyle: TextStyle(
+        titleTextStyle: GoogleFonts.dmSans(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
@@ -216,7 +232,10 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.dmSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -271,7 +290,7 @@ class AppTheme {
         elevation: 0,
         height: 72,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (s) => TextStyle(
+          (s) => GoogleFonts.dmSans(
             fontSize: 11,
             fontWeight: s.contains(WidgetState.selected)
                 ? FontWeight.w700

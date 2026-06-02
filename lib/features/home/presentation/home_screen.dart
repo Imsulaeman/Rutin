@@ -53,8 +53,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
-  static bool _permissionDialogShown = false;
-
   final _headerKey = GlobalKey();
 
   final _waterRepo = WaterRepository();
@@ -108,7 +106,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _load();
     _entrance.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybeShowPermissionWizard(context);
+      final shown =
+          Hive.box<String>('app_settings').get('permission_wizard_shown') ==
+          'true';
+      if (!shown) {
+        _maybeShowPermissionWizard(context);
+      }
     });
   }
 
@@ -155,44 +158,98 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     String hint(int i) => i == 4
-        ? localized(context, id: 'Ketuk di mana saja untuk selesai', en: 'Tap anywhere to finish')
-        : localized(context, id: 'Ketuk di mana saja untuk lanjut', en: 'Tap anywhere to continue');
+        ? localized(
+            context,
+            id: 'Ketuk di mana saja untuk selesai',
+            en: 'Tap anywhere to finish',
+          )
+        : localized(
+            context,
+            id: 'Ketuk di mana saja untuk lanjut',
+            en: 'Tap anywhere to continue',
+          );
 
     final candidates = [
-      (i: 0, key: _headerKey,                   shape: ShapeLightFocus.RRect,  align: ContentAlign.bottom, radius: 12.0,
-       titleId: 'Selamat datang di Rutin!',      titleEn: 'Welcome to Rutin!',
-       bodyId:  'Dashboard harian kamu — semua ada di sini. Ketuk di mana saja untuk lanjut.',
-       bodyEn:  'Your daily dashboard — everything is here. Tap anywhere to continue.'),
+      (
+        i: 0,
+        key: _headerKey,
+        shape: ShapeLightFocus.RRect,
+        align: ContentAlign.bottom,
+        radius: 12.0,
+        titleId: 'Selamat datang di Rutin!',
+        titleEn: 'Welcome to Rutin!',
+        bodyId:
+            'Dashboard harian kamu — semua ada di sini. Ketuk di mana saja untuk lanjut.',
+        bodyEn:
+            'Your daily dashboard — everything is here. Tap anywhere to continue.',
+      ),
 
-      (i: 1, key: ShellScaffold.fabKey,          shape: ShapeLightFocus.Circle, align: ContentAlign.top,    radius: 50.0,
-       titleId: 'Tombol +',                      titleEn: 'The + button',
-       bodyId:  'Tambah obat atau kebiasaan baru dari sini.',
-       bodyEn:  'Add a new medicine or habit from here.'),
+      (
+        i: 1,
+        key: ShellScaffold.fabKey,
+        shape: ShapeLightFocus.Circle,
+        align: ContentAlign.top,
+        radius: 50.0,
+        titleId: 'Tombol +',
+        titleEn: 'The + button',
+        bodyId: 'Tambah obat atau kebiasaan baru dari sini.',
+        bodyEn: 'Add a new medicine or habit from here.',
+      ),
 
-      (i: 2, key: ShellScaffold.medicineTabKey,  shape: ShapeLightFocus.RRect,  align: ContentAlign.top,    radius: 8.0,
-       titleId: 'Obat',                          titleEn: 'Medicine',
-       bodyId:  'Jadwal obat lengkap dan pencatatan dosis harian.',
-       bodyEn:  'Full medicine schedule and daily dose logging.'),
+      (
+        i: 2,
+        key: ShellScaffold.medicineTabKey,
+        shape: ShapeLightFocus.RRect,
+        align: ContentAlign.top,
+        radius: 8.0,
+        titleId: 'Obat',
+        titleEn: 'Medicine',
+        bodyId: 'Jadwal obat lengkap dan pencatatan dosis harian.',
+        bodyEn: 'Full medicine schedule and daily dose logging.',
+      ),
 
-      (i: 3, key: ShellScaffold.waterTabKey,     shape: ShapeLightFocus.RRect,  align: ContentAlign.top,    radius: 8.0,
-       titleId: 'Air',                           titleEn: 'Water',
-       bodyId:  'Catat asupan air dan aktifkan pengingat minum.',
-       bodyEn:  'Log water intake and set drinking reminders.'),
+      (
+        i: 3,
+        key: ShellScaffold.waterTabKey,
+        shape: ShapeLightFocus.RRect,
+        align: ContentAlign.top,
+        radius: 8.0,
+        titleId: 'Air',
+        titleEn: 'Water',
+        bodyId: 'Catat asupan air dan aktifkan pengingat minum.',
+        bodyEn: 'Log water intake and set drinking reminders.',
+      ),
 
-      (i: 4, key: ShellScaffold.habitsTabKey,    shape: ShapeLightFocus.RRect,  align: ContentAlign.top,    radius: 8.0,
-       titleId: 'Kebiasaan',                     titleEn: 'Habits',
-       bodyId:  'Buat dan centang kebiasaan harian. Bangun streak dan raih medali.',
-       bodyEn:  'Create and check off daily habits. Build streaks and earn medals.'),
+      (
+        i: 4,
+        key: ShellScaffold.habitsTabKey,
+        shape: ShapeLightFocus.RRect,
+        align: ContentAlign.top,
+        radius: 8.0,
+        titleId: 'Kebiasaan',
+        titleEn: 'Habits',
+        bodyId:
+            'Buat dan centang kebiasaan harian. Bangun streak dan raih medali.',
+        bodyEn:
+            'Create and check off daily habits. Build streaks and earn medals.',
+      ),
     ];
 
     final targets = candidates
         .where((c) => c.key.currentContext != null)
-        .map((c) => makeTarget(
-              key: c.key, shape: c.shape, align: c.align, radius: c.radius,
-              titleId: c.titleId, titleEn: c.titleEn,
-              bodyId: c.bodyId, bodyEn: c.bodyEn,
-              hintText: hint(c.i),
-            ))
+        .map(
+          (c) => makeTarget(
+            key: c.key,
+            shape: c.shape,
+            align: c.align,
+            radius: c.radius,
+            titleId: c.titleId,
+            titleEn: c.titleEn,
+            bodyId: c.bodyId,
+            bodyEn: c.bodyEn,
+            hintText: hint(c.i),
+          ),
+        )
         .toList();
 
     if (targets.isEmpty) return;
@@ -600,10 +657,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               final stackStreak = habits.isEmpty
                                                   ? 0
                                                   : habits.fold<int>(
-                                                      _habitRepo.getStreak(habits.first.id),
+                                                      _habitRepo.getStreak(
+                                                        habits.first.id,
+                                                      ),
                                                       (min, h) {
-                                                        final s = _habitRepo.getStreak(h.id);
-                                                        return s < min ? s : min;
+                                                        final s = _habitRepo
+                                                            .getStreak(h.id);
+                                                        return s < min
+                                                            ? s
+                                                            : min;
                                                       },
                                                     );
                                               return Padding(
@@ -644,21 +706,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                                                       0.3,
                                                                 ),
                                                           ),
-                                                          if (stackStreak > 0) ...[
-                                                            const SizedBox(width: 6),
+                                                          if (stackStreak >
+                                                              0) ...[
+                                                            const SizedBox(
+                                                              width: 6,
+                                                            ),
                                                             Text(
                                                               '🔥 $stackStreak',
                                                               style: const TextStyle(
                                                                 fontSize: 11,
-                                                                fontWeight: FontWeight.w700,
-                                                                color: _habitColor,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                color:
+                                                                    _habitColor,
                                                               ),
                                                             ),
                                                           ],
                                                         ],
                                                       ),
                                                     ),
-                                                    ...List.generate(habits.length, (i) {
+                                                    ...List.generate(habits.length, (
+                                                      i,
+                                                    ) {
                                                       final h = habits[i];
                                                       return Padding(
                                                         padding:
@@ -696,17 +766,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                                                 child: _TodayHabitRow(
                                                                   habit: h,
                                                                   done: _habitRepo
-                                                                      .isCompletedToday(h.id),
+                                                                      .isCompletedToday(
+                                                                        h.id,
+                                                                      ),
                                                                   streak: _habitRepo
-                                                                      .getStreak(h.id),
+                                                                      .getStreak(
+                                                                        h.id,
+                                                                      ),
                                                                   target: _habitRepo
-                                                                      .dailyTarget(h),
-                                                                  completions: _habitRepo
-                                                                      .completionsToday(h.id),
-                                                                  onSetCompletions: (count) =>
-                                                                      _setHabitCompletions(h, count),
+                                                                      .dailyTarget(
+                                                                        h,
+                                                                      ),
+                                                                  completions:
+                                                                      _habitRepo
+                                                                          .completionsToday(
+                                                                            h.id,
+                                                                          ),
+                                                                  onSetCompletions:
+                                                                      (
+                                                                        count,
+                                                                      ) => _setHabitCompletions(
+                                                                        h,
+                                                                        count,
+                                                                      ),
                                                                   onTap: () =>
-                                                                      _markHabitDone(h),
+                                                                      _markHabitDone(
+                                                                        h,
+                                                                      ),
                                                                 ),
                                                               ),
                                                             ],
@@ -799,8 +885,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _maybeShowPermissionWizard(BuildContext context) async {
-    if (_permissionDialogShown || !context.mounted) return;
-    _permissionDialogShown = true;
+    if (!context.mounted) return;
+
+    await Hive.box<String>(
+      'app_settings',
+    ).put('permission_wizard_shown', 'true');
 
     final android = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
@@ -813,59 +902,159 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (notifEnabled && exactEnabled) return;
     if (!context.mounted) return;
 
-    await showDialog<void>(
+    await showModalBottomSheet<void>(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(
-          localized(context, id: 'Izin Wajib', en: 'Required Permissions'),
-        ),
-        content: Text(
-          localized(
-                context,
-                id: 'Aktifkan semua izin agar reminder jalan:\n',
-                en: 'Enable all permissions so reminders work:\n',
-              ) +
-              localized(
-                context,
-                id: '1) Notifikasi\n2) Exact alarm (Alarm & pengingat)\n3) Full-screen intent',
-                en: '1) Notifications\n2) Exact alarm (Alarms & reminders)\n3) Full-screen intent',
-              ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await android.requestNotificationsPermission();
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              localized(context, id: 'Notifikasi', en: 'Notifications'),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF131C2B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => _PermissionWizard(android: android),
+    );
+  }
+}
+
+typedef _PermissionStep = ({
+  IconData icon,
+  Color color,
+  String titleId,
+  String titleEn,
+  String bodyId,
+  String bodyEn,
+});
+
+class _PermissionWizard extends StatefulWidget {
+  const _PermissionWizard({required this.android});
+
+  final AndroidFlutterLocalNotificationsPlugin android;
+
+  @override
+  State<_PermissionWizard> createState() => _PermissionWizardState();
+}
+
+class _PermissionWizardState extends State<_PermissionWizard> {
+  static const List<_PermissionStep> _steps = [
+    (
+      icon: Icons.notifications_rounded,
+      color: Color(0xFF4CC56A),
+      titleId: 'Izinkan Notifikasi',
+      titleEn: 'Allow Notifications',
+      bodyId: 'Diperlukan agar pengingat obat dan air muncul di layar.',
+      bodyEn: 'Required so medicine and water reminders appear on screen.',
+    ),
+    (
+      icon: Icons.alarm_rounded,
+      color: Color(0xFFF4A92B),
+      titleId: 'Izinkan Exact Alarm',
+      titleEn: 'Allow Exact Alarm',
+      bodyId:
+          'Agar pengingat muncul tepat waktu - buka Alarm & Pengingat lalu aktifkan Rutin.',
+      bodyEn:
+          'So reminders appear on time - open Alarms & Reminders and enable Rutin.',
+    ),
+    (
+      icon: Icons.fullscreen_rounded,
+      color: Color(0xFF3E8BF0),
+      titleId: 'Izinkan Layar Penuh',
+      titleEn: 'Allow Full Screen',
+      bodyId: 'Pengingat obat bisa muncul menyeluruh saat perangkat terkunci.',
+      bodyEn:
+          'Medicine reminders can appear full screen while the device is locked.',
+    ),
+  ];
+
+  int _step = 0;
+
+  Future<void> _grant() async {
+    switch (_step) {
+      case 0:
+        await widget.android.requestNotificationsPermission();
+        break;
+      case 1:
+        await widget.android.requestExactAlarmsPermission();
+        break;
+      case 2:
+        await widget.android.requestFullScreenIntentPermission();
+        break;
+    }
+    _next();
+  }
+
+  void _next() {
+    if (!mounted) return;
+    if (_step >= _steps.length - 1) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _step++);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = _steps[_step];
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        20,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_steps.length, (index) {
+              final active = index == _step;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                width: active ? 20 : 6,
+                height: 6,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: active ? current.color : Colors.white24,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 28),
+          Icon(current.icon, color: current.color, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            localized(context, id: current.titleId, en: current.titleEn),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          TextButton(
-            onPressed: () async {
-              await android.requestExactAlarmsPermission();
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              localized(context, id: 'Exact Alarm', en: 'Exact Alarm'),
+          const SizedBox(height: 10),
+          Text(
+            localized(context, id: current.bodyId, en: current.bodyEn),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              height: 1.45,
             ),
           ),
-          TextButton(
-            onPressed: () async {
-              await android.requestFullScreenIntentPermission();
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              localized(context, id: 'Layar Penuh', en: 'Full Screen'),
-            ),
-          ),
+          const SizedBox(height: 28),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(context.l10n.done),
+            onPressed: _grant,
+            style: FilledButton.styleFrom(backgroundColor: current.color),
+            child: Text(localized(context, id: 'Izinkan', en: 'Allow')),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _next,
+            child: Text(
+              localized(context, id: 'Lewati', en: 'Skip'),
+              style: const TextStyle(color: Colors.white54),
+            ),
           ),
         ],
       ),
@@ -1257,8 +1446,8 @@ class _TodayHabitRow extends StatelessWidget {
       onTap: target == 1
           ? onTap
           : completions < target
-              ? () => onSetCompletions(completions + 1)
-              : null,
+          ? () => onSetCompletions(completions + 1)
+          : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -1384,27 +1573,34 @@ class _HomeCompletionDots extends StatelessWidget {
       children: [
         // List.generate gives each i as a fresh function parameter,
         // avoiding the for-loop closure capture bug.
-        ...List.generate(target, (i) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => onTap(i),
-          child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: i < completions ? _habitColor : Colors.transparent,
-                border: Border.all(
-                  color: i < completions ? _habitColor : _muted,
+        ...List.generate(
+          target,
+          (i) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onTap(i),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: i < completions ? _habitColor : Colors.transparent,
+                  border: Border.all(
+                    color: i < completions ? _habitColor : _muted,
+                  ),
                 ),
+                child: i < completions
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 11,
+                        color: Colors.white,
+                      )
+                    : null,
               ),
-              child: i < completions
-                  ? const Icon(Icons.check_rounded, size: 11, color: Colors.white)
-                  : null,
             ),
           ),
-        )).expand((dot) => [dot, const SizedBox(width: 2)]).take(target * 2 - 1),
+        ).expand((dot) => [dot, const SizedBox(width: 2)]).take(target * 2 - 1),
       ],
     );
   }

@@ -126,7 +126,7 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
   - Keystore: `android/rutin-release.jks` — alias `rutin`, password stored in `android/key.properties` (gitignored). **Back up the .jks to Google Drive.**
   - Store listing copy: `store_listing.md` — ID + EN short desc, full desc, category, keywords
   - Privacy policy live: `https://imsulaeman.me/rutin-privacy/`
-  - Gradle JVM raised to 4GB heap / 1GB metaspace (was OOM at 512m)
+  - Gradle JVM kept at 2GB heap / 512m metaspace / 128m code cache after review (4GB was too aggressive on the 5GB machine)
   - Pending after verification: upload APK, fill store listing, screenshots, feature graphic, content rating, Settings About section → update to Benih Studio
 
 ---

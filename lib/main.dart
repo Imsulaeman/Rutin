@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
@@ -58,9 +61,11 @@ void _registerHiveAdapters() {
 }
 
 Future<void> _openHiveBoxes() async {
+  final cipher = await _getOrCreateCipher();
+
   await Future.wait([
-    Hive.openBox<Medicine>('medicines'),
-    Hive.openBox<MedicineLog>('medicine_logs'),
+    _openEncryptedBox<Medicine>('medicines', cipher),
+    _openEncryptedBox<MedicineLog>('medicine_logs', cipher),
     Hive.openBox<WaterGoal>('water_goals'),
     Hive.openBox<WaterLog>('water_logs'),
     Hive.openBox<Habit>('habits'),
@@ -70,11 +75,35 @@ Future<void> _openHiveBoxes() async {
     Hive.openBox<Routine>('routines'),
     Hive.openBox<RoutineLog>('routine_logs'),
     Hive.openBox<UserProfile>('user_profile'),
-    Hive.openBox<TBTreatmentProfile>('tb_profiles'),
+    _openEncryptedBox<TBTreatmentProfile>('tb_profiles', cipher),
     Hive.openBox<SleepSettings>('sleep_settings'),
     Hive.openBox<int>('morning_streaks'),
     Hive.openBox<String>('app_settings'),
   ]);
+}
+
+Future<HiveAesCipher> _getOrCreateCipher() async {
+  const storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  const keyName = 'rutin_hive_key';
+
+  var stored = await storage.read(key: keyName);
+  if (stored == null) {
+    stored = base64.encode(Hive.generateSecureKey());
+    await storage.write(key: keyName, value: stored);
+  }
+
+  return HiveAesCipher(base64.decode(stored));
+}
+
+Future<Box<T>> _openEncryptedBox<T>(String name, HiveAesCipher cipher) async {
+  try {
+    return await Hive.openBox<T>(name, encryptionCipher: cipher);
+  } catch (_) {
+    await Hive.deleteBoxFromDisk(name);
+    return Hive.openBox<T>(name, encryptionCipher: cipher);
+  }
 }
 
 Future<void> _syncMedicineSchedules() async {
