@@ -1546,6 +1546,15 @@ class _EditGroupBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final doneCount = habits.where((h) => repo.isCompletedToday(h.id)).length;
+    final stackStreak = habits.isEmpty
+        ? 0
+        : habits.fold<int>(
+            repo.getStreak(habits.first.id),
+            (min, h) {
+              final s = repo.getStreak(h.id);
+              return s < min ? s : min;
+            },
+          );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -1608,6 +1617,17 @@ class _EditGroupBlock extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (stackStreak > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '🔥 $stackStreak',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.streakColor,
+                        ),
+                      ),
+                    ],
                     const SizedBox(width: 4),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,

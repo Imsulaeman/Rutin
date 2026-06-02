@@ -3,9 +3,7 @@ package com.rutin.app
 import android.app.ActivityOptions
 import android.app.Notification
 import android.app.NotificationChannel
-import android.content.ContentResolver
 import android.media.AudioAttributes
-import android.net.Uri
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -80,9 +78,6 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.deleteNotificationChannel("medicine_alarm")
-            val soundUri = Uri.parse(
-                "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.ringtone}"
-            )
             val audioAttrs = AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_ALARM)
@@ -93,7 +88,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = NativeStrings.medicineDescription(context)
-                setSound(soundUri, audioAttrs)
+                setSound(ReminderSoundPrefs.alarmUri(context), audioAttrs)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 400, 200, 400, 200, 400)
                 setBypassDnd(true)

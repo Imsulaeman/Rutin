@@ -12,6 +12,7 @@ import 'features/medicine/data/medicine_repository.dart';
 import 'features/notifications/alarm_service.dart';
 import 'features/notifications/notification_handler.dart'
     show NotificationHandler, onBackgroundNotification;
+import 'features/profile/data/user_profile_model.dart';
 import 'features/routines/data/routine_model.dart';
 import 'features/settings/data/language_service.dart';
 import 'features/sleep/data/sleep_model.dart';
@@ -51,6 +52,7 @@ void _registerHiveAdapters() {
     ..registerAdapter(MedalAdapter())
     ..registerAdapter(RoutineAdapter())
     ..registerAdapter(RoutineLogAdapter())
+    ..registerAdapter(UserProfileAdapter())
     ..registerAdapter(TBTreatmentProfileAdapter())
     ..registerAdapter(SleepSettingsAdapter());
 }
@@ -67,6 +69,7 @@ Future<void> _openHiveBoxes() async {
     Hive.openBox<Medal>('medals'),
     Hive.openBox<Routine>('routines'),
     Hive.openBox<RoutineLog>('routine_logs'),
+    Hive.openBox<UserProfile>('user_profile'),
     Hive.openBox<TBTreatmentProfile>('tb_profiles'),
     Hive.openBox<SleepSettings>('sleep_settings'),
     Hive.openBox<int>('morning_streaks'),

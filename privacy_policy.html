@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kebijakan Privasi Rutin / Rutin Privacy Policy</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0b0e1a;
+      color: #e2e8f0;
+      line-height: 1.7;
+      padding: 40px 20px 80px;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    .lang-toggle {
+      display: flex; gap: 8px; margin-bottom: 32px;
+    }
+    .lang-btn {
+      padding: 6px 16px; border-radius: 20px; border: 1px solid #26324a;
+      background: transparent; color: #9aa3b2; cursor: pointer; font-size: 13px;
+    }
+    .lang-btn.active { background: #f4a92b; color: #000; border-color: #f4a92b; font-weight: 700; }
+    h1 { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .subtitle { color: #9aa3b2; font-size: 14px; margin-bottom: 36px; }
+    h2 { font-size: 16px; font-weight: 700; color: #f4a92b; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    p { color: #cbd5e1; margin-bottom: 12px; font-size: 15px; }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { color: #cbd5e1; font-size: 15px; margin-bottom: 6px; }
+    a { color: #f4a92b; text-decoration: none; }
+    .divider { border: none; border-top: 1px solid #1e2a3d; margin: 48px 0; }
+    .badge {
+      display: inline-block; background: #111a2a; border: 1px solid #26324a;
+      border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #9aa3b2; margin-bottom: 20px;
+    }
+    [lang-section] { display: none; }
+    [lang-section].visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('id')">🇮🇩 Indonesia</button>
+      <button class="lang-btn" onclick="setLang('en')">🇬🇧 English</button>
+    </div>
+
+    <!-- ── INDONESIAN ── -->
+    <div lang-section="id" class="visible">
+      <div class="badge">Terakhir diperbarui: 2 Juni 2026</div>
+      <h1>Kebijakan Privasi</h1>
+      <p class="subtitle">Aplikasi Rutin — dikembangkan oleh Ilham Maulana Sulaeman</p>
+
+      <h2>Ringkasan</h2>
+      <p>Rutin adalah aplikasi kesehatan harian yang bekerja sepenuhnya di perangkat kamu (<em>offline-first</em>). Kami tidak memiliki server, tidak ada akun pengguna, dan semua data kesehatanmu tersimpan lokal di perangkatmu sendiri. Kami tidak menjual data apapun.</p>
+
+      <h2>Data yang Disimpan Secara Lokal</h2>
+      <p>Data berikut disimpan hanya di perangkatmu dan <strong>tidak pernah dikirim ke server kami</strong>:</p>
+      <ul>
+        <li>Nama obat, dosis, jadwal minum, dan catatan konsumsi harian</li>
+        <li>Nama kebiasaan, emoji, jadwal, dan riwayat penyelesaian</li>
+        <li>Catatan asupan air harian</li>
+        <li>Profil program pengobatan (nama kondisi, tanggal mulai, durasi)</li>
+        <li>Pengaturan mode tidur dan game bangun pagi</li>
+        <li>Nama, usia, dan pilihan avatar di profil</li>
+      </ul>
+      <p>Data ini dapat dihapus permanen kapan saja dengan menghapus aplikasi.</p>
+
+      <h2>Data yang Dikirim ke Pihak Ketiga</h2>
+      <p>Rutin menggunakan <strong>Firebase Analytics</strong> (Google) untuk memahami cara penggunaan fitur aplikasi. Data yang dikirim meliputi:</p>
+      <ul>
+        <li>Event penggunaan: obat diminum, obat ditambah, kebiasaan selesai, air dicatat, game selesai</li>
+        <li>Nama obat dan nama kebiasaan (melekat pada event terkait)</li>
+        <li>Jumlah air yang dicatat (dalam mililiter)</li>
+        <li>Informasi perangkat: model, versi Android, versi aplikasi</li>
+        <li>Negara/wilayah (diperkirakan dari IP, tidak disimpan secara eksplisit)</li>
+      </ul>
+      <p>Data ini digunakan semata-mata untuk meningkatkan aplikasi. Firebase Analytics dikelola oleh Google sesuai <a href="https://policies.google.com/privacy" target="_blank">Kebijakan Privasi Google</a>. Kamu dapat menonaktifkan pengumpulan data analitik melalui pengaturan iklan Google di perangkatmu.</p>
+
+      <h2>Data yang Tidak Kami Kumpulkan</h2>
+      <ul>
+        <li>Tidak ada akun atau identitas pengguna</li>
+        <li>Tidak ada lokasi GPS</li>
+        <li>Tidak ada kamera atau mikrofon</li>
+        <li>Tidak ada kontak atau SMS</li>
+        <li>Tidak ada iklan atau pelacakan lintas aplikasi</li>
+      </ul>
+
+      <h2>Izin Perangkat</h2>
+      <ul>
+        <li><strong>Notifikasi</strong> — untuk pengingat obat dan kebiasaan</li>
+        <li><strong>Alarm tepat waktu</strong> — agar alarm obat tidak tertunda sistem</li>
+        <li><strong>Intent layar penuh</strong> — agar alarm obat dapat mengambil alih layar</li>
+        <li><strong>Layanan aksesibilitas</strong> (opsional) — hanya untuk Mode Tidur: mencegah pengguna menutup game bangun pagi sebelum selesai</li>
+        <li><strong>Boot completed</strong> — untuk menjadwalkan ulang alarm setelah perangkat restart</li>
+      </ul>
+
+      <h2>Keamanan Data</h2>
+      <p>Karena semua data kesehatan disimpan lokal di perangkatmu, keamanannya bergantung pada keamanan perangkat itu sendiri (kunci layar, enkripsi Android). Kami tidak dapat mengakses, memulihkan, atau menghapus data lokalmu dari jarak jauh.</p>
+
+      <h2>Anak-anak</h2>
+      <p>Rutin tidak ditujukan untuk anak-anak di bawah 13 tahun dan kami tidak secara sengaja mengumpulkan data dari anak-anak.</p>
+
+      <h2>Perubahan Kebijakan</h2>
+      <p>Jika kebijakan ini diperbarui, tanggal "Terakhir diperbarui" di bagian atas akan berubah. Perubahan signifikan akan diinformasikan melalui pembaruan aplikasi.</p>
+
+      <h2>Hubungi Kami</h2>
+      <p>Pertanyaan tentang privasi dapat dikirim ke: <a href="mailto:Imsulaeman@gmail.com">Imsulaeman@gmail.com</a></p>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- ── ENGLISH ── -->
+    <div lang-section="en">
+      <div class="badge">Last updated: June 2, 2026</div>
+      <h1>Privacy Policy</h1>
+      <p class="subtitle">Rutin App — developed by Ilham Maulana Sulaeman</p>
+
+      <h2>Summary</h2>
+      <p>Rutin is a daily health app that works entirely on your device (<em>offline-first</em>). We have no server, no user accounts, and all your health data is stored locally on your own device. We do not sell any data.</p>
+
+      <h2>Data Stored Locally</h2>
+      <p>The following data is stored only on your device and <strong>is never sent to our servers</strong>:</p>
+      <ul>
+        <li>Medicine names, dosages, schedules, and daily intake logs</li>
+        <li>Habit names, emojis, schedules, and completion history</li>
+        <li>Daily water intake logs</li>
+        <li>Treatment program profiles (condition name, start date, duration)</li>
+        <li>Sleep mode and morning wake-up game settings</li>
+        <li>Name, age, and avatar selection in your profile</li>
+      </ul>
+      <p>This data can be permanently deleted at any time by uninstalling the app.</p>
+
+      <h2>Data Sent to Third Parties</h2>
+      <p>Rutin uses <strong>Firebase Analytics</strong> (Google) to understand how app features are used. Data sent includes:</p>
+      <ul>
+        <li>Usage events: medicine taken, medicine added, habit completed, water logged, game completed</li>
+        <li>Medicine names and habit names (attached to their respective events)</li>
+        <li>Amount of water logged (in millilitres)</li>
+        <li>Device info: model, Android version, app version</li>
+        <li>Country/region (estimated from IP, not stored explicitly)</li>
+      </ul>
+      <p>This data is used solely to improve the app. Firebase Analytics is operated by Google under the <a href="https://policies.google.com/privacy" target="_blank">Google Privacy Policy</a>. You can opt out via your device's Google ad settings.</p>
+
+      <h2>Data We Do Not Collect</h2>
+      <ul>
+        <li>No user accounts or identity</li>
+        <li>No GPS location</li>
+        <li>No camera or microphone</li>
+        <li>No contacts or SMS</li>
+        <li>No advertising or cross-app tracking</li>
+      </ul>
+
+      <h2>Device Permissions</h2>
+      <ul>
+        <li><strong>Notifications</strong> — for medicine and habit reminders</li>
+        <li><strong>Exact alarms</strong> — so medicine alarms are not delayed by the system</li>
+        <li><strong>Full-screen intent</strong> — so medicine alarms can take over the screen</li>
+        <li><strong>Accessibility service</strong> (optional) — only for Sleep Mode: prevents leaving the morning wake-up game before completion</li>
+        <li><strong>Boot completed</strong> — to reschedule alarms after a device restart</li>
+      </ul>
+
+      <h2>Data Security</h2>
+      <p>Because all health data is stored locally on your device, its security depends on your device's own security (screen lock, Android encryption). We cannot access, recover, or remotely delete your local data.</p>
+
+      <h2>Children</h2>
+      <p>Rutin is not directed at children under 13 and we do not knowingly collect data from children.</p>
+
+      <h2>Policy Changes</h2>
+      <p>If this policy is updated, the "Last updated" date at the top will change. Significant changes will be communicated through app updates.</p>
+
+      <h2>Contact Us</h2>
+      <p>Privacy questions can be sent to: <a href="mailto:Imsulaeman@gmail.com">Imsulaeman@gmail.com</a></p>
+    </div>
+
+  </div>
+
+  <script>
+    function setLang(lang) {
+      document.querySelectorAll('[lang-section]').forEach(el => {
+        el.classList.toggle('visible', el.getAttribute('lang-section') === lang);
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.includes(lang === 'id' ? 'Indonesia' : 'English'));
+      });
+    }
+  </script>
+</body>
+</html>

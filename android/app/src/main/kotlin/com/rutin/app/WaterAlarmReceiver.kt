@@ -5,11 +5,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
-import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 
@@ -75,9 +73,6 @@ class WaterAlarmReceiver : BroadcastReceiver() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.deleteNotificationChannel("water_reminder_native")
-            val soundUri = Uri.parse(
-                "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.notif_chime}"
-            )
             val audioAttrs = AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
@@ -85,7 +80,7 @@ class WaterAlarmReceiver : BroadcastReceiver() {
             val channel = NotificationChannel(
                 CHANNEL_ID, NativeStrings.waterChannel(context), NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                setSound(soundUri, audioAttrs)
+                setSound(ReminderSoundPrefs.notificationUri(context), audioAttrs)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 250)
             }

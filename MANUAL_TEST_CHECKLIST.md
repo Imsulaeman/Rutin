@@ -72,6 +72,35 @@ Build: Debug - hot restart sufficient for latest Dart-only Obat fix, full restar
 
 ---
 
+## Session 23 - 2026-06-02
+
+Date: 2026-06-02
+Device: Realme GT 2 Pro / current test phone
+Build: Debug - hot restart sufficient
+
+### Profile identity + avatars
+
+- [ ] Open `Profile`.
+- [ ] Expected: header shows avatar area, user identity area, and three stat chips for best streak, medals, and habits done.
+- [ ] Tap the avatar or edit badge.
+- [ ] Expected: a bottom sheet opens with 10 avatar choices, name field, and age field.
+- [ ] Pick a different avatar, enter a name, and save.
+- [ ] Expected: the header updates immediately.
+- [ ] Close and reopen Rutin.
+- [ ] Expected: avatar, name, and age persist.
+
+### EN sweep - low-frequency screens
+
+- [ ] Switch app language to `EN`.
+- [ ] Open `Profile` -> `Treatment Program` onboarding.
+- [ ] Expected: date label, duration choices, linked-medicine field, and replace-program dialog are all in English.
+- [ ] Open treatment detail with an active program.
+- [ ] Expected: date formatting and PDF/export labels are English-friendly and no Indonesian leaks remain.
+- [ ] Open `Mode Tidur` -> `Test Dots` and `Test Rhythm`.
+- [ ] Expected: low-frequency game copy such as `Connect the Colors`, `Perfect`, `Good`, `Miss`, and the completion message appear in English.
+
+---
+
 ## Session 20 - 2026-05-31
 
 Date: 2026-05-31

@@ -7,10 +7,13 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 import '../../../core/services/haptics_service.dart';
+import '../../../core/services/tutorial_trigger.dart';
 import '../../../main.dart';
 import '../../../l10n/l10n.dart';
+import '../../../app.dart';
 import '../../../shared/providers/providers.dart';
 import '../../habits/data/habit_model.dart';
 import '../../habits/data/habit_repository.dart';
@@ -51,6 +54,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   static bool _permissionDialogShown = false;
+
+  final _headerKey = GlobalKey();
 
   final _waterRepo = WaterRepository();
   final _habitRepo = HabitRepository();
@@ -99,6 +104,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _medicineLogsL.addListener(_load);
     _treatmentsL.addListener(_load);
 
+    TutorialTrigger.notifier.addListener(_onTutorialTrigger);
     _load();
     _entrance.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -106,8 +112,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
   }
 
+  void _onTutorialTrigger() {
+    // Delay so ShellScaffold keys are fully laid out after any navigation
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) _startTutorial();
+    });
+  }
+
+  void _startTutorial() {
+    // Build all targets, skip any whose key is not yet in the tree
+    TargetFocus makeTarget({
+      required GlobalKey key,
+      required ShapeLightFocus shape,
+      required ContentAlign align,
+      required String titleId,
+      required String titleEn,
+      required String bodyId,
+      required String bodyEn,
+      required String hintText,
+      double radius = 8,
+    }) {
+      return TargetFocus(
+        keyTarget: key,
+        color: const Color(0xFF0B0E1A),
+        shape: shape,
+        radius: radius,
+        enableOverlayTab: true,
+        enableTargetTab: true,
+        focusAnimationDuration: const Duration(milliseconds: 300),
+        unFocusAnimationDuration: const Duration(milliseconds: 200),
+        contents: [
+          TargetContent(
+            align: align,
+            child: _TutorialContent(
+              title: localized(context, id: titleId, en: titleEn),
+              body: localized(context, id: bodyId, en: bodyEn),
+              hint: hintText,
+            ),
+          ),
+        ],
+      );
+    }
+
+    String hint(int i) => i == 4
+        ? localized(context, id: 'Ketuk di mana saja untuk selesai', en: 'Tap anywhere to finish')
+        : localized(context, id: 'Ketuk di mana saja untuk lanjut', en: 'Tap anywhere to continue');
+
+    final candidates = [
+      (i: 0, key: _headerKey,                   shape: ShapeLightFocus.RRect,  align: ContentAlign.bottom, radius: 12.0,
+       titleId: 'Selamat datang di Rutin!',      titleEn: 'Welcome to Rutin!',
+       bodyId:  'Dashboard harian kamu — semua ada di sini. Ketuk di mana saja untuk lanjut.',
+       bodyEn:  'Your daily dashboard — everything is here. Tap anywhere to continue.'),
+
+      (i: 1, key: ShellScaffold.fabKey,          shape: ShapeLightFocus.Circle, align: ContentAlign.top,    radius: 50.0,
+       titleId: 'Tombol +',                      titleEn: 'The + button',
+       bodyId:  'Tambah obat atau kebiasaan baru dari sini.',
+       bodyEn:  'Add a new medicine or habit from here.'),
+
+      (i: 2, key: ShellScaffold.medicineTabKey,  shape: ShapeLightFocus.RRect,  align: ContentAlign.top,    radius: 8.0,
+       titleId: 'Obat',                          titleEn: 'Medicine',
+       bodyId:  'Jadwal obat lengkap dan pencatatan dosis harian.',
+       bodyEn:  'Full medicine schedule and daily dose logging.'),
+
+      (i: 3, key: ShellScaffold.waterTabKey,     shape: ShapeLightFocus.RRect,  align: ContentAlign.top,    radius: 8.0,
+       titleId: 'Air',                           titleEn: 'Water',
+       bodyId:  'Catat asupan air dan aktifkan pengingat minum.',
+       bodyEn:  'Log water intake and set drinking reminders.'),
+
+      (i: 4, key: ShellScaffold.habitsTabKey,    shape: ShapeLightFocus.RRect,  align: ContentAlign.top,    radius: 8.0,
+       titleId: 'Kebiasaan',                     titleEn: 'Habits',
+       bodyId:  'Buat dan centang kebiasaan harian. Bangun streak dan raih medali.',
+       bodyEn:  'Create and check off daily habits. Build streaks and earn medals.'),
+    ];
+
+    final targets = candidates
+        .where((c) => c.key.currentContext != null)
+        .map((c) => makeTarget(
+              key: c.key, shape: c.shape, align: c.align, radius: c.radius,
+              titleId: c.titleId, titleEn: c.titleEn,
+              bodyId: c.bodyId, bodyEn: c.bodyEn,
+              hintText: hint(c.i),
+            ))
+        .toList();
+
+    if (targets.isEmpty) return;
+
+    TutorialCoachMark(
+      targets: targets,
+      colorShadow: Colors.black,
+      opacityShadow: 0.88,
+      paddingFocus: 8,
+      pulseEnable: true,
+      hideSkip: false,
+      alignSkip: Alignment.topRight,
+      textSkip: localized(context, id: 'LEWATI', en: 'SKIP'),
+      textStyleSkip: const TextStyle(
+        color: Colors.white70,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+    ).show(context: context, rootOverlay: true);
+  }
+
   @override
   void dispose() {
+    TutorialTrigger.notifier.removeListener(_onTutorialTrigger);
     _waterLogsL.removeListener(_load);
     _habitsL.removeListener(_load);
     _habitLogsL.removeListener(_load);
@@ -488,6 +597,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                                 );
                                               }
                                               // Stacked habits — header + indented rows
+                                              final stackStreak = habits.isEmpty
+                                                  ? 0
+                                                  : habits.fold<int>(
+                                                      _habitRepo.getStreak(habits.first.id),
+                                                      (min, h) {
+                                                        final s = _habitRepo.getStreak(h.id);
+                                                        return s < min ? s : min;
+                                                      },
+                                                    );
                                               return Padding(
                                                 padding: const EdgeInsets.only(
                                                   bottom: 10,
@@ -526,6 +644,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                                                       0.3,
                                                                 ),
                                                           ),
+                                                          if (stackStreak > 0) ...[
+                                                            const SizedBox(width: 6),
+                                                            Text(
+                                                              '🔥 $stackStreak',
+                                                              style: const TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight: FontWeight.w700,
+                                                                color: _habitColor,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ],
                                                       ),
                                                     ),
@@ -630,20 +759,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ],
             ),
-            SafeArea(
-              bottom: false,
-              child: _FadeSlideIn(
-                animation: _entrance,
-                start: 0.0,
-                end: 0.45,
-                child: _Header(
-                  title: _timeGreeting(context),
-                  date: _formattedDate(context),
-                  onMenu: () {
-                    HapticFeedback.selectionClick();
-                    context.go('/profile');
-                  },
-                ),
+            _FadeSlideIn(
+              animation: _entrance,
+              start: 0.0,
+              end: 0.45,
+              child: _Header(
+                key: _headerKey,
+                topInset: topInset,
+                title: _timeGreeting(context),
+                date: _formattedDate(context),
+                onMenu: () {
+                  HapticFeedback.selectionClick();
+                  context.go('/profile');
+                },
               ),
             ),
           ],
@@ -842,42 +970,49 @@ class _HomeHero extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   const _Header({
+    super.key,
+    required this.topInset,
     required this.title,
     required this.date,
     required this.onMenu,
   });
 
+  final double topInset;
   final String title;
   final String date;
   final VoidCallback onMenu;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _IconButton(icon: Icons.menu_rounded, onTap: onMenu),
-              Expanded(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.3,
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: _bgTop),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, topInset + 8, 20, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                _IconButton(icon: Icons.menu_rounded, onTap: onMenu),
+                Expanded(
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ),
-              ),
-              _IconButton(icon: Icons.calendar_today_rounded, onTap: onMenu),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(date, style: const TextStyle(fontSize: 13, color: _muted)),
-        ],
+                _IconButton(icon: Icons.calendar_today_rounded, onTap: onMenu),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(date, style: const TextStyle(fontSize: 13, color: _muted)),
+          ],
+        ),
       ),
     );
   }
@@ -1466,4 +1601,53 @@ String _fmtMinute(int minutes) {
   final hour = (minutes ~/ 60).toString().padLeft(2, '0');
   final minute = (minutes % 60).toString().padLeft(2, '0');
   return '$hour:$minute';
+}
+
+class _TutorialContent extends StatelessWidget {
+  const _TutorialContent({
+    required this.title,
+    required this.body,
+    required this.hint,
+  });
+
+  final String title;
+  final String body;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          body,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          hint,
+          style: const TextStyle(
+            color: Colors.white38,
+            fontSize: 12,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
+    );
+  }
 }

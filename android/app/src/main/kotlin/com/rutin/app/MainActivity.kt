@@ -149,6 +149,25 @@ class MainActivity : FlutterActivity() {
                         HabitAlarmReceiver.cancel(applicationContext, notifId)
                         result.success(null)
                     }
+                    "getReminderSoundSettings" -> {
+                        result.success(
+                            hashMapOf(
+                                "notificationSound" to ReminderSoundPrefs.notificationSound(applicationContext),
+                                "alarmSound" to ReminderSoundPrefs.alarmSound(applicationContext)
+                            )
+                        )
+                    }
+                    "setReminderSoundSettings" -> {
+                        val notificationSound = call.argument<String>("notificationSound")
+                        val alarmSound = call.argument<String>("alarmSound")
+                        if (notificationSound != null) {
+                            ReminderSoundPrefs.saveNotificationSound(applicationContext, notificationSound)
+                        }
+                        if (alarmSound != null) {
+                            ReminderSoundPrefs.saveAlarmSound(applicationContext, alarmSound)
+                        }
+                        result.success(null)
+                    }
                     "vibrateImpact" -> {
                         val durationMs = call.argument<Int>("durationMs") ?: 45
                         val amplitude = call.argument<Int>("amplitude") ?: 255

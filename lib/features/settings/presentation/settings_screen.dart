@@ -6,6 +6,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/l10n.dart';
 import '../../sleep/data/sleep_model.dart';
+import '../../../core/services/tutorial_trigger.dart';
+import '../data/backup_service.dart';
 import '../data/language_service.dart';
 
 const _navy = Color(0xFF0B0E1A);
@@ -28,6 +30,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _accessibilityGranted = false;
   bool _fullScreenIntentAllowed = true;
   String _lang = LanguageService.current;
+  String _notificationSound = 'app';
+  String _alarmSound = 'app';
+  bool _backupBusy = false;
 
   @override
   void initState() {
@@ -36,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen>
     _load();
     _checkAccessibility();
     _checkFullScreenIntent();
+    _loadSoundSettings();
   }
 
   @override
@@ -50,6 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       _load();
       _checkAccessibility();
       _checkFullScreenIntent();
+      _loadSoundSettings();
     }
   }
 
@@ -87,8 +94,144 @@ class _SettingsScreenState extends State<SettingsScreen>
     await _ch.invokeMethod('openAccessibilitySettings');
   }
 
+  Future<void> _exportBackup() async {
+    if (_backupBusy) return;
+    setState(() => _backupBusy = true);
+    try {
+      await BackupService.exportJson();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localized(
+                context,
+                id: 'Gagal mengekspor backup: $e',
+                en: 'Export failed: $e',
+              ),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _backupBusy = false);
+    }
+  }
+
   Future<void> _openFullScreenIntentSettings() async {
     await _nativeCh.invokeMethod('openFullScreenIntentSettings');
+  }
+
+  Future<void> _loadSoundSettings() async {
+    try {
+      final raw = await _nativeCh.invokeMethod<Map<Object?, Object?>>(
+        'getReminderSoundSettings',
+      );
+      if (raw == null || !mounted) return;
+      setState(() {
+        _notificationSound =
+            (raw['notificationSound'] as String?) ?? _notificationSound;
+        _alarmSound = (raw['alarmSound'] as String?) ?? _alarmSound;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _setSoundSettings({
+    String? notificationSound,
+    String? alarmSound,
+  }) async {
+    await _nativeCh.invokeMethod('setReminderSoundSettings', {
+      if (notificationSound != null) 'notificationSound': notificationSound,
+      if (alarmSound != null) 'alarmSound': alarmSound,
+    });
+    if (!mounted) return;
+    setState(() {
+      if (notificationSound != null) {
+        _notificationSound = notificationSound;
+      }
+      if (alarmSound != null) {
+        _alarmSound = alarmSound;
+      }
+    });
+  }
+
+  Future<void> _pickSound({
+    required String title,
+    required String currentValue,
+    required Future<void> Function(String value) onSelected,
+  }) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            RadioListTile<String>(
+              value: 'app',
+              groupValue: currentValue,
+              title: Text(
+                localized(
+                  context,
+                  id: 'Suara aplikasi',
+                  en: 'App sound',
+                ),
+              ),
+              subtitle: Text(
+                localized(
+                  context,
+                  id: 'Pakai suara bawaan Rutin',
+                  en: 'Use the built-in Rutin sound',
+                ),
+              ),
+              onChanged: (value) => Navigator.pop(ctx, value),
+            ),
+            RadioListTile<String>(
+              value: 'system',
+              groupValue: currentValue,
+              title: Text(
+                localized(
+                  context,
+                  id: 'Suara bawaan ponsel',
+                  en: 'Phone default sound',
+                ),
+              ),
+              subtitle: Text(
+                localized(
+                  context,
+                  id: 'Pakai notifikasi atau ringtone default ponsel',
+                  en: 'Use the phone default notification or ringtone',
+                ),
+              ),
+              onChanged: (value) => Navigator.pop(ctx, value),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      await onSelected(picked);
+    }
+  }
+
+  String _soundLabel(String value) {
+    return value == 'system'
+        ? localized(
+            context,
+            id: 'Suara bawaan ponsel',
+            en: 'Phone default sound',
+          )
+        : localized(
+            context,
+            id: 'Suara aplikasi',
+            en: 'App sound',
+          );
   }
 
   @override
@@ -217,6 +360,147 @@ class _SettingsScreenState extends State<SettingsScreen>
                       onSelectionChanged: (selection) =>
                           _setLanguage(selection.first),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                _SectionLabel(
+                  localized(context, id: 'SUARA', en: 'SOUND'),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(
+                          Icons.notifications_active_rounded,
+                        ),
+                        title: Text(
+                          localized(
+                            context,
+                            id: 'Suara notifikasi',
+                            en: 'Notification sound',
+                          ),
+                        ),
+                        subtitle: Text(
+                          localized(
+                            context,
+                            id: 'Dipakai untuk pengingat Air dan Kebiasaan',
+                            en: 'Used for Water and Habit reminders',
+                          ),
+                        ),
+                        trailing: Text(
+                          _soundLabel(_notificationSound),
+                          style: const TextStyle(
+                            color: AppTheme.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () => _pickSound(
+                          title: localized(
+                            context,
+                            id: 'Suara notifikasi',
+                            en: 'Notification sound',
+                          ),
+                          currentValue: _notificationSound,
+                          onSelected: (value) =>
+                              _setSoundSettings(notificationSound: value),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.music_note_rounded),
+                        title: Text(
+                          localized(
+                            context,
+                            id: 'Suara alarm obat',
+                            en: 'Medicine alarm sound',
+                          ),
+                        ),
+                        subtitle: Text(
+                          localized(
+                            context,
+                            id: 'Dipakai untuk alarm obat layar penuh',
+                            en: 'Used for full-screen medicine alarms',
+                          ),
+                        ),
+                        trailing: Text(
+                          _soundLabel(_alarmSound),
+                          style: const TextStyle(
+                            color: AppTheme.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () => _pickSound(
+                          title: localized(
+                            context,
+                            id: 'Suara alarm obat',
+                            en: 'Medicine alarm sound',
+                          ),
+                          currentValue: _alarmSound,
+                          onSelected: (value) =>
+                              _setSoundSettings(alarmSound: value),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+                _SectionLabel(
+                  localized(context, id: 'LAINNYA', en: 'OTHER'),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.play_circle_outline_rounded),
+                    title: Text(
+                      localized(context, id: 'Tutorial', en: 'Tutorial'),
+                    ),
+                    subtitle: Text(
+                      localized(
+                        context,
+                        id: 'Lihat ulang layar pengenalan',
+                        en: 'Replay the onboarding screens',
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      TutorialTrigger.fire();
+                      context.go('/');
+                    },
+                  ),
+                ),
+                const SizedBox(height: 22),
+                _SectionLabel(
+                  localized(context, id: 'DATA', en: 'DATA'),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.download_rounded),
+                    title: Text(
+                      localized(
+                        context,
+                        id: 'Ekspor backup (JSON)',
+                        en: 'Export backup (JSON)',
+                      ),
+                    ),
+                    subtitle: Text(
+                      localized(
+                        context,
+                        id: 'Semua obat, kebiasaan, air, dan log',
+                        en: 'All medicines, habits, water, and logs',
+                      ),
+                    ),
+                    trailing: _backupBusy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.chevron_right_rounded),
+                    onTap: _exportBackup,
                   ),
                 ),
                 const SizedBox(height: 22),

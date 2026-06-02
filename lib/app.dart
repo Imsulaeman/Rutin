@@ -11,6 +11,7 @@ import 'features/habits/presentation/habit_history_screen.dart';
 import 'features/habits/presentation/habits_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/home/presentation/home_screen.dart';
+import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/medicine/presentation/add_medicine_screen.dart';
 import 'features/medicine/presentation/medicine_history_screen.dart';
 import 'features/medicine/presentation/medicine_list_screen.dart';
@@ -35,6 +36,13 @@ final _shellProfileKey = GlobalKey<NavigatorState>();
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
+  redirect: (context, state) {
+    final done = Hive.box<String>('app_settings').get('onboarding_done');
+    if (done != 'true' && state.matchedLocation == '/') {
+      return '/onboarding';
+    }
+    return null;
+  },
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => ShellScaffold(shell: shell),
@@ -129,6 +137,11 @@ final appRouter = GoRouter(
       builder: (_, state) =>
           WakeupGameScreen(forceGameIndex: state.extra as int?),
     ),
+    GoRoute(
+      path: '/onboarding',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, _) => const OnboardingScreen(),
+    ),
   ],
 );
 
@@ -137,6 +150,11 @@ final appRouter = GoRouter(
 class ShellScaffold extends StatelessWidget {
   const ShellScaffold({super.key, required this.shell});
   final StatefulNavigationShell shell;
+
+  static final fabKey = GlobalKey();
+  static final medicineTabKey = GlobalKey();
+  static final waterTabKey = GlobalKey();
+  static final habitsTabKey = GlobalKey();
 
   // 4 tab branches flank a central + FAB (add). Profile (branch 4) is reached
   // from the home header menu, matching the mockup's 4-tab + FAB layout.
@@ -261,6 +279,7 @@ class _BottomNav extends StatelessWidget {
                   ),
                   Expanded(
                     child: _Tab(
+                      key: ShellScaffold.medicineTabKey,
                       icon: Icons.medication_rounded,
                       label: context.l10n.medicine,
                       active: currentIndex == 1,
@@ -270,6 +289,7 @@ class _BottomNav extends StatelessWidget {
                   const SizedBox(width: 72), // gap for the FAB
                   Expanded(
                     child: _Tab(
+                      key: ShellScaffold.waterTabKey,
                       icon: Icons.water_drop_rounded,
                       label: context.l10n.water,
                       active: currentIndex == 2,
@@ -278,6 +298,7 @@ class _BottomNav extends StatelessWidget {
                   ),
                   Expanded(
                     child: _Tab(
+                      key: ShellScaffold.habitsTabKey,
                       icon: Icons.check_circle_rounded,
                       label: context.l10n.habits,
                       active: currentIndex == 3,
@@ -294,6 +315,7 @@ class _BottomNav extends StatelessWidget {
             right: 0,
             child: Center(
               child: GestureDetector(
+                key: ShellScaffold.fabKey,
                 onTap: onAdd,
                 child: Container(
                   width: 60,
@@ -331,6 +353,7 @@ class _BottomNav extends StatelessWidget {
 
 class _Tab extends StatelessWidget {
   const _Tab({
+    super.key,
     required this.icon,
     required this.label,
     required this.active,

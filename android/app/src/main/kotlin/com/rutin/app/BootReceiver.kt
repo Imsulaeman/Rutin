@@ -20,6 +20,8 @@ class BootReceiver : BroadcastReceiver() {
             WaterAlarmReceiver.schedule(context, intervalMs)
         }
 
+        HabitAlarmReceiver.rescheduleAll(context)
+
         // Re-arm bedtime scheduling without showing an all-day foreground notification.
         runCatching { SleepScheduleReceiver.sync(context) }
     }

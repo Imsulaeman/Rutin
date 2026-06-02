@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
@@ -189,7 +190,7 @@ class TreatmentDetailScreen extends StatelessWidget {
         }
       }
       rows.add([
-        _date(day),
+        _date(context, day),
         '$scheduled',
         '$taken',
         taken == scheduled && scheduled > 0
@@ -214,7 +215,7 @@ class TreatmentDetailScreen extends StatelessWidget {
             '${localized(context, id: 'Kondisi', en: 'Condition')}: ${profile.conditionName}',
           ),
           pw.Text(
-            '${localized(context, id: 'Tanggal Mulai', en: 'Start Date')}: ${_date(profile.startDate)}',
+            '${localized(context, id: 'Tanggal Mulai', en: 'Start Date')}: ${_date(context, profile.startDate)}',
           ),
           pw.Text(
             '${localized(context, id: 'Durasi', en: 'Duration')}: ${profile.durationDays} ${localized(context, id: 'hari', en: 'days')}',
@@ -234,7 +235,7 @@ class TreatmentDetailScreen extends StatelessWidget {
           ),
           pw.SizedBox(height: 16),
           pw.Text(
-            '${localized(context, id: 'Diekspor dari Rutin', en: 'Exported from Rutin')} - ${_date(DateTime.now())}',
+            '${localized(context, id: 'Diekspor dari Rutin', en: 'Exported from Rutin')} - ${_date(context, DateTime.now())}',
           ),
         ],
       ),
@@ -307,5 +308,6 @@ double _adherence(TBTreatmentProfile profile, MedicineRepository repo) {
 
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
-String _date(DateTime date) =>
-    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+String _date(BuildContext context, DateTime date) =>
+    DateFormat('d MMM yyyy', context.localeTag).format(date);

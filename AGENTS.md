@@ -101,6 +101,7 @@ All defined in `docs/ARCHITECTURE.md`. Hive typeIds:
 - 9: SleepSettings
 - 10: Medal
 - 11: HabitGroup
+- 12: UserProfile
 - `morning_streaks`: `Box<int>` keyed by `"yyyy-MM-dd"` → 1 when game completed that day
 
 ## Docs Reference
@@ -117,6 +118,67 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 
 ---
 
+**2026-06-02 - Claude**
+- **Coach marks tutorial fixed (3 bugs from source read):**
+  1. `enableOverlayTab` defaults to `false` in the library — every `TargetFocus` was missing `enableOverlayTab: true`, so tapping the dark overlay did nothing. Fixed on all targets.
+  2. Wrong overlay level — was using `Navigator.of(context, rootNavigator: true).context` which resolves incorrectly. Correct API is `show(context: context, rootOverlay: true)`, which calls `Overlay.of(context, rootOverlay: true)` and also makes `getTargetCurrent` use root overlay coordinates. Fixed.
+  3. Animation guard `_isAnimating` blocks taps for the full default 900ms focus animation. Added `focusAnimationDuration: 300ms` / `unFocusAnimationDuration: 200ms` per target.
+- **Known bug — first-launch tutorial timing**: `onboarding_screen.dart._requestAndFinish()` calls `TutorialTrigger.fire()` before `context.go('/')`. On cold start, HomeScreen hasn't registered its `TutorialTrigger` listener yet, so the first-launch auto-fire is silently dropped. The Settings → Tutorial path works fine (HomeScreen already alive). Fix: delay fire until after navigation, or check listener count. Not blocking — Settings Tutorial path is functional.
+
+---
+
+**2026-06-02 - Claude**
+- **Coach marks tutorial shipped**: 5-step `tutorial_coach_mark` overlay on HomeScreen — header (welcome), FAB (+), medicine tab, water tab, habits tab. GlobalKeys on `_Header`, `ShellScaffold.fabKey/medicineTabKey/waterTabKey/habitsTabKey`. Triggered via `TutorialTrigger.fire()` — auto-fires after first-launch onboarding finish; Settings → Tutorial → `fire()` + `go('/')`. All copy localized ID+EN.
+
+---
+
+**2026-06-02 - Claude**
+- **Onboarding flow shipped**: 3-screen PageView (`/onboarding`) — Problem (`med_pill_mascot`), Solution (`star_mascot`), Permissions (`flame_mascot`). Shown only on first launch via `go_router` redirect on `/` when `app_settings['onboarding_done'] != 'true'`. Screen 3 CTA requests notification + exact alarm permissions then sets the flag and routes to `/`. Skip sets the flag immediately; existing `_maybeShowPermissionWizard` in home stays as fallback. Dot indicator expands active dot to 24px pill. All strings localized ID + EN.
+
+---
+
+**2026-06-02 - Claude**
+- **Data backup shipped**: `BackupService.exportJson()` serializes all Hive boxes (medicines, logs, habits, groups, water, treatment profiles, medals, user profile) to a dated JSON file and shares it via the Android share sheet. Added `share_plus` + `path_provider` deps. Settings → DATA → Ekspor backup triggers it with a loading spinner.
+
+---
+
+**2026-06-02 - Claude**
+- **Home header regression fixed**: `_Header.build()` column was missing `mainAxisSize: MainAxisSize.min`. `Column` defaulted to `MainAxisSize.max`, expanding the `DecoratedBox(color: _bgTop)` to full screen height and painting a solid overlay over the entire dashboard. Fixed by adding `mainAxisSize: MainAxisSize.min` to the Column.
+- **Status bar transparent gap fixed**: removed `SafeArea` from the `_Header` overlay, passed `topInset` into `_Header` and folded it into the top padding so the solid `_bgTop` background extends from y=0 through the status bar area.
+- **Stack streak shipped**: `🔥 N` now appears on `HabitGroup` headers in both the Habits screen (`_EditGroupBlock`) and the Home dashboard stacked-habit rows. Streak = minimum across all habits in the stack (weakest link). Hidden when 0.
+
+---
+
+**2026-06-02 - Codex**
+- **Habit reminders hardened to survive reboot like Water**: native habit alarms now persist their scheduled entries and `BootReceiver` re-arms them on boot, matching the existing Water reminder resilience pattern instead of dropping all Habit reminders after the phone has been powered off.
+- **Sound settings shipped in categorized form**: Settings now exposes separate reminder sound choices for notification-style reminders (Water + Habits) and medicine alarm/ringtone behavior, each with `Rutin app sound` or `phone default` options. True custom file upload/import remains deferred.
+- **Routine stack streak shipped (owner re-requested)**: `🔥 N` on `HabitGroup` headers in `_EditGroupBlock` (Habits screen) and stacked-habit rows on Home dashboard. Streak = min across all habits in the stack. Hidden when 0. Overrides the earlier "not accepted" note — it is now live.
+- **Verified:** `gradlew app:compileDebugKotlin --no-daemon` passed, and focused `dart analyze` on the touched Home/Habits/Settings files returned info-level notices only.
+
+---
+
+**2026-06-02 - Codex**
+- **Habit surfaces and home header fully synced**: the habit monthly calendar now uses full-cell status coloring, habit cards are in the compact merged-streak layout, and the Home top header now has the intended solid background instead of floating transparently over the hero.
+- **Docs synced again**: `TODO.md` now marks Habit calendar visual, Compact habit cards, and Navbar solid background as shipped.
+- **Verified:** `dart analyze` passed for `home_screen.dart`, `habit_card.dart`, and `habit_history_screen.dart`.
+
+---
+
+**2026-06-02 - Codex**
+- **History screen corrected to the approved pattern**: the combined History page now defaults to the current day, uses a medicine-style month calendar instead of the old recent-day strip/date-picker-only experiment, and shows a read-only newest-first combined feed for the selected day across medicine, habits, and water.
+- **Docs synced to current state**: `TODO.md` now marks the shipped History and Treatment Program surfaces as complete instead of leaving them as in-progress.
+- **Verified:** `dart analyze lib/features/history/presentation/history_screen.dart` passed after the final History rewrite.
+
+---
+
+**2026-06-02 - Codex**
+- **Profile identity shipped**: local `UserProfile` persistence is now wired through Hive (typeId 12 + `user_profile` box), and Profile now supports editable name, age, and avatar selection from the 10 dropped character assets.
+- **Profile header upgraded**: the top section now shows avatar, identity, and stat chips for best streak, medals earned, and total habit completions without changing the existing History / Sleep Mode / Treatment / Settings menu order.
+- **EN sweep finished for deep secondary surfaces**: remaining low-frequency wake-up game copy (`Connect the Colors`, rhythm judgments, completion text) and treatment-program date presentation were aligned with the selected locale.
+- **Verified:** `dart analyze` passed for `main.dart`, `profile_screen.dart`, `user_profile_model.dart`, `treatment_onboarding_screen.dart`, `treatment_detail_screen.dart`, and `wakeup_game_screen.dart`.
+
+---
+
 **2026-06-02 - Codex**
 - **Medicine flow simplified after repeated archive failures**: the Archive feature was removed from the live Obat flow. The archive header entry, archive route, and archive screen were deleted, and medicine cards now support delete-only swipe from right to left.
 - **Splash red-screen fix shipped**: `main.dart` now launches `HabitApp()` directly and no longer renders the deleted Flutter splash widget layer.
@@ -128,7 +190,7 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 ---
 
 **2026-05-31 - Codex**
-- **History navigation and UX corrected**: the overall History feed now lives in the hamburger/Profile menu rather than Settings, and the screen no longer uses the sideways reversed day strip. It now shows a normal vertical layout with a recent-day picker, per-feature summary, and newest-first feed for the selected day.
+- **History navigation and UX corrected**: the overall History feed now lives in the hamburger/Profile menu rather than Settings, and the old sideways reversed day strip was removed.
 - **Habits history corrected to helicopter view**: per-habit calendar entry points were removed from habit cards. Habits now exposes one top-bar calendar action, matching Medicine, and `HabitHistoryScreen` was repurposed into an overall habits monthly overview with selected-day breakdown.
 - **Verified:** focused `dart analyze` on `app.dart`, habits history/card/screen, and `history_screen.dart` passed with info-level lints only.
 
@@ -1745,79 +1807,67 @@ A single screen showing combined chronological activity across all features: med
 ### Screen structure
 
 ```
-Scaffold → CustomScrollView
-  SliverAppBar(pinned, title: 'Riwayat' / 'History')
-    actions: [_DatePickerButton]
-  SliverList → activity feed items (newest first, filtered to selected day)
-  if empty: SliverFillRemaining → empty state
+Scaffold
+  AppBar(title: 'Riwayat' / 'History', action: Today button)
+  ListView
+    Month header with prev/next arrows
+    Legend (medicine / habits / water)
+    Month calendar grid
+    Selected-day activity card
 ```
 
-No calendar strip. Day selection lives entirely in the AppBar action.
+Default selected day is today. Tapping a calendar cell changes the selected day and updates the read-only feed below. The top-right Today button jumps back to the current day and month.
 
 ---
 
-### `_DatePickerButton`
+### Calendar behavior
 
-A text button in the AppBar showing the currently selected date. Tapping opens Flutter's standard `showDatePicker`.
-
-```dart
-TextButton.icon(
-  icon: const Icon(Icons.calendar_today_rounded, size: 16),
-  label: Text(_selectedDay == _today ? localized(context, id: 'Hari ini', en: 'Today') : _fmtShort(_selectedDay)),
-  style: TextButton.styleFrom(foregroundColor: Colors.white70),
-  onPressed: () async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDay,
-      firstDate: DateTime(2024),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) setState(() => _selectedDay = picked);
-  },
-)
-```
-
-`_fmtShort` → `DateFormat('d MMM', locale).format(day)` via `intl`.
-
-Default `_selectedDay = DateTime.now()`.
+- Reuse the same month-grid interaction pattern as `MedicineHistoryScreen`
+- Show weekday headers using `localizedWeekdayShortLabels(context)`
+- Selected day gets a stronger border/highlight
+- Today gets a subtle border highlight even when not selected
+- Each day cell shows up to 3 small markers:
+  - medicine pink if at least one taken `MedicineLog` exists that day
+  - habits purple if at least one `HabitLog` exists that day
+  - water blue if a positive `WaterLog` exists that day
 
 ---
 
 ### Feed items
 
-For the selected day, collect all events across boxes. Sort by time descending. Each item is a slim row inside a `Card`:
+For the selected day, collect all events across boxes. Sort by time descending. Render them inside the selected-day card below the calendar.
 
 ```
-Card(margin: h16/v4)
-  ListTile(dense: true)
-    leading: Container(10×10 circle, color: featureColor)
-    title: Text(description)        // e.g. "💊 Amoxicillin", "⭐ Morning Run"
-    trailing: Text(timeStr, _muted) // "08:30" or ""
+SelectedDayCard
+  title: formatLongDate(context, selectedDay)
+  subtitle: "Recent activity for this day."
+  FeedTile rows newest first
 ```
 
 **Medicine:** `MedicineLog` where `takenAt.date == selectedDay` and log is a taken entry.
 - color: `medicineColor` (pink `#EE5A8C`)
-- description: `"💊 ${medicine.name}"`
+- description: `localized('Minum $name', 'Took $name')`
 - time: `DateFormat('HH:mm').format(log.takenAt)`
 
 **Habits:** `HabitLog` where `date == dateStr`.
 - color: `habitsColor` (purple `#7C3AED`)
 - description: `"${habit.emoji} ${habit.name}"`
-- time: `""` (HabitLog has no timestamp — omit)
+- time: `"Selesai" / "Completed"` (no real timestamp available)
 
 **Water:** `WaterLog` where `date == dateStr`.
 - color: `waterColor` (blue `#3E8BF0`)
-- description: `localized(id: 'Minum ${log.mlLogged} ml', en: 'Drank ${log.mlLogged} ml')`
-- time: `""` (WaterLog has no timestamp — omit)
+- description: `localized(id: 'Minum ${log.mlLogged} ml air', en: 'Drank ${log.mlLogged} ml of water')`
+- time: `"dicatat" / "logged"` (aggregate daily log; no real timestamp available)
 
 **Empty state** (no items for selected day):
 ```dart
-Column(mainAxisAlignment: center, children: [
-  const Text('📭', style: TextStyle(fontSize: 48)),
-  const SizedBox(height: 12),
-  Text(localized(context, id: 'Tidak ada aktivitas hari ini', en: 'Nothing logged on this day'),
-      style: TextStyle(color: _muted)),
-])
+Text(
+  localized(
+    context,
+    id: 'Tidak ada aktivitas pada hari ini.',
+    en: 'Nothing logged on this day.',
+  ),
+)
 ```
 
 ---
@@ -1846,38 +1896,14 @@ In `settings_screen.dart`, add the same card above Sleep Mode if not already pre
 ---
 
 ### What NOT to do
-- No calendar strip — date picker in AppBar is the only day selector
+- No recent-day strip or sideways selector
 - No new Hive boxes — read directly from existing `medicine_logs`, `habit_logs`, `water_logs`, `habits`, `medicines` boxes
 - Do not modify existing data models
 - Keep it read-only — no actions in the feed
-- Do not try to show timestamps for habit/water logs — they don't store one
+- Do not invent real timestamps for habit/water logs — they don't store one
 
 ---
 
-## Pending Task — English as default language
-
-**File:** `lib/features/settings/data/language_service.dart` only.
-
-Change the fallback so the app defaults to English on first launch instead of mirroring the device locale.
-
-```dart
-// before
-static String get current =>
-    box.get(_key) ?? _normalize(PlatformDispatcher.instance.locale.languageCode);
-
-// after
-static String get current => box.get(_key) ?? 'en';
-```
-
-Remove the unused `PlatformDispatcher` import from `dart:ui` if `_normalize` no longer references it (check — `_normalize` is still used by `setLanguage`, so keep the import only if needed elsewhere; otherwise remove).
-
-That's the only change. `initialize()` will then persist 'en' on first launch. Users can switch to Indonesian in Settings → Language.
-
-### What NOT to do
-- Do not touch `app.dart`, `app_en.arb`, `app_id.arb`, or any other file
-- Do not change the `_normalize` function — it's still used by `setLanguage`
-
----
 
 ## Pending Task — Compact Habit Cards
 
@@ -2046,7 +2072,7 @@ Hive.openBox<UserProfile>('user_profile'),
 
 10 diverse multicultural characters. User generates on **white background** (not checkerboard), cleans via `preview/clean_mascot.py`, converts to WebP at 82 quality.
 
-Asset filenames: `assets/avatar_0.webp` through `assets/avatar_9.webp`.
+Asset filenames: `assets/avatar/avatar_0.png` through `assets/avatar/avatar_9.png`.
 
 **Character prompts** (3D chibi/cartoon style, consistent with the app's existing mascot art — rounded shapes, soft lighting, transparent bg on white, bust portrait 512×512):
 
@@ -2124,7 +2150,7 @@ Container(gradient: navy top→bottom, padding: h24/top60/bottom32)
           decoration: gradient ring (habitColor → medicineColor, width 3px))
           ClipOval
             _profile?.avatarId != null
-              ? Image.asset('assets/avatar_${_profile!.avatarId}.webp', fit: cover)
+              ? Image.asset('assets/avatar/avatar_${_profile!.avatarId}.png', fit: cover)
               : Icon(Icons.person_rounded, size: 40, color: white54)
       // Edit badge
       Positioned(bottom:0, right:0)
@@ -2254,7 +2280,7 @@ void _openEditSheet() {
                     ),
                   ),
                   child: ClipOval(
-                    child: Image.asset('assets/avatar_$i.webp', fit: BoxFit.cover),
+                    child: Image.asset('assets/avatar/avatar_$i.png', fit: BoxFit.cover),
                   ),
                 ),
               ),

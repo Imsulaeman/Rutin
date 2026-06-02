@@ -7,6 +7,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 ## Handoff -> Codex
 
 ### Bugs (fix first)
+- [x] Home dashboard appears gone after solid header/navbar edit in `home_screen.dart` — likely overlay/header sizing regression
 - [x] Splash red screen — remove `_SplashPage` and `_AppRoot` from `main.dart`, go straight to `HabitApp()` (spec in AGENTS.md)
 - [x] Remove medicine archive flow; use delete-only behavior instead
 - [x] Medicine alarm behavior accepted for now — full takeover works in-app; outside apps it falls back to notification + alarm sound
@@ -19,10 +20,9 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Move habit reminder time to the right side, Obat-style placement
 - [x] Keep habit reminder pill aligned with Habits theme instead of copying Obat pink literally
 - [x] Rewrite Connect the Dots → Flow Free style (grid, colored pairs, fill all cells) — spec in AGENTS.md
-- [-] Habit calendar visual — full cell background colors instead of tiny dots — spec in AGENTS.md
-- [-] Compact habit cards (reduce padding, merge streak into name row) — spec in AGENTS.md
-- [-] History screen (overall activity feed + 28-day strip) accessible from Settings — spec in AGENTS.md
-- [-] English as default language (first launch defaults to EN not device locale) — spec in AGENTS.md
+- [x] Habit calendar visual — full cell background colors instead of tiny dots
+- [x] Compact habit cards (reduce padding, merge streak into name row)
+- [x] History screen (month calendar + selected-day combined activity feed from Profile menu)
 
 ### Obat (Medicine)
 - [x] Daily medicine schedule re-arms for the next day
@@ -114,32 +114,29 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Swipe-to-delete on habits and stacks
 - [x] Stack unfolds after move
 - [x] Habit history / calendar view
-- [ ] Routine streak
+- [x] Routine streak
 
 ## Feature: Home / Today View
 - [x] Combine routines + standalone habits + water progress
 - [x] At-a-glance done / pending / missed
-- [-] Treatment program countdown — spec in AGENTS.md
-- [ ] Navbar solid background (non-transparent) — spec in AGENTS.md
+- [x] Treatment program countdown
+- [x] Navbar solid background (non-transparent)
 
 ## Feature: Treatment Program (generic — TB, Tifus, Malaria, ARV, etc.)
 - [x] TBTreatmentProfile data model
-- [-] Add conditionName field to model — spec in AGENTS.md
-- [-] Onboarding screen (condition, start date, duration, link medicine) — spec in AGENTS.md
-- [-] Treatment detail screen (progress, adherence, PDF export) — spec in AGENTS.md
-- [-] Home countdown card — spec in AGENTS.md
-- [-] Settings entry point — spec in AGENTS.md
-- [-] PDF adherence report + share sheet — spec in AGENTS.md
+- [x] Add conditionName field to model
+- [x] Onboarding screen (condition, start date, duration, link medicine)
+- [x] Treatment detail screen (progress, adherence, PDF export)
+- [x] Home countdown card
+- [x] Profile menu entry point
+- [x] PDF adherence report + share sheet
 
 ## Feature: Sleep Mode + Wake-up Game Gate
 - [x] SleepSettings data model
 - [x] **Session A** — Sleep settings screen (Flutter): toggle, sleep time, wake window, accessibility guidance, battery optimization prompt
 - [x] **Session B** — Wake-up game screen (Flutter): daily-rotating games, emergency skip after 15s, morning streak, completion celebration + sound
   - [x] Game 0: Sequence Memory (3 rounds, colored tiles)
-  - [ ] Game 1: Word Unscramble (Indonesian health words)
   - [x] Game 2: Tap Rhythm (10 falling circles, hit 7/10)
-  - [ ] Game 3: Tile Puzzle (3×3 8-puzzle, daily seed)
-  - [ ] Game 4: Daily Quiz (3 questions, 20-question bank, get 2/3)
   - [x] Game 5: Connect the Colors (Flow Free-style 6×6 puzzle, 4 colored pairs)
 - [x] **Session C** — Native sleep detection service (Kotlin): foreground service, 3-case logic, ACTION_USER_PRESENT receiver, MethodChannel bridge, launches game screen
 - [x] **Session D** — AccessibilityService (Kotlin): home button intercept during game, touch tracking for sleep detection, XML config
@@ -158,24 +155,18 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] English strings
 - [x] Runtime language switch with phone-locale default
 - [x] Native Android reminder localization mirror
-- [ ] Finish EN sweep for deep secondary dialogs and low-frequency game copy
+- [x] Finish EN sweep for deep secondary dialogs and low-frequency game copy
 
 ## Settings Screen
 - [x] Sleep mode link + accessibility status
 - [x] Full-screen medicine alarm permission status + settings shortcut
 - [x] Language selector (`🇮🇩 ID` / `🇬🇧 EN`) with immediate runtime switch
+- [x] Reminder sound categories (`app` vs `phone default`) for notification and alarm sounds
 - [x] About / version
-- [ ] Battery optimization guidance
-- [ ] Wake-up window range (in /sleep-settings)
-
-## Phase 2
-- [ ] Weekly stats per habit
-- [ ] Caregiver view
-- [ ] Huawei Health Kit integration
-- [ ] WhatsApp adherence share
-- [ ] Notes on medicine completion
-- [ ] Obsidian / Second Brain integration
-- [ ] Home screen widget
+- [x] Battery optimization guidance
+- [x] Wake-up window range (in /sleep-settings)
+- [x] Tutorial button (Settings → LAINNYA → replays coach marks overlay)
+- [x] Data backup / JSON export (Settings → DATA → share sheet)
 
 ## Feature: Analytics + Infrastructure
 - [x] Firebase Analytics setup (`com.rutin.app`)
@@ -186,20 +177,22 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [ ] Accounts / cloud backup (Phase 2 — Supabase, Google/Apple/email auth)
 
 ## Polish / ADA Ready
-- [ ] Onboarding flow
+- [x] Onboarding flow
 - [x] App name: Rutin
 - [x] Package name: `com.rutin.app`
-- [ ] App icon
-- [ ] Splash screen
+- [x] App icon
+- [x] Splash screen
 - [x] Empty states
 - [x] UI redesign pass
-- [ ] Medal/profile collection screen
-- [ ] Profile: user name + age + avatar picker (10 diverse characters) + stat chips — spec in AGENTS.md
+- [ ] Dedicated medal/profile collection screen polish
+- [x] Profile: user name + age + avatar picker (10 diverse characters) + stat chips
 
 ## ADA Portfolio Prep
-- [ ] App icon (final, production-ready) — prompts in `LOGO_PROMPT.md`
-- [ ] Splash screen
-- [ ] Onboarding flow (3–5 screens: problem, solution, permissions ask)
+- [x] App icon (final, production-ready) — prompts in `LOGO_PROMPT.md`
+- [x] Splash screen
+- [x] Onboarding flow (3–5 screens: problem, solution, permissions ask)
+- [x] Coach marks tutorial (5-step overlay: header, FAB, medicine tab, water tab, habits tab)
+- [x] Privacy policy page (hosted URL required — Firebase Analytics makes this a hard Play Store blocker)
 - [ ] Play Store listing copy (ID + EN): short description, full description, feature graphic
 - [ ] Play Store screenshots (6 screens: Home, Medicine, Water, Habits, Sleep Gate, Game)
 - [-] App pitch deck / one-pager — structure in `deck.md`
@@ -208,5 +201,15 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [ ] Internal beta on Play Store (so ADA can install directly)
 - [ ] Crash-free rate check (Firebase Crashlytics or at minimum no known crashes)
 - [ ] **Post-MVP design polish pass** (only once MVP is done + launch-ready): run `/emil-design-eng`, `/impeccable`, `/gpt-taste` across all screens for final visual refinement
-- [ ] Data backup / JSON export
 - [ ] Play Store listing
+
+## Phase 2
+- [ ] Custom sound import/upload for reminders
+- [ ] Optional additional wake-up games: Word Unscramble, Tile Puzzle, Daily Quiz
+- [ ] Weekly stats per habit
+- [ ] Caregiver view
+- [ ] Huawei Health Kit integration
+- [ ] WhatsApp adherence share
+- [ ] Notes on medicine completion
+- [ ] Obsidian / Second Brain integration
+- [ ] Home screen widget

@@ -24,6 +24,9 @@ dependencies:
   intl: ^0.20.2
   firebase_core: ^4.10.0
   firebase_analytics: ^12.4.2
+  share_plus: ^10.1.4
+  path_provider: ^2.1.5
+  tutorial_coach_mark: ^1.3.3
 
 dev_dependencies:
   flutter_test:
@@ -39,6 +42,7 @@ flutter:
   generate: true
   assets:
     - assets/sound/
+    - assets/avatar/
     - assets/home_background.webp
     - assets/home_sun.webp
     - assets/home_foreground.webp

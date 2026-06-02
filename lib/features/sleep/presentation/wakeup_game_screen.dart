@@ -650,7 +650,9 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       final center = _hitZoneStart + _tileHeight / 2;
       final distance = (best.y - center).abs();
       final isPerfect = distance < _tileHeight * 0.3;
-      final label = isPerfect ? 'Perfect' : 'Good';
+      final label = isPerfect
+          ? localized(context, id: 'Sempurna', en: 'Perfect')
+          : localized(context, id: 'Bagus', en: 'Good');
       final color = isPerfect
           ? const Color(0xFF4CC56A)
           : const Color(0xFFFFB300);
@@ -669,7 +671,13 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       HapticsService.fun();
       setState(() {
         _laneFlash[lane] = Colors.red.withValues(alpha: 0.45);
-        _judgments.add(_Judgment('Miss', Colors.redAccent, lane));
+        _judgments.add(
+          _Judgment(
+            localized(context, id: 'Meleset', en: 'Miss'),
+            Colors.redAccent,
+            lane,
+          ),
+        );
       });
       Future.delayed(const Duration(milliseconds: 220), () {
         if (mounted) setState(() => _laneFlash[lane] = null);
@@ -1210,10 +1218,14 @@ class _ConnectDotsGameState extends State<_ConnectDotsGame> {
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
           child: Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Connect the Colors',
-                  style: TextStyle(
+                  localized(
+                    context,
+                    id: 'Hubungkan Warnanya',
+                    en: 'Connect the Colors',
+                  ),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -1458,8 +1470,8 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                   Text(
                     localized(
                       context,
-                      id: 'Selamat pagi! 🔥',
-                      en: 'Good morning! 🔥',
+                      id: 'Selamat pagi!',
+                      en: 'Good morning!',
                     ),
                     style: TextStyle(
                       color: Colors.white,

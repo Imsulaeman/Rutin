@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../medicine/data/medicine_model.dart';
@@ -77,7 +78,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
             title: Text(
               localized(context, id: 'Tanggal mulai', en: 'Start date'),
             ),
-            trailing: Text(_date(_start)),
+            trailing: Text(_date(context, _start)),
             onTap: _pickDate,
           ),
           const SizedBox(height: 12),
@@ -137,7 +138,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
           ],
           const SizedBox(height: 18),
           DropdownButtonFormField<String>(
-            value: _medicineId,
+            initialValue: _medicineId,
             decoration: InputDecoration(
               labelText: localized(
                 context,
@@ -177,6 +178,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
       initialDate: _start,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      locale: Localizations.localeOf(context),
     );
     if (picked != null) setState(() => _start = picked);
   }
@@ -247,5 +249,5 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
   }
 }
 
-String _date(DateTime date) =>
-    '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+String _date(BuildContext context, DateTime date) =>
+    DateFormat('d MMM yyyy', context.localeTag).format(date);
