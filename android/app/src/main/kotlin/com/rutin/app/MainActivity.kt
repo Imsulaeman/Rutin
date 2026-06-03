@@ -294,6 +294,7 @@ class MainActivity : FlutterActivity() {
                     }
                     "stopService" -> {
                         SleepScheduleReceiver.cancel(applicationContext)
+                        SleepModeService.cancelAllAlarms(applicationContext)
                         SleepModeService.stop(applicationContext)
                         result.success(null)
                     }
@@ -358,7 +359,6 @@ class MainActivity : FlutterActivity() {
                             SleepModeService.PREFS, Context.MODE_PRIVATE
                         ).edit()
                             .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true)
-                            .putBoolean("test_trigger", true)
                             .apply()
                         // Reply first, then post launch on next looper cycle to avoid re-entrancy
                         result.success(null)

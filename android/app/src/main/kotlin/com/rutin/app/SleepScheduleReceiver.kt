@@ -11,12 +11,15 @@ import java.util.Calendar
 class SleepScheduleReceiver : BroadcastReceiver() {
 
     companion object {
-        private const val REQUEST_CODE = 9002
+        private const val RC_BEDTIME = 9002
+        private const val RC_WAKE_END = 9005
 
         fun sync(context: Context) {
             val prefs = settings(context)
             if (!prefs.getBoolean("enabled", false)) {
-                cancel(context)
+                cancelBedtime(context)
+                cancelWakeEnd(context)
+                SleepModeService.cancelAllAlarms(context)
                 SleepModeService.stop(context)
                 return
             }
@@ -25,6 +28,7 @@ class SleepScheduleReceiver : BroadcastReceiver() {
             val wakeEnd = prefs.getInt("wake_window_end", 600)
             if (isWithinNightWindow(nowMinutes(), sleepStart, wakeEnd)) {
                 SleepModeService.start(context)
+                scheduleWakeEnd(context, wakeEnd)
             } else {
                 SleepModeService.stop(context)
                 scheduleNext(context, sleepStart)
@@ -35,7 +39,10 @@ class SleepScheduleReceiver : BroadcastReceiver() {
             context.getSharedPreferences(SleepModeService.PREFS, Context.MODE_PRIVATE)
                 .edit()
                 .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
+                .remove(SleepModeService.KEY_SCREEN_OFF_TIME)
                 .apply()
+            SleepModeService.cancelAllAlarms(context)
+            cancelWakeEnd(context)
             SleepModeService.stop(context)
 
             val prefs = settings(context)
@@ -45,49 +52,58 @@ class SleepScheduleReceiver : BroadcastReceiver() {
         }
 
         fun scheduleNext(context: Context, sleepStartMinutes: Int) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val triggerAt = nextOccurrenceMillis(sleepStartMinutes)
-            val pendingIntent = pendingIntent(context)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                !alarmManager.canScheduleExactAlarms()
-            ) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
+            scheduleAlarm(context, bedtimePendingIntent(context), sleepStartMinutes)
+        }
+
+        fun cancelBedtime(context: Context) {
+            (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
+                .cancel(bedtimePendingIntent(context))
+        }
+
+        // Keep old name for call sites that use cancel()
+        fun cancel(context: Context) = cancelBedtime(context)
+
+        fun isWithinNightWindow(nowMinutes: Int, sleepStart: Int, wakeEnd: Int): Boolean =
+            if (sleepStart > wakeEnd) nowMinutes >= sleepStart || nowMinutes <= wakeEnd
+            else nowMinutes in sleepStart..wakeEnd
+
+        private fun scheduleWakeEnd(context: Context, wakeEndMinutes: Int) {
+            scheduleAlarm(context, wakeEndPendingIntent(context), wakeEndMinutes)
+        }
+
+        private fun cancelWakeEnd(context: Context) {
+            (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
+                .cancel(wakeEndPendingIntent(context))
+        }
+
+        private fun scheduleAlarm(context: Context, pi: PendingIntent, atMinutes: Int) {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val triggerAt = nextOccurrenceMillis(atMinutes)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAt,
-                    pendingIntent
-                )
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
             } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
-            }
-        }
-
-        fun cancel(context: Context) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(pendingIntent(context))
-        }
-
-        fun isWithinNightWindow(nowMinutes: Int, sleepStart: Int, wakeEnd: Int): Boolean {
-            return if (sleepStart > wakeEnd) {
-                nowMinutes >= sleepStart || nowMinutes <= wakeEnd
-            } else {
-                nowMinutes in sleepStart..wakeEnd
+                am.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi)
             }
         }
 
         private fun settings(context: Context) =
             context.getSharedPreferences("sleep_settings_native", Context.MODE_PRIVATE)
 
-        private fun pendingIntent(context: Context): PendingIntent {
-            val intent = Intent(context, SleepScheduleReceiver::class.java)
-            return PendingIntent.getBroadcast(
-                context,
-                REQUEST_CODE,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        private fun bedtimePendingIntent(context: Context): PendingIntent =
+            PendingIntent.getBroadcast(
+                context, RC_BEDTIME,
+                Intent(context, SleepScheduleReceiver::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-        }
+
+        private fun wakeEndPendingIntent(context: Context): PendingIntent =
+            PendingIntent.getBroadcast(
+                context, RC_WAKE_END,
+                Intent(context, SleepScheduleReceiver::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
 
         private fun nextOccurrenceMillis(minutes: Int): Long {
             val now = Calendar.getInstance()

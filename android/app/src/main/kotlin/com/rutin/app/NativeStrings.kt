@@ -38,9 +38,7 @@ object NativeStrings {
     fun habitChannel(context: Context) = text(context, "Pengingat Kebiasaan", "Habit Reminder")
     fun habitBody(context: Context) = text(context, "Waktunya melakukan kebiasaanmu!", "Time for your habit!")
     fun sleepActive(context: Context) = text(context, "Mode tidur aktif", "Sleep mode active")
-    fun sleepPaused(context: Context) = text(context, "Mode tidur dijeda 30 menit", "Sleep mode paused for 30 minutes")
-    fun sleepWaiting(context: Context) = text(context, "Menunggu waktu tidur...", "Waiting for sleep time...")
-    fun stillAwake(context: Context) = text(context, "Saya masih terjaga", "I'm still awake")
+    fun sleepWaiting(context: Context) = text(context, "Memantau jendela tidur...", "Monitoring sleep window...")
     fun sleepChannel(context: Context) = text(context, "Mode Tidur", "Sleep Mode")
     fun sleepDescription(context: Context) = text(context, "Layanan deteksi tidur", "Sleep detection service")
 

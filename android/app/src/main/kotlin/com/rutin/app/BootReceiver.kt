@@ -8,9 +8,7 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != "android.intent.action.QUICKBOOT_POWERON"
-        ) {
-            return
-        }
+        ) return
 
         NativeReminderScheduler.rescheduleAll(context)
 
@@ -22,7 +20,16 @@ class BootReceiver : BroadcastReceiver() {
 
         HabitAlarmReceiver.rescheduleAll(context)
 
-        // Re-arm bedtime scheduling without showing an all-day foreground notification.
         runCatching { SleepScheduleReceiver.sync(context) }
+
+        // If sleep was active when the phone died and sync() didn't start the service
+        // (boot happened outside the sleep window), start it anyway to catch the first
+        // ACTION_USER_PRESENT and show the morning gate.
+        val sleepPrefs = context.getSharedPreferences(SleepModeService.PREFS, Context.MODE_PRIVATE)
+        if (sleepPrefs.getBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false) &&
+            !SleepModeService.isRunning(context)
+        ) {
+            SleepModeService.start(context)
+        }
     }
 }

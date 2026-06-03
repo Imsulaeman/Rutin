@@ -1,5 +1,6 @@
 package com.rutin.app
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -11,22 +12,27 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 
 class SleepModeService : Service() {
 
     companion object {
         const val PREFS = "sleep_mode_prefs"
         const val KEY_SLEEP_ACTIVE = "sleep_active"
-        const val KEY_LAST_INTERACTION = "last_interaction_ms"
-        const val KEY_AUDIO_WAS_PLAYING = "audio_was_playing"
         const val KEY_SERVICE_RUNNING = "service_running"
-        const val ACTION_STILL_AWAKE = "com.rutin.app.STILL_AWAKE"
+        const val KEY_SCREEN_OFF_TIME = "screen_off_time_ms"
+
+        const val ACTION_SLEEP_TRIGGER = "com.rutin.app.SLEEP_TRIGGER"
+        const val ACTION_AUDIO_CHECK = "com.rutin.app.AUDIO_CHECK"
+
         private const val NOTIF_ID = 9001
         private const val CHANNEL_ID = "sleep_mode_service"
-        private const val POLL_INTERVAL_MS = 5 * 60 * 1000L // 5 min
+        private const val RC_SLEEP_TRIGGER = 9003
+        private const val RC_AUDIO_CHECK = 9004
+
+        const val SLEEP_TRIGGER_DELAY_MS = 10 * 60 * 1000L  // 10 min silence → sleep
+        const val AUDIO_CHECK_INTERVAL_MS = 5 * 60 * 1000L  // poll while audio plays
+        const val AUDIO_MAX_WAIT_MS = 3 * 60 * 60 * 1000L   // 3h audio fallback
 
         fun start(context: Context) {
             val intent = Intent(context, SleepModeService::class.java)
@@ -41,10 +47,9 @@ class SleepModeService : Service() {
             context.stopService(Intent(context, SleepModeService::class.java))
         }
 
-        fun isRunning(context: Context): Boolean {
-            return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        fun isRunning(context: Context): Boolean =
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getBoolean(KEY_SERVICE_RUNNING, false)
-        }
 
         fun refreshNotification(context: Context) {
             if (!isRunning(context)) return
@@ -53,175 +58,148 @@ class SleepModeService : Service() {
                     .setAction("com.rutin.app.REFRESH_NOTIFICATION")
             )
         }
-    }
 
-    private val handler = Handler(Looper.getMainLooper())
-    private var wakeUpReceiver: WakeUpTriggerReceiver? = null
-    private var stillAwakeReceiver: BroadcastReceiver? = null
-
-    private val pollRunnable = object : Runnable {
-        override fun run() {
-            checkSleepState()
-            handler.postDelayed(this, POLL_INTERVAL_MS)
+        fun cancelAllAlarms(context: Context) {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            am.cancel(makeSleepTriggerPI(context))
+            am.cancel(makeAudioCheckPI(context))
         }
+
+        fun scheduleAlarm(context: Context, pi: PendingIntent, delayMs: Long) {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val at = System.currentTimeMillis() + delayMs
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms() ->
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ->
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+                else -> am.setExact(AlarmManager.RTC_WAKEUP, at, pi)
+            }
+        }
+
+        fun makeSleepTriggerPI(context: Context): PendingIntent =
+            PendingIntent.getBroadcast(
+                context, RC_SLEEP_TRIGGER,
+                Intent(context, SleepTriggerReceiver::class.java).setAction(ACTION_SLEEP_TRIGGER),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+
+        fun makeAudioCheckPI(context: Context): PendingIntent =
+            PendingIntent.getBroadcast(
+                context, RC_AUDIO_CHECK,
+                Intent(context, SleepTriggerReceiver::class.java).setAction(ACTION_AUDIO_CHECK),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
     }
+
+    private var screenReceiver: BroadcastReceiver? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification(false))
-        registerWakeUpReceiver()
-        registerStillAwakeReceiver()
-        handler.post(pollRunnable)
+        startForeground(NOTIF_ID, buildNotification())
+        registerScreenReceiver()
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
-            .putBoolean(KEY_SERVICE_RUNNING, true)
-            .putLong(KEY_LAST_INTERACTION, System.currentTimeMillis())
-            .apply()
+            .putBoolean(KEY_SERVICE_RUNNING, true).apply()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "com.rutin.app.REFRESH_NOTIFICATION") {
-            updateNotification(false)
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIF_ID, buildNotification())
         }
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacks(pollRunnable)
-        wakeUpReceiver?.let { runCatching { unregisterReceiver(it) } }
-        stillAwakeReceiver?.let { runCatching { unregisterReceiver(it) } }
+        screenReceiver?.let { runCatching { unregisterReceiver(it) } }
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
-            .putBoolean(KEY_SERVICE_RUNNING, false)
-            .apply()
-        // KEY_SLEEP_ACTIVE is intentionally NOT cleared here — if Android kills the
-        // service before the user wakes up, the flag must survive so the gate can still
-        // fire on the next unlock. It is cleared by WakeUpTriggerReceiver (on fire) and
-        // SleepScheduleReceiver.finishNight (end of night window).
+            .putBoolean(KEY_SERVICE_RUNNING, false).apply()
+        // Alarms intentionally NOT cancelled here: if Android kills the service before the
+        // user wakes up, the pending alarm must still fire to set sleep_active.
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun registerWakeUpReceiver() {
-        val receiver = WakeUpTriggerReceiver()
-        val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
-        registerAppReceiver(receiver, filter)
-        wakeUpReceiver = receiver
-    }
-
-    private fun registerStillAwakeReceiver() {
+    private fun registerScreenReceiver() {
         val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                if (intent.action == ACTION_STILL_AWAKE) {
-                    // Pause detection for 30 min
-                    val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
-                    val pauseUntil = System.currentTimeMillis() + 30 * 60 * 1000L
-                    prefs.edit()
-                        .putLong("pause_until_ms", pauseUntil)
-                        .putBoolean(KEY_SLEEP_ACTIVE, false)
-                        .apply()
-                    updateNotification(true)
+            override fun onReceive(ctx: Context, intent: Intent) {
+                when (intent.action) {
+                    Intent.ACTION_SCREEN_OFF -> onScreenOff()
+                    Intent.ACTION_SCREEN_ON -> onScreenOn()
+                    Intent.ACTION_USER_PRESENT -> onUserPresent(ctx)
                 }
             }
         }
-        registerAppReceiver(receiver, IntentFilter(ACTION_STILL_AWAKE))
-        stillAwakeReceiver = receiver
-    }
-
-    private fun registerAppReceiver(receiver: BroadcastReceiver, filter: IntentFilter) {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(receiver, filter)
         }
+        screenReceiver = receiver
     }
 
-    private fun checkSleepState() {
-        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+    private fun onScreenOff() {
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .putLong(KEY_SCREEN_OFF_TIME, System.currentTimeMillis()).apply()
 
-        // Respect "still awake" pause
-        val pauseUntil = prefs.getLong("pause_until_ms", 0L)
-        if (System.currentTimeMillis() < pauseUntil) return
+        val audio = getSystemService(AUDIO_SERVICE) as AudioManager
+        if (audio.isMusicActive) {
+            scheduleAlarm(this, makeAudioCheckPI(this), AUDIO_CHECK_INTERVAL_MS)
+        } else {
+            scheduleAlarm(this, makeSleepTriggerPI(this), SLEEP_TRIGGER_DELAY_MS)
+        }
+    }
 
-        val sleepStartPrefs = applicationContext.getSharedPreferences(
-            "sleep_settings_native", MODE_PRIVATE
+    private fun onScreenOn() {
+        cancelAllAlarms(this)
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            .remove(KEY_SCREEN_OFF_TIME).apply()
+    }
+
+    private fun onUserPresent(ctx: Context) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean(KEY_SLEEP_ACTIVE, false)) return
+        prefs.edit()
+            .putBoolean(KEY_SLEEP_ACTIVE, false)
+            .remove(KEY_SCREEN_OFF_TIME)
+            .apply()
+        ctx.startActivity(
+            Intent(ctx, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("route", "/morning-gate")
+            }
         )
-        val sleepStartMin = sleepStartPrefs.getInt("sleep_start_min", 1260)
-        val wakeEndMin = sleepStartPrefs.getInt("wake_window_end", 600)
-        val nowMin = nowMinutes()
-        if (!SleepScheduleReceiver.isWithinNightWindow(nowMin, sleepStartMin, wakeEndMin)) {
-            SleepScheduleReceiver.finishNight(this)
-            return
-        }
-
-        val now = System.currentTimeMillis()
-        val lastInteraction = prefs.getLong(KEY_LAST_INTERACTION, now)
-        val idleMs = now - lastInteraction
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        val audioPlaying = audioManager.isMusicActive
-        val audioWasPlaying = prefs.getBoolean(KEY_AUDIO_WAS_PLAYING, false)
-
-        val sleepTriggered = when {
-            // Case 1: idle, no audio, >60 min
-            !audioPlaying && idleMs > 60 * 60 * 1000L -> true
-            // Case 2: audio just stopped, >15 min idle
-            audioWasPlaying && !audioPlaying && idleMs > 15 * 60 * 1000L -> true
-            // Case 3: audio still playing but >2h idle (fell asleep with media)
-            audioPlaying && idleMs > 2 * 60 * 60 * 1000L -> true
-            else -> false
-        }
-
-        prefs.edit().putBoolean(KEY_AUDIO_WAS_PLAYING, audioPlaying).apply()
-
-        if (sleepTriggered && !prefs.getBoolean(KEY_SLEEP_ACTIVE, false)) {
-            prefs.edit().putBoolean(KEY_SLEEP_ACTIVE, true).apply()
-        }
+        runCatching { SleepScheduleReceiver.sync(ctx) }
     }
 
-    private fun nowMinutes(): Int {
-        val cal = java.util.Calendar.getInstance()
-        return cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
-    }
-
-    private fun buildNotification(paused: Boolean): Notification {
-        val stillAwakeIntent = PendingIntent.getBroadcast(
-            this,
-            0,
-            Intent(ACTION_STILL_AWAKE),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        return Notification.Builder(this, CHANNEL_ID)
+    private fun buildNotification(): Notification =
+        Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle(if (paused) NativeStrings.sleepPaused(this) else NativeStrings.sleepActive(this))
+            .setContentTitle(NativeStrings.sleepActive(this))
             .setContentText(NativeStrings.sleepWaiting(this))
             .setOngoing(true)
-            .addAction(
-                Notification.Action.Builder(
-                    null,
-                    NativeStrings.stillAwake(this),
-                    stillAwakeIntent
-                ).build()
-            )
             .build()
-    }
-
-    private fun updateNotification(paused: Boolean) {
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(NOTIF_ID, buildNotification(paused))
-    }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            val channel = NotificationChannel(
+            val ch = NotificationChannel(
                 CHANNEL_ID,
                 NativeStrings.sleepChannel(this),
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_LOW,
             ).apply {
                 description = NativeStrings.sleepDescription(this@SleepModeService)
                 setShowBadge(false)
             }
-            nm.createNotificationChannel(channel)
+            nm.createNotificationChannel(ch)
         }
     }
 }

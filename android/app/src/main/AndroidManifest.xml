@@ -73,6 +73,9 @@
             android:name=".SleepScheduleReceiver"
             android:exported="false" />
         <receiver
+            android:name=".SleepTriggerReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>

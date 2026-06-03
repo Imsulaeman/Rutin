@@ -155,6 +155,11 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Retest Infinix X6873: enabling Mode Tidur no longer force-closes after Android 13+ receiver registration fix
 - [x] Retest Infinix X6873: Home or window switching during Morning Gate reuses one existing gate
 - [x] Schedule SleepModeService silently at bedtime instead of showing an all-day foreground notification
+- [x] Simplify sleep detection: screen-off 10 min → sleep_active (replaced 3-case audio/interaction polling)
+- [x] Audio/video grace: if audio playing on screen-off, poll every 5 min via AlarmManager; 3h fallback for forgotten sleep timer
+- [x] Reboot edge case: BootReceiver starts service if sleep_active=true and outside sleep window
+- [x] Wake-end alarm: service auto-stops at end of wake window without needing user interaction
+- [x] Remove AccessibilityService sleep tracking (touch interaction); keep game-window enforcement only
 - [ ] Retest nightly transition: `Mode tidur aktif` notification appears at bedtime and disappears after the wake window or gate dismissal
 
 ## Feature: Localization
