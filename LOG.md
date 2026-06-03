@@ -2,6 +2,15 @@
 
 ---
 
+## 2026-06-03 (sleep gate fix 2)
+
+- Fixed morning gate requiring app to be open first.
+- Root cause: `ACTION_USER_PRESENT` is caught by SleepModeService's dynamic receiver — if the service died before the user woke up, the unlock was never caught.
+- Fix: `SleepTriggerReceiver.handleSleepTrigger()` now calls `SleepModeService.start()` after setting `sleep_active = true`. The alarm receiver is manifest-registered (survives service death), so it reliably restarts the service the moment sleep activates. Service is then alive and catches USER_PRESENT on unlock → gate fires without opening the app.
+- The app-resume fallback (lifecycle fix) remains as a secondary backstop.
+
+---
+
 ## 2026-06-03 (sleep gate fix)
 
 - Fixed morning gate never appearing when app was already running in background overnight.

@@ -19,6 +19,8 @@ class SleepTriggerReceiver : BroadcastReceiver() {
         // Screen came back on and cleared the key — don't activate
         if (!prefs.contains(SleepModeService.KEY_SCREEN_OFF_TIME)) return
         prefs.edit().putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true).apply()
+        // Re-arm service so its dynamic USER_PRESENT receiver is live when user unlocks
+        SleepModeService.start(context)
     }
 
     private fun handleAudioCheck(context: Context) {
