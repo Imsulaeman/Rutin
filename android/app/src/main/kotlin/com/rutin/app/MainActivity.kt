@@ -462,6 +462,7 @@ class MainActivity : FlutterActivity() {
                                 .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
                                 .remove(SleepModeService.KEY_SCREEN_OFF_TIME)
                                 .apply()
+                            SleepModeService.cancelMorningGateNotification(applicationContext)
                         }
                         result.success(hasPending || sleepActive)
                     }
@@ -473,6 +474,7 @@ class MainActivity : FlutterActivity() {
                             .putBoolean("game_dismissed_normally", value)
                             .apply()
                         if (value) {
+                            SleepModeService.cancelMorningGateNotification(applicationContext)
                             SleepScheduleReceiver.finishNight(applicationContext)
                         }
                         result.success(null)

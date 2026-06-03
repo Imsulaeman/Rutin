@@ -41,6 +41,13 @@ object NativeStrings {
     fun sleepWaiting(context: Context) = text(context, "Memantau jendela tidur...", "Monitoring sleep window...")
     fun sleepChannel(context: Context) = text(context, "Mode Tidur", "Sleep Mode")
     fun sleepDescription(context: Context) = text(context, "Layanan deteksi tidur", "Sleep detection service")
+    fun morningGateChannel(context: Context) = text(context, "Gerbang Pagi", "Morning Gate")
+    fun morningGateTitle(context: Context) = text(context, "Selamat pagi!", "Good morning!")
+    fun morningGateBody(context: Context) = text(
+        context,
+        "Selesaikan rutinmu dulu sebelum mulai hari.",
+        "Complete your morning routine to start the day."
+    )
 
     private fun normalize(language: String): String = if (language == "id") "id" else "en"
 }

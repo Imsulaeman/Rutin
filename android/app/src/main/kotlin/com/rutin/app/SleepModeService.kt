@@ -26,9 +26,12 @@ class SleepModeService : Service() {
         const val ACTION_AUDIO_CHECK = "com.rutin.app.AUDIO_CHECK"
 
         private const val NOTIF_ID = 9001
+        const val MORNING_GATE_NOTIF_ID = 9002
         private const val CHANNEL_ID = "sleep_mode_service"
+        private const val MORNING_GATE_CHANNEL_ID = "morning_gate"
         private const val RC_SLEEP_TRIGGER = 9003
         private const val RC_AUDIO_CHECK = 9004
+        private const val RC_MORNING_GATE = 9006
 
         const val SLEEP_TRIGGER_DELAY_MS = 10 * 60 * 1000L  // 10 min silence → sleep
         const val AUDIO_CHECK_INTERVAL_MS = 5 * 60 * 1000L  // poll while audio plays
@@ -57,6 +60,43 @@ class SleepModeService : Service() {
                 Intent(context, SleepModeService::class.java)
                     .setAction("com.rutin.app.REFRESH_NOTIFICATION")
             )
+        }
+
+        fun postMorningGateNotification(context: Context) {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val ch = NotificationChannel(
+                    MORNING_GATE_CHANNEL_ID,
+                    NativeStrings.morningGateChannel(context),
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply { setShowBadge(true) }
+                nm.createNotificationChannel(ch)
+            }
+            val tapIntent = PendingIntent.getActivity(
+                context, RC_MORNING_GATE,
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("route", "/morning-gate")
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val notif = androidx.core.app.NotificationCompat.Builder(context, MORNING_GATE_CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(NativeStrings.morningGateTitle(context))
+                .setContentText(NativeStrings.morningGateBody(context))
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
+                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_REMINDER)
+                .setContentIntent(tapIntent)
+                .setFullScreenIntent(tapIntent, true)
+                .setAutoCancel(false)
+                .setOngoing(true)
+                .build()
+            nm.notify(MORNING_GATE_NOTIF_ID, notif)
+        }
+
+        fun cancelMorningGateNotification(context: Context) {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.cancel(MORNING_GATE_NOTIF_ID)
         }
 
         fun cancelAllAlarms(context: Context) {
@@ -171,12 +211,10 @@ class SleepModeService : Service() {
             .putBoolean(KEY_SLEEP_ACTIVE, false)
             .remove(KEY_SCREEN_OFF_TIME)
             .apply()
-        ctx.startActivity(
-            Intent(ctx, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("route", "/morning-gate")
-            }
-        )
+        // Post a persistent notification — on Android 10+ apps can't start activities
+        // from background services, so we use a full-screen intent notification instead.
+        // It appears as a heads-up/full-screen alert immediately on unlock.
+        postMorningGateNotification(ctx)
         runCatching { SleepScheduleReceiver.sync(ctx) }
     }
 

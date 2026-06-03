@@ -41,6 +41,7 @@ class SleepScheduleReceiver : BroadcastReceiver() {
                 .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
                 .remove(SleepModeService.KEY_SCREEN_OFF_TIME)
                 .apply()
+            SleepModeService.cancelMorningGateNotification(context)
             SleepModeService.cancelAllAlarms(context)
             cancelWakeEnd(context)
             SleepModeService.stop(context)

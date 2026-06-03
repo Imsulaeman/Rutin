@@ -9,48 +9,48 @@ Build: Release candidate APK / final debug candidate
 
 ### Install / upgrade safety
 
-- [ ] Fresh install opens without red screen.
-- [ ] Upgrade over an existing installed build keeps user data and still opens cleanly.
-- [ ] App cold start succeeds after the device has been restarted.
+- [X] Fresh install opens without red screen.
+- [X] Upgrade over an existing installed build keeps user data and still opens cleanly.
+- [X] App cold start succeeds after the device has been restarted.
 
 ### Onboarding / first-run setup
 
-- [ ] Fresh install shows onboarding only once.
-- [ ] Permission bottom sheet advances step by step and does not disappear after the first permission tap.
-- [ ] Returning from Android settings does not break navigation or leave the app in a stuck state.
-- [ ] Settings -> Tutorial replays the coach marks correctly.
+- [X] Fresh install shows onboarding only once.
+- [X] Permission bottom sheet advances step by step and does not disappear after the first permission tap.
+- [X] Returning from Android settings does not break navigation or leave the app in a stuck state.
+- [X] Settings -> Tutorial replays the coach marks correctly.
 
 ### Medicine reliability
 
-- [ ] Medicine alarm fires when the app is foregrounded.
-- [ ] Medicine alarm still fires when the app is backgrounded.
-- [ ] Medicine alarm still fires when the phone is locked.
-- [ ] `Sudah diminum` stops the repeating alarm loop.
-- [ ] Ignoring a medicine alarm causes it to return about 1 minute later.
+- [X] Medicine alarm fires when the app is foregrounded.
+- [X] Medicine alarm still fires when the app is backgrounded.
+- [X] Medicine alarm still fires when the phone is locked.
+- [X] `Sudah diminum` stops the repeating alarm loop.
+- [X] Ignoring a medicine alarm causes it to return about 1 minute later.
 - [ ] Overdue untaken dose appears correctly in UI on the same day.
 - [ ] Previous-day untaken dose is finalized as `missed` after day rollover.
 
 ### Habit reminder reliability
 
-- [ ] Habit reminder appears when the screen is on.
-- [ ] Habit reminder appears when the screen is off / lock screen is shown.
-- [ ] Multi-time habit fires at both scheduled times.
+- [X] Habit reminder appears when the screen is on.
+- [X] Habit reminder appears when the screen is off / lock screen is shown.
+- [X] Multi-time habit fires at both scheduled times.
 - [ ] Habit with schedule `Mon, Wed, Fri` does not notify on Tuesday / Thursday.
 - [ ] Reboot restores habit reminders with the same weekday rules.
 
 ### Water reminder reliability
 
 - [ ] Water reminder continues on the expected cadence while the app is closed.
-- [ ] Reboot does not reset the water cadence.
-- [ ] `Sudah minum` action updates the app after reopening Water.
+- [X] Reboot does not reset the water cadence.
+- [X] `Sudah minum` action updates the app after reopening Water.
 - [ ] Inline undo still works after repeated add/remove actions.
 
 ### Sleep mode reliability
 
-- [ ] Battery guidance opens app settings successfully.
-- [ ] Accessibility settings shortcut opens successfully.
-- [ ] Accessibility status updates after returning from settings.
-- [ ] Nightly sleep notification appears only during the configured sleep window.
+- [X] Battery guidance opens app settings successfully.
+- [X] Accessibility settings shortcut opens successfully.
+- [X] Accessibility status updates after returning from settings.
+- [X] Nightly sleep notification appears only during the configured sleep window.
 - [ ] Morning Gate launches from a real sleep trigger, not only from the test button.
 - [ ] Completing the wake-up game exits back to the app cleanly.
 - [ ] Home / app switching during Morning Gate still returns to one active gate.
