@@ -236,6 +236,11 @@ class MainActivity : FlutterActivity() {
         runCatching { startActivity(intent) }
     }
 
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        return powerManager?.isIgnoringBatteryOptimizations(packageName) ?: false
+    }
+
     private fun vibrator(): Vibrator? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
@@ -312,6 +317,9 @@ class MainActivity : FlutterActivity() {
                     "openBatteryOptimization" -> {
                         openBatteryOptimizationSettings()
                         result.success(null)
+                    }
+                    "isBatteryOptimizationIgnored" -> {
+                        result.success(isIgnoringBatteryOptimizations())
                     }
                     "saveSleepSettings" -> {
                         val sleepStart = call.argument<Int>("sleepStartMin") ?: 1260

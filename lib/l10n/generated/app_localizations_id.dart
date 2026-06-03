@@ -91,6 +91,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get medicineToday => 'OBAT HARI INI';
 
   @override
+  String get waterToday => 'AIR HARI INI';
+
+  @override
   String get habitsToday => 'KEBIASAAN HARI INI';
 
   @override
@@ -332,5 +335,97 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String earnedOn(Object date) {
     return 'Dicapai $date';
+  }
+
+  @override
+  String get all => 'Semua';
+
+  @override
+  String get greetingMorning => 'Selamat pagi';
+
+  @override
+  String get greetingAfternoon => 'Selamat siang';
+
+  @override
+  String get greetingEvening => 'Selamat sore';
+
+  @override
+  String get greetingNight => 'Selamat malam';
+
+  @override
+  String get tutorialSkip => 'LEWATI';
+
+  @override
+  String get tutorialHintContinue => 'Ketuk di mana saja untuk lanjut';
+
+  @override
+  String get tutorialHintFinish => 'Ketuk di mana saja untuk selesai';
+
+  @override
+  String get tutorialWelcomeTitle => 'Selamat datang di Rutin!';
+
+  @override
+  String get tutorialWelcomeBody =>
+      'Dashboard harian kamu - semua ada di sini. Ketuk di mana saja untuk lanjut.';
+
+  @override
+  String get tutorialAddButtonTitle => 'Tombol +';
+
+  @override
+  String get tutorialAddButtonBody =>
+      'Tambah obat atau kebiasaan baru dari sini.';
+
+  @override
+  String get tutorialMedicineBody =>
+      'Jadwal obat lengkap dan pencatatan dosis harian.';
+
+  @override
+  String get tutorialWaterBody =>
+      'Catat asupan air dan aktifkan pengingat minum.';
+
+  @override
+  String get tutorialHabitsBody =>
+      'Buat dan centang kebiasaan harian. Bangun streak dan raih medali.';
+
+  @override
+  String homeHiddenHabitsMore(int count) {
+    return '+ $count lainnya';
+  }
+
+  @override
+  String homeHabitsDoneSummary(int done, int due) {
+    return '$done / $due selesai';
+  }
+
+  @override
+  String get permissionNotificationsTitle => 'Izinkan Notifikasi';
+
+  @override
+  String get permissionNotificationsBody =>
+      'Diperlukan agar pengingat obat dan air muncul di layar.';
+
+  @override
+  String get permissionExactAlarmTitle => 'Izinkan Exact Alarm';
+
+  @override
+  String get permissionExactAlarmBody =>
+      'Agar pengingat muncul tepat waktu - buka Alarm & Pengingat lalu aktifkan Rutin.';
+
+  @override
+  String get permissionFullScreenTitle => 'Izinkan Layar Penuh';
+
+  @override
+  String get permissionFullScreenBody =>
+      'Pengingat obat bisa muncul menyeluruh saat perangkat terkunci.';
+
+  @override
+  String get skip => 'Lewati';
+
+  @override
+  String get treatmentProgramComplete => 'Program selesai';
+
+  @override
+  String treatmentDaysRemaining(int day, int left) {
+    return 'Hari ke-$day - $left hari tersisa';
   }
 }

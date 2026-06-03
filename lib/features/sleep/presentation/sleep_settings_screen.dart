@@ -18,13 +18,14 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
 
   late SleepSettings _settings;
   bool _accessibilityGranted = false;
+  bool _batteryOptimizationIgnored = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _settings = _loadOrCreate();
-    _checkAccessibility();
+    _refreshStatuses();
   }
 
   @override
@@ -35,7 +36,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkAccessibility();
+    if (state == AppLifecycleState.resumed) _refreshStatuses();
   }
 
   SleepSettings _loadOrCreate() {
@@ -53,14 +54,17 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
     return box.getAt(0)!;
   }
 
-  Future<void> _checkAccessibility() async {
+  Future<void> _refreshStatuses() async {
     try {
-      final granted =
+      final accessibilityGranted =
           await _ch.invokeMethod<bool>('isAccessibilityGranted') ?? false;
+      final batteryOptimizationIgnored =
+          await _ch.invokeMethod<bool>('isBatteryOptimizationIgnored') ?? false;
       if (mounted) {
         setState(() {
-          _accessibilityGranted = granted;
-          _settings.accessibilityGranted = granted;
+          _accessibilityGranted = accessibilityGranted;
+          _batteryOptimizationIgnored = batteryOptimizationIgnored;
+          _settings.accessibilityGranted = accessibilityGranted;
           _settings.save();
         });
       }
@@ -300,7 +304,19 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
               ListTile(
                 leading: const Icon(Icons.battery_saver_rounded),
                 title: Text(context.l10n.batteryOptimization),
-                subtitle: Text(context.l10n.allowBackground),
+                subtitle: Text(
+                  _batteryOptimizationIgnored
+                      ? localized(
+                          context,
+                          id: 'Sudah diizinkan berjalan di latar belakang',
+                          en: 'Background access is already allowed',
+                        )
+                      : localized(
+                          context,
+                          id: 'Belum diizinkan berjalan di latar belakang',
+                          en: 'Background access is not allowed yet',
+                        ),
+                ),
                 trailing: TextButton(
                   onPressed: _openBatteryOptimization,
                   child: Text(context.l10n.configure),

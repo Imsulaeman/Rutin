@@ -33,6 +33,22 @@ final _shellWaterKey = GlobalKey<NavigatorState>();
 final _shellHabitsKey = GlobalKey<NavigatorState>();
 final _shellProfileKey = GlobalKey<NavigatorState>();
 
+CustomTransitionPage<void> _fadePage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 280),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+      return FadeTransition(opacity: curved, child: child);
+    },
+  );
+}
+
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
@@ -49,33 +65,54 @@ final appRouter = GoRouter(
       branches: [
         StatefulShellBranch(
           navigatorKey: _shellHomeKey,
-          routes: [GoRoute(path: '/', builder: (_, _) => const HomeScreen())],
+          routes: [
+            GoRoute(
+              path: '/',
+              pageBuilder: (_, state) =>
+                  _fadePage(key: state.pageKey, child: const HomeScreen()),
+            ),
+          ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellMedicineKey,
           routes: [
             GoRoute(
               path: '/medicine',
-              builder: (_, _) => const MedicineListScreen(),
+              pageBuilder: (_, state) => _fadePage(
+                key: state.pageKey,
+                child: const MedicineListScreen(),
+              ),
             ),
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellWaterKey,
           routes: [
-            GoRoute(path: '/water', builder: (_, _) => const WaterScreen()),
+            GoRoute(
+              path: '/water',
+              pageBuilder: (_, state) =>
+                  _fadePage(key: state.pageKey, child: const WaterScreen()),
+            ),
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellHabitsKey,
           routes: [
-            GoRoute(path: '/habits', builder: (_, _) => const HabitsScreen()),
+            GoRoute(
+              path: '/habits',
+              pageBuilder: (_, state) =>
+                  _fadePage(key: state.pageKey, child: const HabitsScreen()),
+            ),
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellProfileKey,
           routes: [
-            GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
+            GoRoute(
+              path: '/profile',
+              pageBuilder: (_, state) =>
+                  _fadePage(key: state.pageKey, child: const ProfileScreen()),
+            ),
           ],
         ),
       ],

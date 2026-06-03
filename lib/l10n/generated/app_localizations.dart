@@ -254,6 +254,12 @@ abstract class AppLocalizations {
   /// **'MEDICINE TODAY'**
   String get medicineToday;
 
+  /// No description provided for @waterToday.
+  ///
+  /// In en, this message translates to:
+  /// **'WATER TODAY'**
+  String get waterToday;
+
   /// No description provided for @habitsToday.
   ///
   /// In en, this message translates to:
@@ -691,6 +697,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Earned {date}'**
   String earnedOn(Object date);
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @greetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get greetingAfternoon;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get greetingEvening;
+
+  /// No description provided for @greetingNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Good night'**
+  String get greetingNight;
+
+  /// No description provided for @tutorialSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'SKIP'**
+  String get tutorialSkip;
+
+  /// No description provided for @tutorialHintContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap anywhere to continue'**
+  String get tutorialHintContinue;
+
+  /// No description provided for @tutorialHintFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap anywhere to finish'**
+  String get tutorialHintFinish;
+
+  /// No description provided for @tutorialWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Rutin!'**
+  String get tutorialWelcomeTitle;
+
+  /// No description provided for @tutorialWelcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily dashboard - everything is here. Tap anywhere to continue.'**
+  String get tutorialWelcomeBody;
+
+  /// No description provided for @tutorialAddButtonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The + button'**
+  String get tutorialAddButtonTitle;
+
+  /// No description provided for @tutorialAddButtonBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a new medicine or habit from here.'**
+  String get tutorialAddButtonBody;
+
+  /// No description provided for @tutorialMedicineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Full medicine schedule and daily dose logging.'**
+  String get tutorialMedicineBody;
+
+  /// No description provided for @tutorialWaterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Log water intake and set drinking reminders.'**
+  String get tutorialWaterBody;
+
+  /// No description provided for @tutorialHabitsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create and check off daily habits. Build streaks and earn medals.'**
+  String get tutorialHabitsBody;
+
+  /// No description provided for @homeHiddenHabitsMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {count} more'**
+  String homeHiddenHabitsMore(int count);
+
+  /// No description provided for @homeHabitsDoneSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} / {due} done'**
+  String homeHabitsDoneSummary(int done, int due);
+
+  /// No description provided for @permissionNotificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Notifications'**
+  String get permissionNotificationsTitle;
+
+  /// No description provided for @permissionNotificationsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Required so medicine and water reminders appear on screen.'**
+  String get permissionNotificationsBody;
+
+  /// No description provided for @permissionExactAlarmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Exact Alarm'**
+  String get permissionExactAlarmTitle;
+
+  /// No description provided for @permissionExactAlarmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'So reminders appear on time - open Alarms & Reminders and enable Rutin.'**
+  String get permissionExactAlarmBody;
+
+  /// No description provided for @permissionFullScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Full Screen'**
+  String get permissionFullScreenTitle;
+
+  /// No description provided for @permissionFullScreenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Medicine reminders can appear full screen while the device is locked.'**
+  String get permissionFullScreenBody;
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @treatmentProgramComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Program complete'**
+  String get treatmentProgramComplete;
+
+  /// No description provided for @treatmentDaysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day} - {left} days remaining'**
+  String treatmentDaysRemaining(int day, int left);
 }
 
 class _AppLocalizationsDelegate

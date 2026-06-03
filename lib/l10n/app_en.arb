@@ -36,6 +36,7 @@
   "builtBy": "Built by",
   "freeForever": "Daily health, free forever.",
   "medicineToday": "MEDICINE TODAY",
+  "waterToday": "WATER TODAY",
   "habitsToday": "TODAY'S HABITS",
   "done": "Done",
   "save": "Save",
@@ -158,6 +159,49 @@
   "@earnedOn": {
     "placeholders": {
       "date": {}
+    }
+  },
+  "all": "All",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "greetingNight": "Good night",
+  "tutorialSkip": "SKIP",
+  "tutorialHintContinue": "Tap anywhere to continue",
+  "tutorialHintFinish": "Tap anywhere to finish",
+  "tutorialWelcomeTitle": "Welcome to Rutin!",
+  "tutorialWelcomeBody": "Your daily dashboard - everything is here. Tap anywhere to continue.",
+  "tutorialAddButtonTitle": "The + button",
+  "tutorialAddButtonBody": "Add a new medicine or habit from here.",
+  "tutorialMedicineBody": "Full medicine schedule and daily dose logging.",
+  "tutorialWaterBody": "Log water intake and set drinking reminders.",
+  "tutorialHabitsBody": "Create and check off daily habits. Build streaks and earn medals.",
+  "homeHiddenHabitsMore": "+ {count} more",
+  "@homeHiddenHabitsMore": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "homeHabitsDoneSummary": "{done} / {due} done",
+  "@homeHabitsDoneSummary": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "due": { "type": "int" }
+    }
+  },
+  "permissionNotificationsTitle": "Allow Notifications",
+  "permissionNotificationsBody": "Required so medicine and water reminders appear on screen.",
+  "permissionExactAlarmTitle": "Allow Exact Alarm",
+  "permissionExactAlarmBody": "So reminders appear on time - open Alarms & Reminders and enable Rutin.",
+  "permissionFullScreenTitle": "Allow Full Screen",
+  "permissionFullScreenBody": "Medicine reminders can appear full screen while the device is locked.",
+  "skip": "Skip",
+  "treatmentProgramComplete": "Program complete",
+  "treatmentDaysRemaining": "Day {day} - {left} days remaining",
+  "@treatmentDaysRemaining": {
+    "placeholders": {
+      "day": { "type": "int" },
+      "left": { "type": "int" }
     }
   }
 }

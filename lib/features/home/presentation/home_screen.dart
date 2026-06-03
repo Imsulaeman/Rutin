@@ -123,15 +123,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _startTutorial() {
+    final l10n = context.l10n;
     // Build all targets, skip any whose key is not yet in the tree
     TargetFocus makeTarget({
       required GlobalKey key,
       required ShapeLightFocus shape,
       required ContentAlign align,
-      required String titleId,
-      required String titleEn,
-      required String bodyId,
-      required String bodyEn,
+      required String title,
+      required String body,
       required String hintText,
       double radius = 8,
     }) {
@@ -147,27 +146,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         contents: [
           TargetContent(
             align: align,
-            child: _TutorialContent(
-              title: localized(context, id: titleId, en: titleEn),
-              body: localized(context, id: bodyId, en: bodyEn),
-              hint: hintText,
-            ),
+            child: _TutorialContent(title: title, body: body, hint: hintText),
           ),
         ],
       );
     }
 
-    String hint(int i) => i == 4
-        ? localized(
-            context,
-            id: 'Ketuk di mana saja untuk selesai',
-            en: 'Tap anywhere to finish',
-          )
-        : localized(
-            context,
-            id: 'Ketuk di mana saja untuk lanjut',
-            en: 'Tap anywhere to continue',
-          );
+    String hint(int i) =>
+        i == 4 ? l10n.tutorialHintFinish : l10n.tutorialHintContinue;
 
     final candidates = [
       (
@@ -176,12 +162,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         shape: ShapeLightFocus.RRect,
         align: ContentAlign.bottom,
         radius: 12.0,
-        titleId: 'Selamat datang di Rutin!',
-        titleEn: 'Welcome to Rutin!',
-        bodyId:
-            'Dashboard harian kamu — semua ada di sini. Ketuk di mana saja untuk lanjut.',
-        bodyEn:
-            'Your daily dashboard — everything is here. Tap anywhere to continue.',
+        title: l10n.tutorialWelcomeTitle,
+        body: l10n.tutorialWelcomeBody,
       ),
 
       (
@@ -190,10 +172,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         shape: ShapeLightFocus.Circle,
         align: ContentAlign.top,
         radius: 50.0,
-        titleId: 'Tombol +',
-        titleEn: 'The + button',
-        bodyId: 'Tambah obat atau kebiasaan baru dari sini.',
-        bodyEn: 'Add a new medicine or habit from here.',
+        title: l10n.tutorialAddButtonTitle,
+        body: l10n.tutorialAddButtonBody,
       ),
 
       (
@@ -202,10 +182,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         shape: ShapeLightFocus.RRect,
         align: ContentAlign.top,
         radius: 8.0,
-        titleId: 'Obat',
-        titleEn: 'Medicine',
-        bodyId: 'Jadwal obat lengkap dan pencatatan dosis harian.',
-        bodyEn: 'Full medicine schedule and daily dose logging.',
+        title: l10n.medicine,
+        body: l10n.tutorialMedicineBody,
       ),
 
       (
@@ -214,10 +192,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         shape: ShapeLightFocus.RRect,
         align: ContentAlign.top,
         radius: 8.0,
-        titleId: 'Air',
-        titleEn: 'Water',
-        bodyId: 'Catat asupan air dan aktifkan pengingat minum.',
-        bodyEn: 'Log water intake and set drinking reminders.',
+        title: l10n.water,
+        body: l10n.tutorialWaterBody,
       ),
 
       (
@@ -226,12 +202,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         shape: ShapeLightFocus.RRect,
         align: ContentAlign.top,
         radius: 8.0,
-        titleId: 'Kebiasaan',
-        titleEn: 'Habits',
-        bodyId:
-            'Buat dan centang kebiasaan harian. Bangun streak dan raih medali.',
-        bodyEn:
-            'Create and check off daily habits. Build streaks and earn medals.',
+        title: l10n.habits,
+        body: l10n.tutorialHabitsBody,
       ),
     ];
 
@@ -243,10 +215,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             shape: c.shape,
             align: c.align,
             radius: c.radius,
-            titleId: c.titleId,
-            titleEn: c.titleEn,
-            bodyId: c.bodyId,
-            bodyEn: c.bodyEn,
+            title: c.title,
+            body: c.body,
             hintText: hint(c.i),
           ),
         )
@@ -262,7 +232,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       pulseEnable: true,
       hideSkip: false,
       alignSkip: Alignment.topRight,
-      textSkip: localized(context, id: 'LEWATI', en: 'SKIP'),
+      textSkip: l10n.tutorialSkip,
       textStyleSkip: const TextStyle(
         color: Colors.white70,
         fontSize: 13,
@@ -438,7 +408,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: _HomeHero(
                     height: heroHeight,
                     topPadding: heroTopPadding,
-                    ambient: _ambient,
+                    ambient: CurvedAnimation(
+                      parent: _ambient,
+                      curve: Curves.easeInOut,
+                    ),
                     onSunTap: HapticsService.fun,
                   ),
                 ),
@@ -457,12 +430,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 start: 0.10,
                                 end: 0.60,
                                 child: _SectionCard(
-                                  title: context.l10n.medicine.toUpperCase(),
-                                  actionLabel: localized(
-                                    context,
-                                    id: 'Semua',
-                                    en: 'All',
-                                  ),
+                                  title: context.l10n.medicineToday,
+                                  actionLabel: context.l10n.all,
                                   onAction: () => context.go('/medicine'),
                                   child: medicines.isEmpty
                                       ? _EmptyHint(
@@ -519,12 +488,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 start: 0.20,
                                 end: 0.70,
                                 child: _SectionCard(
-                                  title: context.l10n.water.toUpperCase(),
-                                  actionLabel: localized(
-                                    context,
-                                    id: 'Semua',
-                                    en: 'All',
-                                  ),
+                                  title: context.l10n.waterToday,
+                                  actionLabel: context.l10n.all,
                                   onAction: () => context.go('/water'),
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(18),
@@ -597,11 +562,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 end: 0.80,
                                 child: _SectionCard(
                                   title: context.l10n.habitsToday,
-                                  actionLabel: localized(
-                                    context,
-                                    id: 'Semua',
-                                    en: 'All',
-                                  ),
+                                  actionLabel: context.l10n.all,
                                   onAction: () => context.go('/habits'),
                                   child: _todayHabits.isEmpty
                                       ? _EmptyHint(
@@ -807,11 +768,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                             if (hiddenHabitCount > 0) ...[
                                               const SizedBox(height: 2),
                                               Text(
-                                                localized(
-                                                  context,
-                                                  id: '+ $hiddenHabitCount lainnya',
-                                                  en: '+ $hiddenHabitCount more',
-                                                ),
+                                                context.l10n
+                                                    .homeHiddenHabitsMore(
+                                                      hiddenHabitCount,
+                                                    ),
                                                 style: const TextStyle(
                                                   color: _muted,
                                                   fontSize: 13,
@@ -821,11 +781,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                               const SizedBox(height: 8),
                                             ],
                                             Text(
-                                              localized(
-                                                context,
-                                                id: '$_habitsDone / $_habitsDue selesai',
-                                                en: '$_habitsDone / $_habitsDue done',
-                                              ),
+                                              context.l10n
+                                                  .homeHabitsDoneSummary(
+                                                    _habitsDone,
+                                                    _habitsDue,
+                                                  ),
                                               style: const TextStyle(
                                                 color: _habitColor,
                                                 fontSize: 13,
@@ -858,6 +818,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   HapticFeedback.selectionClick();
                   context.go('/profile');
                 },
+                onCalendar: () {
+                  HapticFeedback.selectionClick();
+                  context.go('/history');
+                },
               ),
             ),
           ],
@@ -873,15 +837,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   static String _timeGreeting(BuildContext context) {
     final hour = DateTime.now().hour;
     if (hour < 11) {
-      return localized(context, id: 'Selamat pagi', en: 'Good morning');
+      return context.l10n.greetingMorning;
     }
     if (hour < 15) {
-      return localized(context, id: 'Selamat siang', en: 'Good afternoon');
+      return context.l10n.greetingAfternoon;
     }
     if (hour < 19) {
-      return localized(context, id: 'Selamat sore', en: 'Good evening');
+      return context.l10n.greetingEvening;
     }
-    return localized(context, id: 'Selamat malam', en: 'Good night');
+    return context.l10n.greetingNight;
   }
 
   Future<void> _maybeShowPermissionWizard(BuildContext context) async {
@@ -917,10 +881,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 typedef _PermissionStep = ({
   IconData icon,
   Color color,
-  String titleId,
-  String titleEn,
-  String bodyId,
-  String bodyEn,
+  String title,
+  String body,
 });
 
 class _PermissionWizard extends StatefulWidget {
@@ -933,36 +895,6 @@ class _PermissionWizard extends StatefulWidget {
 }
 
 class _PermissionWizardState extends State<_PermissionWizard> {
-  static const List<_PermissionStep> _steps = [
-    (
-      icon: Icons.notifications_rounded,
-      color: Color(0xFF4CC56A),
-      titleId: 'Izinkan Notifikasi',
-      titleEn: 'Allow Notifications',
-      bodyId: 'Diperlukan agar pengingat obat dan air muncul di layar.',
-      bodyEn: 'Required so medicine and water reminders appear on screen.',
-    ),
-    (
-      icon: Icons.alarm_rounded,
-      color: Color(0xFFF4A92B),
-      titleId: 'Izinkan Exact Alarm',
-      titleEn: 'Allow Exact Alarm',
-      bodyId:
-          'Agar pengingat muncul tepat waktu - buka Alarm & Pengingat lalu aktifkan Rutin.',
-      bodyEn:
-          'So reminders appear on time - open Alarms & Reminders and enable Rutin.',
-    ),
-    (
-      icon: Icons.fullscreen_rounded,
-      color: Color(0xFF3E8BF0),
-      titleId: 'Izinkan Layar Penuh',
-      titleEn: 'Allow Full Screen',
-      bodyId: 'Pengingat obat bisa muncul menyeluruh saat perangkat terkunci.',
-      bodyEn:
-          'Medicine reminders can appear full screen while the device is locked.',
-    ),
-  ];
-
   int _step = 0;
 
   Future<void> _grant() async {
@@ -982,7 +914,7 @@ class _PermissionWizardState extends State<_PermissionWizard> {
 
   void _next() {
     if (!mounted) return;
-    if (_step >= _steps.length - 1) {
+    if (_step >= 2) {
       Navigator.of(context).pop();
       return;
     }
@@ -991,7 +923,27 @@ class _PermissionWizardState extends State<_PermissionWizard> {
 
   @override
   Widget build(BuildContext context) {
-    final current = _steps[_step];
+    final steps = <_PermissionStep>[
+      (
+        icon: Icons.notifications_rounded,
+        color: const Color(0xFF4CC56A),
+        title: context.l10n.permissionNotificationsTitle,
+        body: context.l10n.permissionNotificationsBody,
+      ),
+      (
+        icon: Icons.alarm_rounded,
+        color: const Color(0xFFF4A92B),
+        title: context.l10n.permissionExactAlarmTitle,
+        body: context.l10n.permissionExactAlarmBody,
+      ),
+      (
+        icon: Icons.fullscreen_rounded,
+        color: const Color(0xFF3E8BF0),
+        title: context.l10n.permissionFullScreenTitle,
+        body: context.l10n.permissionFullScreenBody,
+      ),
+    ];
+    final current = steps[_step];
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -1005,7 +957,7 @@ class _PermissionWizardState extends State<_PermissionWizard> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_steps.length, (index) {
+            children: List.generate(steps.length, (index) {
               final active = index == _step;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
@@ -1024,7 +976,7 @@ class _PermissionWizardState extends State<_PermissionWizard> {
           Icon(current.icon, color: current.color, size: 48),
           const SizedBox(height: 16),
           Text(
-            localized(context, id: current.titleId, en: current.titleEn),
+            current.title,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -1034,7 +986,7 @@ class _PermissionWizardState extends State<_PermissionWizard> {
           ),
           const SizedBox(height: 10),
           Text(
-            localized(context, id: current.bodyId, en: current.bodyEn),
+            current.body,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white70,
@@ -1046,13 +998,13 @@ class _PermissionWizardState extends State<_PermissionWizard> {
           FilledButton(
             onPressed: _grant,
             style: FilledButton.styleFrom(backgroundColor: current.color),
-            child: Text(localized(context, id: 'Izinkan', en: 'Allow')),
+            child: Text(context.l10n.allow),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: _next,
             child: Text(
-              localized(context, id: 'Lewati', en: 'Skip'),
+              context.l10n.skip,
               style: const TextStyle(color: Colors.white54),
             ),
           ),
@@ -1164,12 +1116,14 @@ class _Header extends StatelessWidget {
     required this.title,
     required this.date,
     required this.onMenu,
+    required this.onCalendar,
   });
 
   final double topInset;
   final String title;
   final String date;
   final VoidCallback onMenu;
+  final VoidCallback onCalendar;
 
   @override
   Widget build(BuildContext context) {
@@ -1195,7 +1149,10 @@ class _Header extends StatelessWidget {
                     ),
                   ),
                 ),
-                _IconButton(icon: Icons.calendar_today_rounded, onTap: onMenu),
+                _IconButton(
+                  icon: Icons.calendar_today_rounded,
+                  onTap: onCalendar,
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -1659,16 +1616,8 @@ class _TreatmentCountdownCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     left == 0
-                        ? localized(
-                            context,
-                            id: 'Program selesai',
-                            en: 'Program complete',
-                          )
-                        : localized(
-                            context,
-                            id: 'Hari ke-$day - $left hari tersisa',
-                            en: 'Day $day - $left days remaining',
-                          ),
+                        ? context.l10n.treatmentProgramComplete
+                        : context.l10n.treatmentDaysRemaining(day, left),
                     style: const TextStyle(color: _muted, fontSize: 12),
                   ),
                 ],

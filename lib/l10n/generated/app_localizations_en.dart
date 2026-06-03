@@ -91,6 +91,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medicineToday => 'MEDICINE TODAY';
 
   @override
+  String get waterToday => 'WATER TODAY';
+
+  @override
   String get habitsToday => 'TODAY\'S HABITS';
 
   @override
@@ -331,5 +334,96 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String earnedOn(Object date) {
     return 'Earned $date';
+  }
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get greetingMorning => 'Good morning';
+
+  @override
+  String get greetingAfternoon => 'Good afternoon';
+
+  @override
+  String get greetingEvening => 'Good evening';
+
+  @override
+  String get greetingNight => 'Good night';
+
+  @override
+  String get tutorialSkip => 'SKIP';
+
+  @override
+  String get tutorialHintContinue => 'Tap anywhere to continue';
+
+  @override
+  String get tutorialHintFinish => 'Tap anywhere to finish';
+
+  @override
+  String get tutorialWelcomeTitle => 'Welcome to Rutin!';
+
+  @override
+  String get tutorialWelcomeBody =>
+      'Your daily dashboard - everything is here. Tap anywhere to continue.';
+
+  @override
+  String get tutorialAddButtonTitle => 'The + button';
+
+  @override
+  String get tutorialAddButtonBody => 'Add a new medicine or habit from here.';
+
+  @override
+  String get tutorialMedicineBody =>
+      'Full medicine schedule and daily dose logging.';
+
+  @override
+  String get tutorialWaterBody =>
+      'Log water intake and set drinking reminders.';
+
+  @override
+  String get tutorialHabitsBody =>
+      'Create and check off daily habits. Build streaks and earn medals.';
+
+  @override
+  String homeHiddenHabitsMore(int count) {
+    return '+ $count more';
+  }
+
+  @override
+  String homeHabitsDoneSummary(int done, int due) {
+    return '$done / $due done';
+  }
+
+  @override
+  String get permissionNotificationsTitle => 'Allow Notifications';
+
+  @override
+  String get permissionNotificationsBody =>
+      'Required so medicine and water reminders appear on screen.';
+
+  @override
+  String get permissionExactAlarmTitle => 'Allow Exact Alarm';
+
+  @override
+  String get permissionExactAlarmBody =>
+      'So reminders appear on time - open Alarms & Reminders and enable Rutin.';
+
+  @override
+  String get permissionFullScreenTitle => 'Allow Full Screen';
+
+  @override
+  String get permissionFullScreenBody =>
+      'Medicine reminders can appear full screen while the device is locked.';
+
+  @override
+  String get skip => 'Skip';
+
+  @override
+  String get treatmentProgramComplete => 'Program complete';
+
+  @override
+  String treatmentDaysRemaining(int day, int left) {
+    return 'Day $day - $left days remaining';
   }
 }

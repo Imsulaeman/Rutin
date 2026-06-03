@@ -223,10 +223,10 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] **Battery optimization rationale**: show explanation dialog before calling `requestIgnoreBatteryOptimizations`
 
 ### P3 — Polish
-- [ ] **GoRouter page transitions**: add `CustomTransitionPage` with fade (280ms easeOut) for shell routes
-- [ ] **Calendar icon in home header**: wire to `/history` or remove
-- [ ] **Migrate `localized()` calls to ARB**: move all inline `localized(context, id:..., en:...)` strings to `app_en.arb` and `app_id.arb`
-- [ ] **Ambient sun easing**: apply `CurvedAnimation(curve: Curves.easeInOut)` to `_ambient` controller to smooth sine reversal
+- [x] **GoRouter page transitions**: add `CustomTransitionPage` with fade (280ms easeOut) for shell routes
+- [x] **Calendar icon in home header**: wire to `/history` or remove
+- [x] **Migrate `localized()` calls to ARB**: move all inline `localized(context, id:..., en:...)` strings to `app_en.arb` and `app_id.arb`
+- [x] **Ambient sun easing**: apply `CurvedAnimation(curve: Curves.easeInOut)` to `_ambient` controller to smooth sine reversal
 
 ### P4 — Backlog
 - [ ] **Unit tests**: add tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`
