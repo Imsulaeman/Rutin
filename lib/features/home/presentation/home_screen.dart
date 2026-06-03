@@ -1267,6 +1267,17 @@ class _HomeMedicineRow extends StatelessWidget {
   final _HomeDoseBucket Function(_HomeDose dose) bucketFor;
   final Future<void> Function(_HomeDose dose) onTapDose;
 
+  List<_HomeDose> _sortedDoses() {
+    final list = List<_HomeDose>.from(doses);
+    list.sort((a, b) => a.minute.compareTo(b.minute));
+    return list;
+  }
+
+  bool _allTakenToday() {
+    return doses.isNotEmpty &&
+        doses.every((d) => bucketFor(d) == _HomeDoseBucket.taken);
+  }
+
   Color _dotColor() {
     if (doses.any((d) => bucketFor(d) == _HomeDoseBucket.now)) {
       return _medGradient[0];
@@ -1281,18 +1292,15 @@ class _HomeMedicineRow extends StatelessWidget {
     return _muted;
   }
 
-  String _nextDoseLabel(BuildContext context) {
+  int? _nextDoseMinute() {
     final nowDose = doses.where((d) => bucketFor(d) == _HomeDoseBucket.now);
-    if (nowDose.isNotEmpty) return _fmtMinute(nowDose.first.minute);
+    if (nowDose.isNotEmpty) return nowDose.first.minute;
     final upcoming = doses.where(
       (d) => bucketFor(d) == _HomeDoseBucket.upcoming,
     );
-    if (upcoming.isNotEmpty) return _fmtMinute(upcoming.first.minute);
-    if (doses.isNotEmpty &&
-        doses.every((d) => bucketFor(d) == _HomeDoseBucket.taken)) {
-      return '✓ ${context.l10n.done}';
-    }
-    return context.l10n.missed;
+    if (upcoming.isNotEmpty) return upcoming.first.minute;
+    if (_allTakenToday()) return doses.first.minute;
+    return null;
   }
 
   _HomeDose? _nowDose() {
@@ -1304,24 +1312,29 @@ class _HomeMedicineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sortedDoses = _sortedDoses();
     final nowDose = _nowDose();
+    final allTakenToday = _allTakenToday();
+    final nextDoseMinute = _nextDoseMinute();
     final dosage = (medicine.dosage ?? '').trim();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xAA0D1423),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _panelLine),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 10,
-            height: 10,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: _dotColor(),
-              shape: BoxShape.circle,
+              color: _medGradient[0].withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(Icons.medication_rounded, size: 17, color: _dotColor()),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1331,10 +1344,14 @@ class _HomeMedicineRow extends StatelessWidget {
               children: [
                 Text(
                   medicine.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    decoration: allTakenToday
+                        ? TextDecoration.lineThrough
+                        : null,
+                    decorationColor: _muted,
                   ),
                 ),
                 if (dosage.isNotEmpty) ...[
@@ -1350,28 +1367,60 @@ class _HomeMedicineRow extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (nextDoseMinute != null) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.alarm_rounded, size: 11, color: _muted),
+                      const SizedBox(width: 3),
+                      Text(
+                        _fmtMinute(nextDoseMinute),
+                        style: const TextStyle(color: _muted, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ],
+                if (sortedDoses.length > 1) ...[
+                  const SizedBox(height: 6),
+                  _HomeMedicineDots(
+                    doses: sortedDoses,
+                    bucketFor: bucketFor,
+                    onTap: onTapDose,
+                  ),
+                ],
               ],
             ),
           ),
-          Text(
-            _nextDoseLabel(context),
-            style: const TextStyle(color: _muted, fontSize: 12),
-          ),
-          if (nowDose != null) ...[
-            const SizedBox(width: 8),
+          if (sortedDoses.length == 1) ...[
+            const SizedBox(width: 10),
             GestureDetector(
-              onTap: () => onTapDose(nowDose),
-              child: Container(
-                width: 28,
-                height: 28,
+              onTap: nowDose == null ? null : () => onTapDose(nowDose),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
-                  color: _medGradient[0].withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
+                  shape: BoxShape.circle,
+                  color: allTakenToday ? _success : Colors.transparent,
+                  border: Border.all(
+                    color: allTakenToday
+                        ? _success
+                        : nowDose != null
+                        ? _medGradient[0].withValues(alpha: 0.9)
+                        : _muted.withValues(alpha: 0.65),
+                    width: 2,
+                  ),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_rounded,
-                  size: 16,
-                  color: Color(0xFFEE5A8C),
+                  size: 15,
+                  color: allTakenToday
+                      ? Colors.white
+                      : nowDose != null
+                      ? const Color(0xFFEE5A8C)
+                      : Colors.transparent,
                 ),
               ),
             ),
@@ -1401,8 +1450,20 @@ class _TodayHabitRow extends StatelessWidget {
   final Future<void> Function(int count) onSetCompletions;
   final VoidCallback onTap;
 
+  int? _nextReminderMinute() {
+    final times = habit.reminderTimes.isNotEmpty
+        ? List<int>.from(habit.reminderTimes)
+        : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : <int>[]);
+    if (times.isEmpty) return null;
+    times.sort();
+    final nowMin = DateTime.now().hour * 60 + DateTime.now().minute;
+    final upcoming = times.where((t) => t > nowMin).toList();
+    return upcoming.isNotEmpty ? upcoming.first : times.first;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final nextReminderMinute = _nextReminderMinute();
     return GestureDetector(
       onTap: target == 1
           ? onTap
@@ -1446,7 +1507,7 @@ class _TodayHabitRow extends StatelessWidget {
                       decorationColor: _muted,
                     ),
                   ),
-                  if (habit.reminderMinutes != null) ...[
+                  if (nextReminderMinute != null) ...[
                     const SizedBox(height: 2),
                     Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1458,7 +1519,7 @@ class _TodayHabitRow extends StatelessWidget {
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          _fmtMinute(habit.reminderMinutes!),
+                          _fmtMinute(nextReminderMinute),
                           style: const TextStyle(color: _muted, fontSize: 11),
                         ),
                       ],
@@ -1563,6 +1624,70 @@ class _HomeCompletionDots extends StatelessWidget {
             ),
           ),
         ).expand((dot) => [dot, const SizedBox(width: 2)]).take(target * 2 - 1),
+      ],
+    );
+  }
+}
+
+class _HomeMedicineDots extends StatelessWidget {
+  const _HomeMedicineDots({
+    required this.doses,
+    required this.bucketFor,
+    required this.onTap,
+  });
+
+  final List<_HomeDose> doses;
+  final _HomeDoseBucket Function(_HomeDose dose) bucketFor;
+  final Future<void> Function(_HomeDose dose) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ...List.generate(doses.length, (i) {
+              final dose = doses[i];
+              final bucket = bucketFor(dose);
+              final isTaken = bucket == _HomeDoseBucket.taken;
+              final isNow = bucket == _HomeDoseBucket.now;
+              final isMissed = bucket == _HomeDoseBucket.missed;
+              final borderColor = isTaken
+                  ? _success
+                  : isNow
+                  ? _medGradient[0]
+                  : isMissed
+                  ? _missed
+                  : _muted;
+              final fillColor = isTaken ? _success : Colors.transparent;
+              final iconColor = isTaken
+                  ? Colors.white
+                  : isNow
+                  ? _medGradient[0]
+                  : Colors.transparent;
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onTap(dose),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: fillColor,
+                      border: Border.all(color: borderColor, width: 1.8),
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 11,
+                      color: iconColor,
+                    ),
+                  ),
+                ),
+              );
+            })
+            .expand((dot) => [dot, const SizedBox(width: 2)])
+            .take(doses.length * 2 - 1),
       ],
     );
   }

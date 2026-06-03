@@ -198,6 +198,55 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     AnalyticsService.medicineDeleted();
   }
 
+  Future<void> _editMedicine(Medicine medicine) async {
+    await context.push('/medicine/add', extra: medicine.id);
+    if (!mounted) return;
+    await _refreshReminderDebug(
+      ref.read(medicineRepositoryProvider),
+      force: true,
+    );
+    setState(() {});
+  }
+
+  Future<void> _showMedicineActions(
+    MedicineRepository repo,
+    Medicine medicine,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: Text(context.l10n.edit),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _editMedicine(medicine);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(context.l10n.delete),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _executeDelete(repo, medicine);
+                await _refreshReminderDebug(repo, force: true);
+                if (mounted) setState(() {});
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   String? _debugTextFor(_Dose dose) {
     final alarmId = AlarmService.medicineRootAlarmId(
       dose.medicine.id,
@@ -325,6 +374,8 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                               bucketFor: (d) => _bucketFor(repo, d),
                               onToggle: (dose, taken) =>
                                   _toggle(repo, dose, taken),
+                              onMoreTap: () =>
+                                  _showMedicineActions(repo, medicine),
                               debugTextFor: _debugTextFor,
                               streak: repo.getMedicineStreak(medicine.id),
                             ),
@@ -451,6 +502,7 @@ class _MedicineCard extends StatelessWidget {
     required this.doses,
     required this.bucketFor,
     required this.onToggle,
+    required this.onMoreTap,
     required this.debugTextFor,
     required this.streak,
   });
@@ -459,6 +511,7 @@ class _MedicineCard extends StatelessWidget {
   final List<_Dose> doses;
   final _DoseBucket Function(_Dose) bucketFor;
   final Future<void> Function(_Dose dose, bool taken) onToggle;
+  final VoidCallback onMoreTap;
   final String? Function(_Dose) debugTextFor;
   final int streak;
 
@@ -476,82 +529,117 @@ class _MedicineCard extends StatelessWidget {
         (relevantDose != null ? debugTextFor(relevantDose) : null) ??
         doses.map(debugTextFor).where((t) => t != null).firstOrNull;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F1524),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _surfaceLine),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  medicine.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F1524),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _surfaceLine),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        medicine.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if ((medicine.dosage ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          medicine.dosage!,
+                          style: const TextStyle(
+                            color: _grey,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
-              if (streak > 0)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    '🔥 $streak',
-                    style: const TextStyle(
-                      color: Color(0xFFFF6D00),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                if (streak > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, top: 1),
+                    child: Text(
+                      '🔥 $streak',
+                      style: const TextStyle(
+                        color: Color(0xFFFF6D00),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onMoreTap,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.more_vert_rounded,
+                      size: 18,
+                      color: _grey,
                     ),
                   ),
                 ),
-              _Badge(
-                icon: Icons.restaurant_rounded,
-                label: medicineMealTimingLabel(context, medicine.mealTimingKey),
-              ),
-            ],
-          ),
-          if ((medicine.dosage ?? '').isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              medicine.dosage!,
-              style: const TextStyle(color: _grey, fontSize: 13),
+              ],
             ),
-          ],
-          const SizedBox(height: 12),
-          if (doses.isEmpty)
-            Text(
-              context.l10n.noDoseSchedule,
-              style: const TextStyle(color: _grey, fontSize: 13),
-            )
-          else
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                for (final dose in doses)
-                  _DoseChip(
-                    dose: dose,
-                    bucket: bucketFor(dose),
-                    onTap: () =>
-                        onToggle(dose, bucketFor(dose) != _DoseBucket.taken),
+                _Badge(
+                  icon: Icons.restaurant_rounded,
+                  label: medicineMealTimingLabel(
+                    context,
+                    medicine.mealTimingKey,
+                  ),
+                ),
+                if (debugText != null)
+                  _Badge(
+                    icon: Icons.alarm_rounded,
+                    label: debugText,
+                    foreground: _green,
                   ),
               ],
             ),
-          if (debugText != null) ...[
-            const SizedBox(height: 8),
-            _Badge(
-              icon: Icons.alarm_rounded,
-              label: debugText,
-              foreground: _green,
-            ),
+            const SizedBox(height: 10),
+            if (doses.isEmpty)
+              Text(
+                context.l10n.noDoseSchedule,
+                style: const TextStyle(color: _grey, fontSize: 12),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final dose in doses)
+                    _DoseChip(
+                      dose: dose,
+                      bucket: bucketFor(dose),
+                      onTap: () =>
+                          onToggle(dose, bucketFor(dose) != _DoseBucket.taken),
+                    ),
+                ],
+              ),
           ],
-        ],
+        ),
       ),
     );
   }

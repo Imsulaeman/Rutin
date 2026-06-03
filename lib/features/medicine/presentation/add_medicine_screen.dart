@@ -15,7 +15,9 @@ const _medGradient = [Color(0xFFEE5A8C), Color(0xFFD93A6E)];
 const _grey = Color(0xFF9AA3B2);
 
 class AddMedicineScreen extends ConsumerStatefulWidget {
-  const AddMedicineScreen({super.key});
+  const AddMedicineScreen({super.key, this.medicineId});
+
+  final String? medicineId;
 
   @override
   ConsumerState<AddMedicineScreen> createState() => _AddMedicineScreenState();
@@ -25,9 +27,32 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _dosageController = TextEditingController();
-  List<TimeOfDay> _times = [const TimeOfDay(hour: 8, minute: 0)];
-  String _mealTimingKey = MedicineMealTiming.bebas;
+  late List<TimeOfDay> _times;
+  late String _mealTimingKey;
   bool _saving = false;
+  Medicine? _existingMedicine;
+
+  bool get _isEdit => _existingMedicine != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final medicine = widget.medicineId == null
+        ? null
+        : ref.read(medicineRepositoryProvider).getById(widget.medicineId!);
+    _existingMedicine = medicine;
+    _nameController.text = medicine?.name ?? '';
+    _dosageController.text = medicine?.dosage ?? '';
+    _times = medicine != null && medicine.scheduleTimes.isNotEmpty
+        ? medicine.scheduleTimes
+              .map(
+                (minutes) =>
+                    TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+              )
+              .toList()
+        : [const TimeOfDay(hour: 8, minute: 0)];
+    _mealTimingKey = medicine?.mealTimingKey ?? MedicineMealTiming.bebas;
+  }
 
   @override
   void dispose() {
@@ -58,22 +83,35 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
     setState(() => _saving = true);
 
     final repository = ref.read(medicineRepositoryProvider);
-    final medicine = Medicine()
-      ..id = DateTime.now().millisecondsSinceEpoch.toString()
-      ..name = _nameController.text.trim()
-      ..dosage = _dosageController.text.trim().isEmpty
-          ? null
-          : _dosageController.text.trim()
-      ..scheduleTimes =
-          (_times.map((t) => t.hour * 60 + t.minute).toSet().toList()..sort())
-      ..isActive = true
-      ..colorValue = Colors.green.toARGB32()
-      ..mealTimingKey = _mealTimingKey;
+    final medicine =
+        _existingMedicine ??
+              (Medicine()
+                ..id = DateTime.now().millisecondsSinceEpoch.toString())
+          ..name = _nameController.text.trim()
+          ..dosage = _dosageController.text.trim().isEmpty
+              ? null
+              : _dosageController.text.trim()
+          ..scheduleTimes =
+              (_times.map((t) => t.hour * 60 + t.minute).toSet().toList()
+                ..sort())
+          ..isActive = true
+          ..colorValue =
+              _existingMedicine?.colorValue ?? Colors.green.toARGB32()
+          ..mealTimingKey = _mealTimingKey;
 
     try {
+      if (_isEdit) {
+        for (final minutes in _existingMedicine!.scheduleTimes) {
+          await AlarmService.cancelAllForAlarm(
+            AlarmService.medicineRootAlarmId(_existingMedicine!.id, minutes),
+          );
+        }
+      }
       await repository.save(medicine);
       await _scheduleInitialAlarm(medicine);
-      AnalyticsService.medicineAdded();
+      if (!_isEdit) {
+        AnalyticsService.medicineAdded();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -124,7 +162,11 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: Text(context.l10n.addMedicine),
+        title: Text(
+          _isEdit
+              ? '${context.l10n.edit} ${context.l10n.medicine}'
+              : context.l10n.addMedicine,
+        ),
       ),
       body: SafeArea(
         child: Form(
@@ -220,9 +262,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   minimumSize: const Size.fromHeight(54),
                 ),
                 onPressed: _saving ? null : _save,
-                child: Text(
-                  _saving ? context.l10n.saving : context.l10n.save,
-                ),
+                child: Text(_saving ? context.l10n.saving : context.l10n.save),
               ),
             ],
           ),

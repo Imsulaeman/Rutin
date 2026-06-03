@@ -147,8 +147,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/medicine/add',
       parentNavigatorKey: _rootNavigatorKey,
-      pageBuilder: (_, state) =>
-          _slidePage(key: state.pageKey, child: const AddMedicineScreen()),
+      pageBuilder: (_, state) => _slidePage(
+        key: state.pageKey,
+        child: AddMedicineScreen(medicineId: state.extra as String?),
+      ),
     ),
     GoRoute(
       path: '/medicine/history',
