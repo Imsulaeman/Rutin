@@ -762,6 +762,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get phoneDefaultSound => 'Phone default';
 
   @override
+  String get browsePhoneSounds => 'Browse phone sounds';
+
+  @override
   String get phoneDefaultSoundSubtitle =>
       'Use the phone default notification or ringtone';
 

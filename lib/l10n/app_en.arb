@@ -312,6 +312,7 @@
   "appRingtone": "Rutin Ring",
   "appRingtoneSubtitle": "Full ringtone",
   "phoneDefaultSound": "Phone default",
+  "browsePhoneSounds": "Browse phone sounds",
   "phoneDefaultSoundSubtitle": "Use the phone default notification or ringtone",
   "notificationSound": "Notification sound",
   "notificationSoundSubtitle": "Used for Water and Habit reminders",

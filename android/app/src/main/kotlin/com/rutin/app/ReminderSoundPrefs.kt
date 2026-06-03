@@ -45,7 +45,9 @@ object ReminderSoundPrefs {
                          else Settings.System.DEFAULT_NOTIFICATION_URI)
                         ?: rawUri(context, R.raw.notif_chime)
         SOUND_RING   -> rawUri(context, R.raw.ringtone)
-        else         -> rawUri(context, R.raw.notif_chime) // SOUND_DROP + legacy 'app'
+        SOUND_DROP   -> rawUri(context, R.raw.notif_chime)
+        else         -> runCatching { Uri.parse(value) }.getOrNull()
+                        ?: rawUri(context, R.raw.notif_chime)
     }
 
     // Migrate legacy 'app' value to new constant

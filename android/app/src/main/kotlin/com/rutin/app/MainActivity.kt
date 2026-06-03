@@ -1,6 +1,7 @@
 package com.rutin.app
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
@@ -26,6 +27,7 @@ class MainActivity : FlutterActivity() {
     companion object {
         private var bgMusic: MediaPlayer? = null
         private var previewRingtone: Ringtone? = null
+        private const val RC_RINGTONE_PICK = 9010
 
         fun stopBgMusic() {
             bgMusic?.runCatching { stop(); release() }
@@ -37,6 +39,9 @@ class MainActivity : FlutterActivity() {
             previewRingtone = null
         }
     }
+
+    private var ringtonePickerResult: MethodChannel.Result? = null
+    private var ringtonePickerSoundType: String = "notification"
     private val channelName = "habit_app/native_reminder"
     private val sleepChannelName = "rutin/sleep"
 
@@ -213,18 +218,67 @@ class MainActivity : FlutterActivity() {
                     }
                     "previewReminderSound" -> {
                         val type = call.argument<String>("type") ?: "notification"
-                        val value = call.argument<String>("value") ?: "app"
+                        val value = call.argument<String>("value") ?: "chime"
                         previewReminderSound(type, value)
                         result.success(null)
+                    }
+                    "pickSystemSound" -> {
+                        ringtonePickerSoundType = call.argument<String>("type") ?: "notification"
+                        ringtonePickerResult = result
+                        val ringtoneType = if (ringtonePickerSoundType == "alarm")
+                            RingtoneManager.TYPE_RINGTONE else RingtoneManager.TYPE_NOTIFICATION
+                        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, ringtoneType)
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, false)
+                        }
+                        startActivityForResult(intent, RC_RINGTONE_PICK)
+                    }
+                    "getSoundTitle" -> {
+                        val uriStr = call.argument<String>("uri") ?: ""
+                        val uri = runCatching { Uri.parse(uriStr) }.getOrNull()
+                        val title = uri?.let {
+                            runCatching {
+                                RingtoneManager.getRingtone(applicationContext, it)
+                                    ?.getTitle(applicationContext)
+                            }.getOrNull()
+                        }
+                        result.success(title)
                     }
                     else -> result.notImplemented()
                 }
             }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == RC_RINGTONE_PICK) {
+            val pending = ringtonePickerResult
+            ringtonePickerResult = null
+            if (resultCode == Activity.RESULT_OK) {
+                val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+                }
+                pending?.success(uri?.toString())
+            } else {
+                pending?.success(null)
+            }
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
     private fun previewReminderSound(type: String, value: String) {
         stopPreview()
-        val uri = ReminderSoundPrefs.soundUri(applicationContext, value, isAlarm = type == "alarm")
+        val isAlarm = type == "alarm"
+        val uri = when {
+            value == "chime" || value == "ringtone" || value == "system" ->
+                ReminderSoundPrefs.soundUri(applicationContext, value, isAlarm)
+            else -> runCatching { Uri.parse(value) }.getOrNull()
+                ?: ReminderSoundPrefs.soundUri(applicationContext, "chime", isAlarm)
+        }
         val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
         previewRingtone = ringtone
         ringtone.play()

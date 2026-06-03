@@ -30,8 +30,10 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _accessibilityGranted = false;
   bool _fullScreenIntentAllowed = true;
   String _lang = LanguageService.current;
-  String _notificationSound = 'app';
-  String _alarmSound = 'app';
+  String _notificationSound = 'chime';
+  String _alarmSound = 'ringtone';
+  String _notificationSoundTitle = '';
+  String _alarmSoundTitle = '';
   bool _backupBusy = false;
 
   @override
@@ -122,12 +124,33 @@ class _SettingsScreenState extends State<SettingsScreen>
         'getReminderSoundSettings',
       );
       if (raw == null || !mounted) return;
+      final notif = (raw['notificationSound'] as String?) ?? _notificationSound;
+      final alarm = (raw['alarmSound'] as String?) ?? _alarmSound;
       setState(() {
-        _notificationSound =
-            (raw['notificationSound'] as String?) ?? _notificationSound;
-        _alarmSound = (raw['alarmSound'] as String?) ?? _alarmSound;
+        _notificationSound = notif;
+        _alarmSound = alarm;
       });
+      await _refreshSoundTitles(notif, alarm);
     } catch (_) {}
+  }
+
+  Future<void> _refreshSoundTitles(String notif, String alarm) async {
+    final notifTitle = await _getSoundTitle(notif);
+    final alarmTitle = await _getSoundTitle(alarm);
+    if (!mounted) return;
+    setState(() {
+      _notificationSoundTitle = notifTitle;
+      _alarmSoundTitle = alarmTitle;
+    });
+  }
+
+  Future<String> _getSoundTitle(String value) async {
+    if (value == 'chime' || value == 'ringtone' || value == 'system') return '';
+    try {
+      return await _nativeCh.invokeMethod<String>('getSoundTitle', {'uri': value}) ?? '';
+    } catch (_) {
+      return '';
+    }
   }
 
   Future<void> _setSoundSettings({
@@ -140,13 +163,13 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
     if (!mounted) return;
     setState(() {
-      if (notificationSound != null) {
-        _notificationSound = notificationSound;
-      }
-      if (alarmSound != null) {
-        _alarmSound = alarmSound;
-      }
+      if (notificationSound != null) _notificationSound = notificationSound;
+      if (alarmSound != null) _alarmSound = alarmSound;
     });
+    await _refreshSoundTitles(
+      notificationSound ?? _notificationSound,
+      alarmSound ?? _alarmSound,
+    );
   }
 
   Future<void> _previewSound(String value, String soundType) async {
@@ -192,29 +215,41 @@ class _SettingsScreenState extends State<SettingsScreen>
               onChanged: (value) => Navigator.pop(ctx, value),
               onPreview: () => _previewSound('ringtone', soundType),
             ),
-            _SoundOption(
-              value: 'system',
-              groupValue: currentValue,
-              title: context.l10n.phoneDefaultSound,
-              subtitle: context.l10n.phoneDefaultSoundSubtitle,
-              onChanged: (value) => Navigator.pop(ctx, value),
-              onPreview: () => _previewSound('system', soundType),
+            ListTile(
+              leading: const Icon(Icons.library_music_rounded),
+              title: Text(context.l10n.browsePhoneSounds),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.pop(ctx, '__browse__'),
             ),
             const SizedBox(height: 8),
           ],
         ),
       ),
     );
-    if (picked != null) {
+    if (picked == '__browse__') {
+      final uri = await _browsePhoneSounds(soundType);
+      if (uri != null) await onSelected(uri);
+    } else if (picked != null) {
       await onSelected(picked);
     }
   }
 
-  String _soundLabel(String value) {
+  Future<String?> _browsePhoneSounds(String soundType) async {
+    try {
+      return await _nativeCh.invokeMethod<String>('pickSystemSound', {'type': soundType});
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _soundLabel(String value, {bool isAlarm = false}) {
     return switch (value) {
-      'system' => context.l10n.phoneDefaultSound,
+      'system'   => context.l10n.phoneDefaultSound,
       'ringtone' => context.l10n.appRingtone,
-      _ => context.l10n.appSound,
+      'chime'    => context.l10n.appSound,
+      _ => isAlarm
+          ? (_alarmSoundTitle.isNotEmpty ? _alarmSoundTitle : context.l10n.browsePhoneSounds)
+          : (_notificationSoundTitle.isNotEmpty ? _notificationSoundTitle : context.l10n.browsePhoneSounds),
     };
   }
 
@@ -335,7 +370,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         title: Text(context.l10n.notificationSound),
                         subtitle: Text(context.l10n.notificationSoundSubtitle),
                         trailing: Text(
-                          _soundLabel(_notificationSound),
+                          _soundLabel(_notificationSound, isAlarm: false),
                           style: const TextStyle(
                             color: AppTheme.muted,
                             fontSize: 12,
@@ -356,7 +391,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         title: Text(context.l10n.medicineAlarmSound),
                         subtitle: Text(context.l10n.medicineAlarmSoundSubtitle),
                         trailing: Text(
-                          _soundLabel(_alarmSound),
+                          _soundLabel(_alarmSound, isAlarm: true),
                           style: const TextStyle(
                             color: AppTheme.muted,
                             fontSize: 12,

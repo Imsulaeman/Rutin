@@ -764,6 +764,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get phoneDefaultSound => 'Bawaan ponsel';
 
   @override
+  String get browsePhoneSounds => 'Cari suara ponsel';
+
+  @override
   String get phoneDefaultSoundSubtitle =>
       'Pakai notifikasi atau ringtone default ponsel';
 

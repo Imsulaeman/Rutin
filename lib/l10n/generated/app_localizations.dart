@@ -1502,6 +1502,12 @@ abstract class AppLocalizations {
   /// **'Phone default'**
   String get phoneDefaultSound;
 
+  /// No description provided for @browsePhoneSounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse phone sounds'**
+  String get browsePhoneSounds;
+
   /// No description provided for @phoneDefaultSoundSubtitle.
   ///
   /// In en, this message translates to:
