@@ -2,6 +2,14 @@
 
 ---
 
+## 2026-06-03 (sleep gate fix)
+
+- Fixed morning gate never appearing when app was already running in background overnight.
+- Root cause: `_checkPendingGate()` only ran once in `initState`. If the wake-end alarm stopped the service (or OEM killed it) before the user woke up, `ACTION_USER_PRESENT` was never caught and the gate was silently dropped.
+- Fix: added `WidgetsBindingObserver` to `_LaunchGameListenerState` in `app.dart`. Now calls `_checkPendingGate()` on every `AppLifecycleState.resumed` — covers both the service-killed path and the wake-end-stopped-service path.
+
+---
+
 ## 2026-06-03 (medal redesign)
 
 - Replaced retire-habit medal system with 3 fixed auto-calculated medals: Water Intake, Medicine Streak, Habit Streak.

@@ -512,18 +512,31 @@ class _LaunchGameListener extends StatefulWidget {
   State<_LaunchGameListener> createState() => _LaunchGameListenerState();
 }
 
-class _LaunchGameListenerState extends State<_LaunchGameListener> {
+class _LaunchGameListenerState extends State<_LaunchGameListener>
+    with WidgetsBindingObserver {
   static const _ch = MethodChannel('rutin/sleep');
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _ch.setMethodCallHandler((call) async {
       if (call.method == 'launchGame') {
         appRouter.push('/morning-gate');
       }
     });
     _checkPendingGate();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkPendingGate();
   }
 
   Future<void> _checkPendingGate() async {
