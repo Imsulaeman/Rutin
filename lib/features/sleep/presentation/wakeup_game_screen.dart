@@ -499,7 +499,7 @@ class _PianoTilesGame extends StatefulWidget {
 class _PianoTilesGameState extends State<_PianoTilesGame>
     with SingleTickerProviderStateMixin {
   static const _nativeCh = MethodChannel('habit_app/native_reminder');
-  static const _tileCount = 16; // total tiles to spawn
+  static const _tileCount = 50; // total tiles to spawn
   static const _required = 10; // hits needed
   static const _tileSpeed = 0.45; // fraction of screen per second
   static const _hitZoneStart = 0.72; // top of hit zone (fraction)
@@ -623,8 +623,9 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
 
     if (best != null) {
       // Determine judgment: how centered was the tile in the zone?
-      final center = _hitZoneStart + _tileHeight / 2;
-      final distance = (best.y - center).abs();
+      final zoneCenter = _hitZoneStart + _tileHeight / 2;
+      final tileCenter = best.y + _tileHeight / 2;
+      final distance = (tileCenter - zoneCenter).abs();
       final isPerfect = distance < _tileHeight * 0.3;
       final label = isPerfect
           ? context.l10n.perfect
@@ -647,6 +648,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       HapticsService.fun();
       setState(() {
         _laneFlash[lane] = Colors.red.withValues(alpha: 0.45);
+        _hits = 0;
         _judgments.add(
           _Judgment(context.l10n.miss, Colors.redAccent, lane),
         );
@@ -814,7 +816,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
                     final laneCenter = (j.lane + 0.5) * laneW;
                     return Positioned(
                       left: laneCenter - 40,
-                      bottom: gameH * (1 - _hitZoneStart) + (-j.yOff),
+                      bottom: gameH * (1 - _hitZoneStart - _tileHeight / 2) + (-j.yOff),
                       width: 80,
                       child: Opacity(
                         opacity: j.life.clamp(0.0, 1.0),

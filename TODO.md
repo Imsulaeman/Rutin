@@ -147,6 +147,9 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] **Session D** — AccessibilityService (Kotlin): home button intercept during game, touch tracking for sleep detection, XML config
 
 - [x] **Morning Gate** - read-only morning dashboard + slide-to-unlock before `/wakeup-game`
+- [x] Rhythm game: fix "Perfect" judgment text Y offset (was floating from top of hit zone, now from center)
+- [x] Rhythm game: fix perfect detection Y offset (now uses tile center vs zone center, not tile top)
+- [x] Rhythm game: miss resets score to 0 (need 10 perfect/good streak); tile pool increased to 50
 - [x] Replace incorrect sleep foreground `health` service type with `specialUse`
 - [x] Refresh Accessibility status after returning from Android settings
 - [x] Retest Infinix X6873: enabling Mode Tidur no longer force-closes after Android 13+ receiver registration fix
