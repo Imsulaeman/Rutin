@@ -23,6 +23,11 @@ const _groupTemplates = [
   ('🧘', 'Meditasi'),
 ];
 
+bool _isHabitScheduledToday(Habit habit) {
+  return habit.scheduleDays.isEmpty ||
+      habit.scheduleDays.contains(DateTime.now().weekday);
+}
+
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
 
@@ -94,11 +99,20 @@ class _HabitsScreenState extends State<HabitsScreen> {
   }
 
   Future<void> _markDone(Habit habit) async {
+    if (!_isScheduledToday(habit)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.notScheduledToday),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
     if (_repo.isCompletedToday(habit.id)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.habitAlreadyCompleted),
-          duration: Duration(seconds: 1),
+          duration: const Duration(seconds: 1),
         ),
       );
       return;
@@ -108,6 +122,10 @@ class _HabitsScreenState extends State<HabitsScreen> {
     HapticsService.success();
     MedalService.checkHabit();
     setState(() {});
+  }
+
+  bool _isScheduledToday(Habit habit) {
+    return _isHabitScheduledToday(habit);
   }
 
   void _showHabitActions(Habit habit) {
@@ -1147,6 +1165,7 @@ class _EditModeViewState extends State<_EditModeView> {
               child: HabitCard(
                 habit: item,
                 isDone: widget.repo.isCompletedToday(item.id),
+                isScheduledToday: _isHabitScheduledToday(item),
                 streak: widget.repo.getStreak(item.id),
                 onTap: () {},
               ),
@@ -1162,6 +1181,7 @@ class _EditModeViewState extends State<_EditModeView> {
                 child: HabitCard(
                   habit: item,
                   isDone: widget.repo.isCompletedToday(item.id),
+                  isScheduledToday: _isHabitScheduledToday(item),
                   streak: widget.repo.getStreak(item.id),
                   onTap: () => widget.onTap(item),
                   onMoreTap: () => widget.onMoreTap(item),
@@ -1325,13 +1345,10 @@ class _EditGroupBlock extends StatelessWidget {
     final doneCount = habits.where((h) => repo.isCompletedToday(h.id)).length;
     final stackStreak = habits.isEmpty
         ? 0
-        : habits.fold<int>(
-            repo.getStreak(habits.first.id),
-            (min, h) {
-              final s = repo.getStreak(h.id);
-              return s < min ? s : min;
-            },
-          );
+        : habits.fold<int>(repo.getStreak(habits.first.id), (min, h) {
+            final s = repo.getStreak(h.id);
+            return s < min ? s : min;
+          });
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -1452,6 +1469,7 @@ class _EditGroupBlock extends StatelessWidget {
                         child: HabitCard(
                           habit: habits[j],
                           isDone: false,
+                          isScheduledToday: _isHabitScheduledToday(habits[j]),
                           streak: 0,
                           onTap: () {},
                         ),
@@ -1463,6 +1481,7 @@ class _EditGroupBlock extends StatelessWidget {
                         child: HabitCard(
                           habit: habits[j],
                           isDone: repo.isCompletedToday(habits[j].id),
+                          isScheduledToday: _isHabitScheduledToday(habits[j]),
                           streak: repo.getStreak(habits[j].id),
                           onTap: () => onHabitTap(habits[j]),
                           onMoreTap: () => onHabitMoreTap(habits[j]),
@@ -1739,6 +1758,7 @@ class _GroupView extends StatelessWidget {
               child: HabitCard(
                 habit: habit,
                 isDone: repo.isCompletedToday(habit.id),
+                isScheduledToday: _isHabitScheduledToday(habit),
                 streak: repo.getStreak(habit.id),
                 onTap: () => onTap(habit),
                 onMoreTap: () => onMoreTap(habit),

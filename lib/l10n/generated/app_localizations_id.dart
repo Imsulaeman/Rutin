@@ -475,6 +475,12 @@ class AppLocalizationsId extends AppLocalizations {
   String get startToday => 'Mulai hari ini';
 
   @override
+  String get everyDay => 'Setiap hari';
+
+  @override
+  String get notScheduledToday => 'Tidak dijadwalkan hari ini';
+
+  @override
   String get days => 'hari';
 
   @override

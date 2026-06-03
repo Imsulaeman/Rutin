@@ -473,6 +473,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startToday => 'Start today';
 
   @override
+  String get everyDay => 'Every day';
+
+  @override
+  String get notScheduledToday => 'Not scheduled today';
+
+  @override
   String get days => 'days';
 
   @override

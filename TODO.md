@@ -20,6 +20,8 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Move habit reminder time to the right side, Obat-style placement
 - [x] Keep habit reminder pill aligned with Habits theme instead of copying Obat pink literally
 - [x] Habit alarm uses `setAlarmClock` and respects `scheduleDays` (no alerts on off-days)
+- [x] Zero-streak habit label shows schedule (`Every day` / weekday list) instead of `Start today`
+- [x] Off-day habit taps stay interactive but show `Not scheduled today` with muted controls
 - [x] Rewrite Connect the Dots → Flow Free style (grid, colored pairs, fill all cells) — spec in AGENTS.md
 - [x] Habit calendar visual — full cell background colors instead of tiny dots
 - [x] Compact habit cards (reduce padding, merge streak into name row)
@@ -186,6 +188,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Empty states
 - [x] UI redesign pass
 - [x] Dedicated medal/profile collection screen polish — replaced with 3 fixed medals (Water, Medicine, Habit); retire-habit flow removed
+- [x] Compact 3-up medal cards with always-on color and tap-for-detail sheet
 - [x] Profile: user name + age + avatar picker (10 diverse characters) + stat chips
 
 ## ADA Portfolio Prep
@@ -206,6 +209,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [ ] README polish (GitHub repo, for ADA reviewers who look at code)
 - [~] Internal beta on Play Store — not required for ADA; skip for now
 - [ ] Crash-free rate check (Firebase Crashlytics or at minimum no known crashes)
+- [ ] Run full `MANUAL_TEST_CHECKLIST.md` release-candidate gate on the real phone
 - [x] **Post-MVP design polish pass** (only once MVP is done + launch-ready): run `/emil-design-eng`, `/impeccable`, `/gpt-taste` across all screens for final visual refinement — full report in `report.md`
 - [ ] Play Store listing
 
@@ -224,6 +228,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] **Battery optimization rationale**: flow changed — Rutin no longer calls `requestIgnoreBatteryOptimizations` directly; pre-dialog in `sleep_settings_screen.dart` explains battery access before opening app settings via native channel
 
 ### P3 — Polish
+- [x] **AppBar title consistency audit**: screen AppBars now rely on `AppTheme` title styling; no per-screen `titleTextStyle` overrides remain
 - [x] **GoRouter page transitions**: add `CustomTransitionPage` with fade (280ms easeOut) for shell routes
 - [x] **Calendar icon in home header**: wire to `/history` or remove
 - [-] **Migrate `localized()` calls to ARB**: Home/P3 strings were migrated, but app-wide migration is still incomplete; `localized()` helper and many inline bilingual strings remain

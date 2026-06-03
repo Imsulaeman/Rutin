@@ -268,7 +268,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final weekday = DateTime.now().weekday;
     final todayHabits = _habitRepo
         .getAll()
-        .where((habit) => habit.scheduleDays.contains(weekday))
+        .where(
+          (habit) =>
+              habit.scheduleDays.isEmpty ||
+              habit.scheduleDays.contains(weekday),
+        )
         .toList();
 
     final groupBox = Hive.box<HabitGroup>('habit_groups');

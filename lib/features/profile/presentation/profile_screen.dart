@@ -76,34 +76,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             sliver: SliverList.list(
               children: [
-                _MedalCard(
-                  title: context.l10n.medalWaterTitle,
-                  description: context.l10n.medalWaterDesc,
-                  icon: Icons.water_drop_rounded,
-                  color: AppTheme.waterColor,
-                  pr: MedalService.getPr('water'),
-                  current: MedalService.waterStreak(),
-                  bestDate: MedalService.getBestDate('water'),
-                ),
-                const SizedBox(height: 10),
-                _MedalCard(
-                  title: context.l10n.medalMedicineTitle,
-                  description: context.l10n.medalMedicineDesc,
-                  icon: Icons.medication_rounded,
-                  color: AppTheme.medicineColor,
-                  pr: MedalService.getPr('medicine'),
-                  current: MedalService.medicineStreak(),
-                  bestDate: MedalService.getBestDate('medicine'),
-                ),
-                const SizedBox(height: 10),
-                _MedalCard(
-                  title: context.l10n.medalHabitTitle,
-                  description: context.l10n.medalHabitDesc,
-                  icon: Icons.auto_awesome_rounded,
-                  color: AppTheme.habitsColor,
-                  pr: MedalService.getPr('habit'),
-                  current: MedalService.habitStreak(),
-                  bestDate: MedalService.getBestDate('habit'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MedalCard(
+                        title: context.l10n.medalWaterTitle,
+                        description: context.l10n.medalWaterDesc,
+                        icon: Icons.water_drop_rounded,
+                        color: AppTheme.waterColor,
+                        pr: MedalService.getPr('water'),
+                        current: MedalService.waterStreak(),
+                        bestDate: MedalService.getBestDate('water'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MedalCard(
+                        title: context.l10n.medalMedicineTitle,
+                        description: context.l10n.medalMedicineDesc,
+                        icon: Icons.medication_rounded,
+                        color: AppTheme.medicineColor,
+                        pr: MedalService.getPr('medicine'),
+                        current: MedalService.medicineStreak(),
+                        bestDate: MedalService.getBestDate('medicine'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _MedalCard(
+                        title: context.l10n.medalHabitTitle,
+                        description: context.l10n.medalHabitDesc,
+                        icon: Icons.auto_awesome_rounded,
+                        color: AppTheme.habitsColor,
+                        pr: MedalService.getPr('habit'),
+                        current: MedalService.habitStreak(),
+                        bestDate: MedalService.getBestDate('habit'),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
               ],
@@ -333,9 +343,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 20),
             Text(
               context.l10n.medals,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 2),
             Text(
@@ -386,12 +396,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 5,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                      ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 5,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                  ),
                   itemCount: 10,
                   itemBuilder: (_, index) => GestureDetector(
                     onTap: () => setSheetState(() => _editAvatarId = index),
@@ -504,121 +513,79 @@ class _MedalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasData = pr > 0;
-    final textColor = hasData ? Colors.white : AppTheme.muted;
-    final accentColor = hasData ? color : AppTheme.muted;
-
     return GestureDetector(
       onTap: () => _showDetail(context),
       child: Container(
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: AppTheme.surfaceDark,
           borderRadius: BorderRadius.circular(16),
-          border: Border(
-            left: BorderSide(color: accentColor, width: 3),
-            top: BorderSide(color: AppTheme.border),
-            right: BorderSide(color: AppTheme.border),
-            bottom: BorderSide(color: AppTheme.border),
-          ),
+          border: Border.all(color: AppTheme.border),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icon
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: accentColor, size: 20),
-            ),
-            const SizedBox(width: 14),
-            // Title + current streak
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  if (hasData)
-                    Text(
-                      context.l10n.medalCurrentCount(current),
-                      style: TextStyle(
-                        color: accentColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Column(
+            children: [
+              Container(height: 4, color: color),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(icon, color: color, size: 16),
                       ),
-                    )
-                  else
-                    Text(
-                      context.l10n.medalStartStreak,
-                      style: const TextStyle(
-                        color: AppTheme.muted,
-                        fontSize: 12,
+                      const SizedBox(height: 8),
+                      Text(
+                        '$pr',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        ),
                       ),
-                    ),
-                ],
+                      const SizedBox(height: 1),
+                      Text(
+                        context.l10n.days,
+                        style: const TextStyle(
+                          color: AppTheme.muted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            // PR block
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (hasData) ...[
-                  Text(
-                    '$pr',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                    ),
-                  ),
-                  Text(
-                    context.l10n.days,
-                    style: const TextStyle(
-                      color: AppTheme.muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    context.l10n.medalPersonalBest,
-                    style: const TextStyle(
-                      color: AppTheme.muted,
-                      fontSize: 10,
-                    ),
-                  ),
-                ] else
-                  Text(
-                    context.l10n.medalNoBestYet,
-                    style: const TextStyle(
-                      color: AppTheme.muted,
-                      fontSize: 12,
-                    ),
-                  ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _showDetail(BuildContext context) {
-    final hasData = pr > 0;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surfaceDark,
@@ -659,29 +626,23 @@ class _MedalCard extends StatelessWidget {
               style: const TextStyle(color: AppTheme.muted, fontSize: 14),
             ),
             const SizedBox(height: 20),
-            if (hasData) ...[
-              _DetailRow(
-                label: context.l10n.medalPersonalBest,
-                value: '$pr ${context.l10n.days}',
-                valueColor: color,
-              ),
+            _DetailRow(
+              label: context.l10n.medalPersonalBest,
+              value: '$pr ${context.l10n.days}',
+              valueColor: color,
+            ),
+            const SizedBox(height: 10),
+            _DetailRow(
+              label: context.l10n.streak(current),
+              value: context.l10n.medalCurrentCount(current),
+            ),
+            if (bestDate != null) ...[
               const SizedBox(height: 10),
               _DetailRow(
-                label: context.l10n.streak(current),
-                value: context.l10n.medalCurrentCount(current),
+                label: context.l10n.medalBestAchieved(bestDate!),
+                value: '',
               ),
-              if (bestDate != null) ...[
-                const SizedBox(height: 10),
-                _DetailRow(
-                  label: context.l10n.medalBestAchieved(bestDate!),
-                  value: '',
-                ),
-              ],
-            ] else
-              Text(
-                context.l10n.medalStartStreak,
-                style: const TextStyle(color: AppTheme.muted, fontSize: 14),
-              ),
+            ],
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -712,7 +673,10 @@ class _DetailRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: AppTheme.muted, fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+        ),
         if (value.isNotEmpty)
           Text(
             value,

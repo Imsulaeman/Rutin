@@ -189,10 +189,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             ..colorValue = 0
             ..sortIndex = _repo.habitsInGroup(_selectedGroupId).length);
       final reminderTimes = _reminderTimes.toSet().toList()..sort();
+      final scheduleDays = _selectedDays.length == 7
+          ? <int>[]
+          : (_selectedDays.toList()..sort());
       habit
         ..name = _nameController.text.trim()
         ..emoji = _emoji
-        ..scheduleDays = (_selectedDays.toList()..sort())
+        ..scheduleDays = scheduleDays
         ..groupId = _selectedGroupId
         ..reminderTimes = reminderTimes
         ..reminderMinutes = reminderTimes.isNotEmpty
@@ -226,9 +229,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     final dayLabels = localizedWeekdayShortLabels(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _isEdit ? context.l10n.editHabit : context.l10n.addHabit,
-        ),
+        title: Text(_isEdit ? context.l10n.editHabit : context.l10n.addHabit),
       ),
       body: Form(
         key: _formKey,
@@ -419,9 +420,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             const SizedBox(height: 40),
             FilledButton(
               onPressed: _saving ? null : _save,
-              child: Text(
-                _saving ? context.l10n.saving : context.l10n.save,
-              ),
+              child: Text(_saving ? context.l10n.saving : context.l10n.save),
             ),
           ],
         ),

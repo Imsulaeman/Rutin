@@ -169,7 +169,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                   const Spacer(),
                   Text(
                     context.l10n.water,
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).appBarTheme.titleTextStyle,
                   ),
                   const Spacer(),
                   IconButton(

@@ -271,11 +271,9 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                                 child: Text(
                                   context.l10n.medicine,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                                  style: Theme.of(
+                                    context,
+                                  ).appBarTheme.titleTextStyle,
                                 ),
                               ),
                               _HeaderButton(
@@ -315,7 +313,8 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                           child: _SwipeMedicine(
                             key: ValueKey('med_${medicine.id}'),
                             medicine: medicine,
-                            onDeleteConfirmed: () => _executeDelete(repo, medicine),
+                            onDeleteConfirmed: () =>
+                                _executeDelete(repo, medicine),
                             onDismissedRefresh: () async {
                               await _refreshReminderDebug(repo, force: true);
                               if (mounted) setState(() {});

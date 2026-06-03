@@ -120,6 +120,16 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 ---
 
 **2026-06-03 - Codex**
+- **Habit schedule UX + compact medal polish shipped**:
+  - Habit cards now show a schedule label (`Every day` / localized weekday list) when streak is still 0 instead of the generic `Start today`.
+  - Off-day habit interactions stay tappable but no longer mark progress: single-check controls go muted gray, multi-target dots stay muted, and taps show a localized `Not scheduled today` snackbar.
+  - Profile medals are now 3 compact equal-width cards in one row with top accent borders, always-on feature colors, PR starting at `0`, and the same tap-for-detail bottom sheet flow.
+  - AppBar title audit completed: screen AppBars rely on the shared `AppTheme` DM Sans title style; no per-screen `titleTextStyle` overrides were needed.
+- **Verified later in this turn via focused analysis + l10n generation.**
+
+---
+
+**2026-06-03 - Codex**
 - **Habit reminder delivery + off-day fix shipped**:
   - native habit alarms now use `AlarmManager.setAlarmClock(...)` instead of `setExactAndAllowWhileIdle(...)` to improve visibility on OEM skins when the screen is already on
   - habit reminder scheduling now carries `scheduleDays` through Dart → MethodChannel → `HabitAlarmReceiver`, so off-day reminders are skipped instead of notifying every day

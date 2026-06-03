@@ -219,6 +219,8 @@
   "partial": "Sebagian",
   "offDay": "Libur",
   "startToday": "Mulai hari ini",
+  "everyDay": "Setiap hari",
+  "notScheduledToday": "Tidak dijadwalkan hari ini",
   "days": "hari",
   "date": "Tanggal",
   "status": "Status",

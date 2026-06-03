@@ -944,6 +944,18 @@ abstract class AppLocalizations {
   /// **'Start today'**
   String get startToday;
 
+  /// No description provided for @everyDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get everyDay;
+
+  /// No description provided for @notScheduledToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Not scheduled today'**
+  String get notScheduledToday;
+
   /// No description provided for @days.
   ///
   /// In en, this message translates to:

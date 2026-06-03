@@ -219,6 +219,8 @@
   "partial": "Partial",
   "offDay": "Off day",
   "startToday": "Start today",
+  "everyDay": "Every day",
+  "notScheduledToday": "Not scheduled today",
   "days": "days",
   "date": "Date",
   "status": "Status",

@@ -26,6 +26,7 @@ class HabitCard extends StatelessWidget {
     super.key,
     required this.habit,
     required this.isDone,
+    required this.isScheduledToday,
     required this.streak,
     required this.onTap,
     this.onMoreTap,
@@ -33,6 +34,7 @@ class HabitCard extends StatelessWidget {
 
   final Habit habit;
   final bool isDone;
+  final bool isScheduledToday;
   final int streak;
   final VoidCallback onTap;
   final VoidCallback? onMoreTap;
@@ -43,6 +45,7 @@ class HabitCard extends StatelessWidget {
     final repo = HabitRepository();
     final target = repo.dailyTarget(habit);
     final completions = repo.completionsToday(habit.id).clamp(0, target);
+    final scheduleLabel = _scheduleLabel(context);
     return Card(
       color: isDone
           ? AppTheme.habitsColor.withValues(alpha: 0.12)
@@ -57,7 +60,7 @@ class HabitCard extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: target == 1 ? onTap : null,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           child: Row(
@@ -109,7 +112,12 @@ class HabitCard extends StatelessWidget {
                       _CompletionDots(
                         target: target,
                         completions: completions,
+                        enabled: isScheduledToday,
                         onTap: (index) async {
+                          if (!isScheduledToday) {
+                            onTap();
+                            return;
+                          }
                           final next = index + 1 == completions
                               ? index
                               : index + 1;
@@ -126,7 +134,7 @@ class HabitCard extends StatelessWidget {
                     ],
                     if (streak == 0)
                       Text(
-                        context.l10n.startToday,
+                        scheduleLabel,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),
@@ -161,7 +169,11 @@ class HabitCard extends StatelessWidget {
                       ? Icons.check_circle_rounded
                       : Icons.radio_button_unchecked,
                   size: 24,
-                  color: isDone ? AppTheme.habitsColor : cs.outlineVariant,
+                  color: isDone
+                      ? AppTheme.habitsColor
+                      : isScheduledToday
+                      ? cs.outlineVariant
+                      : AppTheme.muted,
                 ),
               ],
             ],
@@ -169,6 +181,18 @@ class HabitCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _scheduleLabel(BuildContext context) {
+    if (habit.scheduleDays.isEmpty) {
+      return context.l10n.everyDay;
+    }
+    final labels = localizedWeekdayShortLabels(context);
+    final sortedDays = [...habit.scheduleDays]..sort();
+    return sortedDays
+        .where((day) => day >= 1 && day <= 7)
+        .map((day) => labels[day - 1])
+        .join(', ');
   }
 
   static String _fmtTime(int minutes) {
@@ -182,11 +206,13 @@ class _CompletionDots extends StatelessWidget {
   const _CompletionDots({
     required this.target,
     required this.completions,
+    required this.enabled,
     required this.onTap,
   });
 
   final int target;
   final int completions;
+  final bool enabled;
   final Future<void> Function(int index) onTap;
 
   @override
@@ -211,7 +237,9 @@ class _CompletionDots extends StatelessWidget {
                   border: Border.all(
                     color: i < completions
                         ? AppTheme.habitsColor
-                        : AppTheme.muted,
+                        : enabled
+                        ? AppTheme.muted
+                        : AppTheme.border,
                   ),
                 ),
                 child: i < completions
