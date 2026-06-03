@@ -94,6 +94,7 @@
         </service>
         <service
             android:name=".RutinAccessibilityService"
+            android:description="@string/accessibility_service_description"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>

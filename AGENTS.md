@@ -118,6 +118,17 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 
 ---
 
+**2026-06-03 - Codex**
+- **P4 compliance + test batch shipped**:
+  - Added focused repository tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`.
+  - Removed medicine and habit names from Firebase Analytics event params so no medication names or other user-entered labels are sent.
+  - Added `android:description` to `RutinAccessibilityService` with a narrow Morning Gate use case for Play Store review.
+  - Kept `medals` lazy-open deferred for now because Profile and Habits still read that box directly on normal app startup; forcing it now would risk a regression.
+- **Sleep settings status refresh softened**: returning from Android settings now re-checks sleep permission statuses immediately and once more after a short delay to reduce cases where the UI only updates after a restart.
+- **Verified:** `flutter test test/habit_repository_test.dart test/medicine_repository_test.dart`, focused `dart analyze`, and `gradlew app:compileDebugKotlin --no-daemon` passed.
+
+---
+
 **2026-06-02 - Claude**
 - **Play Store prep in progress — paused at account verification**:
   - Studio name: **Benih Studio** (chosen over personal name)

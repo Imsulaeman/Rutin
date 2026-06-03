@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -19,24 +21,26 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
   late SleepSettings _settings;
   bool _accessibilityGranted = false;
   bool _batteryOptimizationIgnored = false;
+  Timer? _statusRetryTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _settings = _loadOrCreate();
-    _refreshStatuses();
+    _scheduleStatusRefresh();
   }
 
   @override
   void dispose() {
+    _statusRetryTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refreshStatuses();
+    if (state == AppLifecycleState.resumed) _scheduleStatusRefresh();
   }
 
   SleepSettings _loadOrCreate() {
@@ -69,6 +73,14 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
         });
       }
     } catch (_) {}
+  }
+
+  void _scheduleStatusRefresh() {
+    _statusRetryTimer?.cancel();
+    _refreshStatuses();
+    _statusRetryTimer = Timer(const Duration(milliseconds: 900), () {
+      if (mounted) _refreshStatuses();
+    });
   }
 
   void _saveNative() {
@@ -302,7 +314,12 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.battery_saver_rounded),
+                leading: Icon(
+                  _batteryOptimizationIgnored
+                      ? Icons.check_circle_rounded
+                      : Icons.warning_amber_rounded,
+                  color: _batteryOptimizationIgnored ? Colors.green : cs.error,
+                ),
                 title: Text(context.l10n.batteryOptimization),
                 subtitle: Text(
                   _batteryOptimizationIgnored
@@ -313,8 +330,8 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                         )
                       : localized(
                           context,
-                          id: 'Belum diizinkan berjalan di latar belakang',
-                          en: 'Background access is not allowed yet',
+                          id: 'Belum terkonfirmasi. Di beberapa HP, status ini bisa tetap tidak berubah walaupun izin latar belakang sudah diaktifkan.',
+                          en: 'Not confirmed yet. On some phones this status may stay unchanged even after background access is enabled.',
                         ),
                 ),
                 trailing: TextButton(

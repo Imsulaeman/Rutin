@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Keeps the Morning Gate on screen after wake-up so the user finishes the sleep-mode check before leaving the app.</string>
+</resources>

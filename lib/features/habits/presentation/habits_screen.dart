@@ -114,7 +114,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
       return;
     }
     await _repo.markDone(habit.id);
-    AnalyticsService.habitCompleted(habit.name);
+    AnalyticsService.habitCompleted();
     HapticsService.success();
     _updateMedal(habit);
     setState(() {});

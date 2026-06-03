@@ -177,7 +177,7 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
       HapticsService.tap();
     }
     await repo.setTaken(dose.medicine.id, dose.scheduled, taken);
-    if (taken) AnalyticsService.medicineTaken(dose.medicine.name);
+    if (taken) AnalyticsService.medicineTaken();
     if (mounted) setState(() {});
   }
 

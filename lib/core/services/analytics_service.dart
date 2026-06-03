@@ -4,8 +4,7 @@ class AnalyticsService {
   static final _a = FirebaseAnalytics.instance;
 
   // Medicine
-  static Future<void> medicineTaken(String name) =>
-      _log('medicine_taken', {'medicine': name});
+  static Future<void> medicineTaken() => _log('medicine_taken');
 
   static Future<void> medicineAdded() => _log('medicine_added');
 
@@ -14,8 +13,7 @@ class AnalyticsService {
   static Future<void> medicineDeleted() => _log('medicine_deleted');
 
   // Habits
-  static Future<void> habitCompleted(String name) =>
-      _log('habit_completed', {'habit': name});
+  static Future<void> habitCompleted() => _log('habit_completed');
 
   static Future<void> habitAdded() => _log('habit_added');
 

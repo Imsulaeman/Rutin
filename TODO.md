@@ -229,9 +229,9 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] **Ambient sun easing**: apply `CurvedAnimation(curve: Curves.easeInOut)` to `_ambient` controller to smooth sine reversal
 
 ### P4 — Backlog
-- [ ] **Unit tests**: add tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`
-- [ ] **Play Store**: add Accessibility Service `android:description` in manifest narrowing use case
-- [ ] **Play Store**: audit Firebase Analytics event params — confirm no PII or medication names sent
+- [x] **Unit tests**: add tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`
+- [x] **Play Store**: add Accessibility Service `android:description` in manifest narrowing use case
+- [x] **Play Store**: audit Firebase Analytics event params — confirm no PII or medication names sent
 - [ ] **Lazy Hive box opening**: open non-critical boxes (`medals`, `morning_streaks`) after first frame via `addPostFrameCallback`
 
 ## Phase 2
