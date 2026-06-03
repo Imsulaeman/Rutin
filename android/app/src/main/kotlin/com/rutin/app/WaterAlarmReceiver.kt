@@ -22,10 +22,12 @@ class WaterAlarmReceiver : BroadcastReceiver() {
             val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val pi = buildPendingIntent(context)
             val triggerAt = System.currentTimeMillis() + delayMs
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-            } else {
-                am.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms() ->
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ->
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                else -> am.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi)
             }
         }
 

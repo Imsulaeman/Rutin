@@ -47,12 +47,20 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkPendingLogs();
+    if (state == AppLifecycleState.resumed) {
+      _checkPendingLogs();
+      _rearmIfActive();
+    }
   }
 
   void _load() {
     _goal = _repo.getGoal();
     setState(() => _currentMl = _repo.getTodayMl());
+  }
+
+  // Re-arm the alarm on foreground resume in case Android killed the chain.
+  void _rearmIfActive() {
+    if (_goal.reminderActive) WaterReminderService.schedule(_goal);
   }
 
   // Each pending native reminder the user confirmed = one glass.
