@@ -129,8 +129,8 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
         content: Text(
           localized(
             dialogContext,
-            id: 'Rutin perlu dikecualikan dari optimasi baterai agar alarm obat, air, dan Mode Tidur tetap muncul tepat waktu.',
-            en: 'Rutin needs a battery-optimization exemption so medicine alarms, water reminders, and Sleep Mode can still appear on time.',
+            id: 'Rutin perlu diizinkan berjalan di latar agar alarm obat, pengingat air, dan Mode Tidur tetap muncul tepat waktu.\n\nSetelah halaman Pengaturan Aplikasi Rutin terbuka, masuk ke Baterai lalu matikan optimasi baterai atau izinkan aktivitas latar belakang.',
+            en: 'Rutin needs background access so medicine alarms, water reminders, and Sleep Mode can still appear on time.\n\nAfter the Rutin app settings page opens, go to Battery, then turn off battery optimization or allow background activity.',
           ),
         ),
         actions: [
@@ -147,6 +147,10 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
     );
 
     if (confirmed == true) {
+      // Let the dialog route finish closing before we hand off to Android
+      // settings, otherwise some devices swallow the jump.
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      if (!mounted) return;
       await _ch.invokeMethod('openBatteryOptimization');
     }
   }

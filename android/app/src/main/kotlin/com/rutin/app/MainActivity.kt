@@ -228,6 +228,14 @@ class MainActivity : FlutterActivity() {
         runCatching { startActivity(intent) }
     }
 
+    private fun openBatteryOptimizationSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:$packageName")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        runCatching { startActivity(intent) }
+    }
+
     private fun vibrator(): Vibrator? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
@@ -302,11 +310,7 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "openBatteryOptimization" -> {
-                        val intent = Intent(
-                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                            Uri.parse("package:$packageName")
-                        ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-                        runCatching { startActivity(intent) }
+                        openBatteryOptimizationSettings()
                         result.success(null)
                     }
                     "saveSleepSettings" -> {
