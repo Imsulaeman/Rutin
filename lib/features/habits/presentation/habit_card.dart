@@ -6,18 +6,6 @@ import '../../../l10n/l10n.dart';
 import '../data/habit_model.dart';
 import '../data/habit_repository.dart';
 
-/// Returns the nearest upcoming reminder time for [habit] today.
-/// Falls back to the smallest time (tomorrow's first reminder) if all passed.
-int? nearestReminderMinutes(Habit habit) {
-  final times = habit.reminderTimes.isNotEmpty
-      ? List<int>.from(habit.reminderTimes)
-      : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : <int>[]);
-  if (times.isEmpty) return null;
-  times.sort();
-  final nowMin = DateTime.now().hour * 60 + DateTime.now().minute;
-  final upcoming = times.where((t) => t > nowMin).toList();
-  return upcoming.isNotEmpty ? upcoming.first : times.first;
-}
 
 class HabitCard extends StatelessWidget {
   const HabitCard({
@@ -112,25 +100,45 @@ class HabitCard extends StatelessWidget {
                         color: cs.onSurfaceVariant,
                       ),
                     ),
-                    if (nearestReminderMinutes(habit) != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.alarm_rounded,
-                            size: 11,
-                            color: cs.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _fmtTime(nearestReminderMinutes(habit)!),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: cs.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ],
+                    Builder(builder: (context) {
+                      final times = habit.reminderTimes.isNotEmpty
+                          ? (List<int>.from(habit.reminderTimes)..sort())
+                          : (habit.reminderMinutes != null
+                              ? [habit.reminderMinutes!]
+                              : <int>[]);
+                      if (times.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.alarm_rounded,
+                              size: 11,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 2,
+                                children: times
+                                    .map((t) => Text(
+                                          _fmtTime(t),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: cs.onSurfaceVariant,
+                                              ),
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                     if (target > 0) ...[
                       const SizedBox(height: 6),
                       _CompletionDots(

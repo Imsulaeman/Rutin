@@ -82,6 +82,10 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] RECEIVE_BOOT_COMPLETED reschedule
 - [x] Medicine streaks
 
+## Bug Fixes
+- [x] Water reminder not firing next day — last alarm of window now re-arms for tomorrow's startMin
+- [x] Habit card shows all reminder times (Wrap) instead of only the nearest upcoming one
+
 ## Feature: Water Reminder
 - [x] WaterGoal + WaterLog data models
 - [x] WaterRepository

@@ -63,8 +63,20 @@ class WaterAlarmReceiver : BroadcastReceiver() {
 
         // Reschedule
         val nextMin = nowMin + (intervalMs / 60_000L).toInt()
-        if (debug || nextMin <= endMin) {
-            schedule(context, intervalMs)
+        when {
+            debug || nextMin <= endMin -> schedule(context, intervalMs)
+            else -> {
+                // Last reminder of the day — re-arm for tomorrow's start of window
+                val next = java.util.Calendar.getInstance().apply {
+                    add(java.util.Calendar.DAY_OF_YEAR, 1)
+                    set(java.util.Calendar.HOUR_OF_DAY, startMin / 60)
+                    set(java.util.Calendar.MINUTE, startMin % 60)
+                    set(java.util.Calendar.SECOND, 0)
+                    set(java.util.Calendar.MILLISECOND, 0)
+                }
+                val delayMs = (next.timeInMillis - System.currentTimeMillis()).coerceAtLeast(60_000L)
+                schedule(context, delayMs)
+            }
         }
     }
 
