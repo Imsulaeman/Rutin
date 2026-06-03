@@ -141,7 +141,8 @@ class MainActivity : FlutterActivity() {
                         val notifId = call.argument<Int>("notifId") ?: 0
                         val triggerMs = (call.argument<Any>("triggerMs") as? Number)?.toLong() ?: 0L
                         val title = call.argument<String>("title") ?: ""
-                        HabitAlarmReceiver.schedule(applicationContext, notifId, triggerMs, title)
+                        val scheduleDays = call.argument<List<Int>>("scheduleDays") ?: emptyList()
+                        HabitAlarmReceiver.schedule(applicationContext, notifId, triggerMs, title, scheduleDays)
                         result.success(null)
                     }
                     "cancelHabitAlarm" -> {

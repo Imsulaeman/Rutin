@@ -19,6 +19,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Drag habit onto another habit to create a new stack
 - [x] Move habit reminder time to the right side, Obat-style placement
 - [x] Keep habit reminder pill aligned with Habits theme instead of copying Obat pink literally
+- [x] Habit alarm uses `setAlarmClock` and respects `scheduleDays` (no alerts on off-days)
 - [x] Rewrite Connect the Dots → Flow Free style (grid, colored pairs, fill all cells) — spec in AGENTS.md
 - [x] Habit calendar visual — full cell background colors instead of tiny dots
 - [x] Compact habit cards (reduce padding, merge streak into name row)
@@ -225,7 +226,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 ### P3 — Polish
 - [x] **GoRouter page transitions**: add `CustomTransitionPage` with fade (280ms easeOut) for shell routes
 - [x] **Calendar icon in home header**: wire to `/history` or remove
-- [x] **Migrate `localized()` calls to ARB**: 225 calls across 19 files migrated; `localized()` helper deleted from l10n.dart; 0 remaining calls; `flutter analyze` clean
+- [-] **Migrate `localized()` calls to ARB**: Home/P3 strings were migrated, but app-wide migration is still incomplete; `localized()` helper and many inline bilingual strings remain
 - [x] **Ambient sun easing**: apply `CurvedAnimation(curve: Curves.easeInOut)` to `_ambient` controller to smooth sine reversal
 
 ### P4 — Backlog

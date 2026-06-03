@@ -24,27 +24,41 @@ class HabitReminderService {
       ? habit.reminderTimes
       : (habit.reminderMinutes != null ? [habit.reminderMinutes!] : <int>[]);
 
-  static int _nextTriggerMs(int minutes) {
+  static int _nextTriggerMs(int minutes, List<int> scheduleDays) {
     final now = DateTime.now();
-    var scheduled = DateTime(
-      now.year,
-      now.month,
-      now.day,
+    for (var offset = 0; offset < 8; offset++) {
+      final day = now.add(Duration(days: offset));
+      if (scheduleDays.isNotEmpty && !scheduleDays.contains(day.weekday)) {
+        continue;
+      }
+      final scheduled = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        minutes ~/ 60,
+        minutes % 60,
+      );
+      if (scheduled.isAfter(now)) {
+        return scheduled.millisecondsSinceEpoch;
+      }
+    }
+    final fallback = now.add(const Duration(days: 1));
+    return DateTime(
+      fallback.year,
+      fallback.month,
+      fallback.day,
       minutes ~/ 60,
       minutes % 60,
-    );
-    if (!scheduled.isAfter(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
-    }
-    return scheduled.millisecondsSinceEpoch;
+    ).millisecondsSinceEpoch;
   }
 
   static Future<void> scheduleAll(Habit habit) async {
     for (final minutes in _times(habit)) {
       await _channel.invokeMethod('scheduleHabitAlarm', {
         'notifId': _alarmId(habit.id, minutes),
-        'triggerMs': _nextTriggerMs(minutes),
+        'triggerMs': _nextTriggerMs(minutes, habit.scheduleDays),
         'title': '${habit.emoji} ${habit.name}',
+        'scheduleDays': habit.scheduleDays,
       });
     }
   }

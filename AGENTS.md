@@ -120,6 +120,15 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 ---
 
 **2026-06-03 - Codex**
+- **Habit reminder delivery + off-day fix shipped**:
+  - native habit alarms now use `AlarmManager.setAlarmClock(...)` instead of `setExactAndAllowWhileIdle(...)` to improve visibility on OEM skins when the screen is already on
+  - habit reminder scheduling now carries `scheduleDays` through Dart → MethodChannel → `HabitAlarmReceiver`, so off-day reminders are skipped instead of notifying every day
+  - reboot restore now rehydrates both the title and `scheduleDays`, so restored habit alarms keep the same weekday rules after restart
+- **Verified:** `dart analyze lib/features/habits/presentation/habit_reminder_service.dart` passed, and isolated native compile `gradlew app:compileDebugKotlin -x app:compileFlutterBuildDebug --no-daemon` passed. Full debug packaging was not re-run because the machine hit memory pressure in the Flutter build step, not in Kotlin compilation.
+
+---
+
+**2026-06-03 - Codex**
 - **P4 compliance + test batch shipped**:
   - Added focused repository tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`.
   - Removed medicine and habit names from Firebase Analytics event params so no medication names or other user-entered labels are sent.
@@ -3228,3 +3237,301 @@ medalNoBestYet                   → "No record yet" / "Belum ada rekor"
 - Tapping each card opens correct bottom sheet
 - "Turn into medal" no longer appears in habits screen
 - `flutter analyze` clean
+
+---
+
+## Spec: Polish Pass — Titles, Habit Schedule, Medal Compact Layout
+
+**Status:** Ready to implement
+
+---
+
+### 1. AppBar title consistency
+
+**Problem:** Each screen sets its own AppBar font/size/weight. Some use `foregroundColor: Colors.white` + no title style (inherits theme), others set inline `TextStyle` overrides, some have `centerTitle: true`, others don't.
+
+**Fix:** All AppBars inherit `AppBarTheme.titleTextStyle` from `AppTheme.dark()` which is already set to `GoogleFonts.dmSans(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)`. Remove any per-screen `titleTextStyle` override on `AppBar`. Do not touch `backgroundColor`, `foregroundColor`, or `systemOverlayStyle` — only remove `titleTextStyle` overrides.
+
+**Files to audit and fix:**
+- `medicine_list_screen.dart` — custom header row (no AppBar), skip
+- `medicine_history_screen.dart` — `AppBar` with `foregroundColor: Colors.white`, no title style override → already OK, verify
+- `add_medicine_screen.dart` — same, verify
+- `habit_history_screen.dart` — verify
+- `history_screen.dart` — verify
+- `habits_screen.dart` — `centerTitle: true`, verify font inherits
+- `settings_screen.dart` — `SliverAppBar`, verify
+- `sleep_settings_screen.dart` — verify
+- `treatment_detail_screen.dart` — verify
+- `treatment_onboarding_screen.dart` — verify
+- `wakeup_game_screen.dart` — verify (if it has AppBar)
+- `home_screen.dart` — verify
+
+**Rule:** `centerTitle` — keep as-is per screen. Only standardize the font.
+
+---
+
+### 2. Habit card: show schedule instead of "Start today"
+
+**Replace** the `context.l10n.startToday` text in `habit_card.dart` with a schedule label. Show it whenever streak == 0 (including non-scheduled days).
+
+**Schedule label logic:**
+```dart
+String _scheduleLabel(BuildContext context, Habit habit) {
+  if (habit.scheduleDays.isEmpty || habit.scheduleDays.length == 7) {
+    return context.l10n.everyDay;          // "Every day" / "Setiap hari"
+  }
+  final labels = localizedWeekdayShortLabels(context); // [Mon,Tue,...,Sun]
+  final sorted = habit.scheduleDays.toList()..sort();  // 1=Mon..7=Sun
+  return sorted.map((d) => labels[d - 1]).join(', ');
+}
+```
+
+Show as `bodySmall` in `cs.onSurfaceVariant`. Show when `streak == 0`.
+
+**New ARB keys:**
+```
+everyDay → "Every day" / "Setiap hari"
+notScheduledToday → "Not scheduled today" / "Tidak terjadwal hari ini"
+```
+
+---
+
+### 3. Non-scheduled day behavior in HabitCard
+
+Add `isScheduledToday` bool param to `HabitCard`. Default: `true`.
+
+```dart
+// Caller computes:
+final isScheduledToday = habit.scheduleDays.isEmpty ||
+    habit.scheduleDays.contains(DateTime.now().weekday);
+```
+
+**When `!isScheduledToday`:**
+- Checkbox circle: `Icons.radio_button_unchecked` in `AppTheme.border` (very muted — not the usual `cs.outlineVariant`)
+- `onTap` on the card: still fires (caller handles the snackbar)
+- Schedule label shows in muted text (same as streak==0 path)
+- `isDone` cannot be true for an unscheduled day, so no conflict
+
+**In `habits_screen.dart` `_markDone`:**
+```dart
+Future<void> _markDone(Habit habit) async {
+  final isScheduledToday = habit.scheduleDays.isEmpty ||
+      habit.scheduleDays.contains(DateTime.now().weekday);
+  if (!isScheduledToday) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.notScheduledToday),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    return;
+  }
+  // ... existing logic
+}
+```
+
+**Pass to HabitCard everywhere it's constructed** — in `habits_screen.dart`, `home_screen.dart`, and anywhere else HabitCard appears.
+
+---
+
+### 4. Compact medal layout `[💧][💊][✨]`
+
+**Replace** the 3 stacked `_MedalCard` containers in `profile_screen.dart` with a single `Row` of 3 equal-width compact cards.
+
+**Layout per card:**
+```
+┌──────────┐
+│    💧    │  ← Icon, feature color, size 20
+│          │
+│    14    │  ← PR number, 22px bold, feature color
+│   days   │  ← "days" label, 11px, muted
+│          │
+│  Water   │  ← title, 11px, muted, centered
+│  Intake  │
+└──────────┘
+```
+
+- Fixed height: ~108px
+- Top accent border: 3px, feature color (top edge only)
+- Background: `AppTheme.surfaceDark`
+- Side/bottom border: `AppTheme.border` 1px
+- Border radius: 14
+- Spacing between cards: 10px
+- Tap → same detail bottom sheet as before
+
+**Code structure:**
+```dart
+Row(
+  children: [
+    Expanded(child: _CompactMedalCard(key: 'water', ...)),
+    const SizedBox(width: 10),
+    Expanded(child: _CompactMedalCard(key: 'medicine', ...)),
+    const SizedBox(width: 10),
+    Expanded(child: _CompactMedalCard(key: 'habit', ...)),
+  ],
+)
+```
+
+---
+
+### 5. Medal always visible, starts at 0
+
+**Remove all conditional graying.** Every medal shows in full feature color regardless of PR value.
+
+- PR == 0 → show "0" as the number (not "—", not blank, not "No record yet")
+- `medalStartStreak`, `medalNoBestYet` strings no longer used in cards (keep in ARB for bottom sheet only)
+- Bottom sheet when PR == 0: show "0 days" for personal best, "0 days" for current — no special empty state
+
+**PR and current grow together:**
+This is already how `MedalService` works — `checkHabit()` calls `_updatePr` which only writes when `streak > storedPr`. First day: current=1, PR becomes 1. They're equal while streak is unbroken. After break: current drops to 0, PR stays at 1. No code change needed for this logic — only the display change (remove graying).
+
+---
+
+### Verify checklist
+- All AppBar titles look the same size/weight across app
+- Habit card shows "Every day" or "Mon, Wed, Fri" when streak == 0
+- Habit card grays the checkbox circle on non-scheduled days
+- Tapping non-scheduled habit shows snackbar "Not scheduled today"
+- Profile shows 3 compact medal cards side by side
+- All 3 medal cards show in full color even with PR = 0
+- Tapping each compact card opens correct detail bottom sheet
+- `flutter analyze` clean
+
+---
+
+## Spec: Fix habit alarm — screen-on delivery + non-scheduled day notifications
+
+### Root cause summary
+
+**Bug 1 — Notification not visible when screen is on:**
+`HabitAlarmReceiver` uses `setExactAndAllowWhileIdle`. On Realme/OPPO (ColorOS), `IMPORTANCE_HIGH` notifications are suppressed as heads-up popups when the screen is on unless the per-app "Float notifications" setting is enabled by the user. The alarm fires, `onReceive` runs, `nm.notify()` is called — but the user never sees a popup. When screen is off, the notification appears on the lock screen and is visible.
+
+Fix: replace `setExactAndAllowWhileIdle` with `AlarmManager.setAlarmClock`. `setAlarmClock` is treated as a user-visible clock alarm by Android. It bypasses Doze throttling, OEM batching, and forces heads-up delivery regardless of screen state. Tradeoff: shows a small alarm clock icon in the status bar while the alarm is pending — acceptable for reminders.
+
+**Bug 2 — Alarm fires on non-scheduled days:**
+`HabitAlarmReceiver.onReceive` shows a notification every day. It does not check `habit.scheduleDays`. A habit set for "Mon, Wed, Fri" sends a notification every day of the week.
+
+Fix: pass `scheduleDays` as a comma-separated String extra in the `PendingIntent` (e.g. `"1,3,5"` for Mon/Wed/Fri, `""` for every day). In `onReceive`, check if today's weekday is in the set. If not, skip the notification but still reschedule for the next valid day.
+
+---
+
+### Changes in `HabitAlarmReceiver.kt`
+
+**1. Add scheduleDays extra**
+
+In `schedule()` companion function signature:
+```kotlin
+fun schedule(context: Context, notifId: Int, triggerMs: Long, title: String, scheduleDays: String = "")
+```
+
+In `pendingIntent()`:
+```kotlin
+val intent = Intent(context, HabitAlarmReceiver::class.java).apply {
+    putExtra(EXTRA_NOTIF_ID, notifId)
+    putExtra(EXTRA_TITLE, title)
+    putExtra(EXTRA_SCHEDULE_DAYS, scheduleDays)  // new: e.g. "1,3,5" or ""
+}
+```
+
+Add constant: `private const val EXTRA_SCHEDULE_DAYS = "schedule_days"`
+
+**2. Switch to `setAlarmClock`**
+
+Replace the current `setExactAndAllowWhileIdle` / `setExact` block:
+
+```kotlin
+fun schedule(context: Context, notifId: Int, triggerMs: Long, title: String, scheduleDays: String = "") {
+    val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val pi = pendingIntent(context, notifId, title, scheduleDays)
+    persist(context, notifId, title, scheduleDays)
+    val alarmInfo = AlarmManager.AlarmClockInfo(triggerMs, pi)
+    am.setAlarmClock(alarmInfo, pi)
+}
+```
+
+`setAlarmClock` is available from API 21 (our minSdk is higher). No version check needed.
+
+**3. In `onReceive`, check scheduleDays before notifying**
+
+```kotlin
+override fun onReceive(context: Context, intent: Intent) {
+    val notifId = intent.getIntExtra(EXTRA_NOTIF_ID, 0)
+    val title = intent.getStringExtra(EXTRA_TITLE) ?: return
+    val scheduleDays = intent.getStringExtra(EXTRA_SCHEDULE_DAYS) ?: ""
+
+    val todayWeekday = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK)
+    // Calendar.DAY_OF_WEEK: Sun=1,Mon=2,...,Sat=7
+    // Dart weekday: Mon=1,...,Sun=7 — convert:
+    val dartWeekday = if (todayWeekday == java.util.Calendar.SUNDAY) 7 else todayWeekday - 1
+
+    val scheduled = scheduleDays.isEmpty() ||
+        scheduleDays.split(",").mapNotNull { it.trim().toIntOrNull() }.contains(dartWeekday)
+
+    if (scheduled) {
+        showNotification(context, notifId, title)
+    }
+
+    // Always reschedule for tomorrow (alarm runs daily; scheduleDays check is at fire time)
+    schedule(context, notifId, nextTriggerMillis(notifId), title, scheduleDays)
+}
+```
+
+**4. Update `persist` to also save scheduleDays**
+
+```kotlin
+private const val KEY_DAYS_PREFIX = "habit_days_"
+
+private fun persist(context: Context, notifId: Int, title: String, scheduleDays: String) {
+    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+        .putString("$KEY_PREFIX$notifId", title)
+        .putString("$KEY_DAYS_PREFIX$notifId", scheduleDays)
+        .apply()
+}
+```
+
+**5. Update `rescheduleAll` to restore scheduleDays**
+
+```kotlin
+fun rescheduleAll(context: Context) {
+    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    for ((key, value) in prefs.all) {
+        if (!key.startsWith(KEY_PREFIX) || value !is String) continue
+        val notifId = key.removePrefix(KEY_PREFIX).toIntOrNull() ?: continue
+        val days = prefs.getString("$KEY_DAYS_PREFIX$notifId", "") ?: ""
+        schedule(context, notifId, nextTriggerMillis(notifId), value, days)
+    }
+}
+```
+
+---
+
+### Changes in `HabitReminderService.dart`
+
+Pass `scheduleDays` when scheduling:
+
+```dart
+static Future<void> scheduleAll(Habit habit) async {
+  final days = habit.scheduleDays.isEmpty
+      ? ''
+      : (habit.scheduleDays.toList()..sort()).join(',');
+  for (final minutes in _times(habit)) {
+    await _channel.invokeMethod('scheduleHabitAlarm', {
+      'notifId': _alarmId(habit.id, minutes),
+      'triggerMs': _nextTriggerMs(minutes),
+      'title': '${habit.emoji} ${habit.name}',
+      'scheduleDays': days,
+    });
+  }
+}
+```
+
+No change needed to `cancelAll`.
+
+---
+
+### Verify
+- Set a habit with 2 reminder times; both notifications show when screen is on
+- Set a habit for Mon/Wed/Fri; no notification fires on Tuesday
+- Set a habit for every day; notification fires every day
+- After reboot, `rescheduleAll` restores both reminders with correct scheduleDays
+- `flutter analyze` clean (no Dart changes other than adding the `scheduleDays` param)
