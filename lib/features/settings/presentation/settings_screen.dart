@@ -149,9 +149,19 @@ class _SettingsScreenState extends State<SettingsScreen>
     });
   }
 
+  Future<void> _previewSound(String value, String soundType) async {
+    try {
+      await _nativeCh.invokeMethod('previewReminderSound', {
+        'type': soundType,
+        'value': value,
+      });
+    } catch (_) {}
+  }
+
   Future<void> _pickSound({
     required String title,
     required String currentValue,
+    required String soundType,
     required Future<void> Function(String value) onSelected,
   }) async {
     final picked = await showModalBottomSheet<String>(
@@ -166,19 +176,21 @@ class _SettingsScreenState extends State<SettingsScreen>
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
-            RadioListTile<String>(
+            _SoundOption(
               value: 'app',
               groupValue: currentValue,
-              title: Text(context.l10n.appSound),
-              subtitle: Text(context.l10n.appSoundSubtitle),
+              title: context.l10n.appSound,
+              subtitle: context.l10n.appSoundSubtitle,
               onChanged: (value) => Navigator.pop(ctx, value),
+              onPreview: () => _previewSound('app', soundType),
             ),
-            RadioListTile<String>(
+            _SoundOption(
               value: 'system',
               groupValue: currentValue,
-              title: Text(context.l10n.phoneDefaultSound),
-              subtitle: Text(context.l10n.phoneDefaultSoundSubtitle),
+              title: context.l10n.phoneDefaultSound,
+              subtitle: context.l10n.phoneDefaultSoundSubtitle,
               onChanged: (value) => Navigator.pop(ctx, value),
+              onPreview: () => _previewSound('system', soundType),
             ),
             const SizedBox(height: 8),
           ],
@@ -323,6 +335,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         onTap: () => _pickSound(
                           title: context.l10n.notificationSound,
                           currentValue: _notificationSound,
+                          soundType: 'notification',
                           onSelected: (value) =>
                               _setSoundSettings(notificationSound: value),
                         ),
@@ -343,6 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         onTap: () => _pickSound(
                           title: context.l10n.medicineAlarmSound,
                           currentValue: _alarmSound,
+                          soundType: 'alarm',
                           onSelected: (value) =>
                               _setSoundSettings(alarmSound: value),
                         ),
@@ -414,6 +428,47 @@ class _SettingsScreenState extends State<SettingsScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SoundOption extends StatelessWidget {
+  const _SoundOption({
+    required this.value,
+    required this.groupValue,
+    required this.title,
+    required this.subtitle,
+    required this.onChanged,
+    required this.onPreview,
+  });
+
+  final String value;
+  final String groupValue;
+  final String title;
+  final String subtitle;
+  final ValueChanged<String?> onChanged;
+  final VoidCallback onPreview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: RadioListTile<String>(
+            value: value,
+            groupValue: groupValue,
+            title: Text(title),
+            subtitle: Text(subtitle),
+            onChanged: onChanged,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.play_circle_outline_rounded),
+          tooltip: 'Preview',
+          onPressed: onPreview,
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 }

@@ -747,10 +747,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get soundSection => 'SOUND';
 
   @override
-  String get appSound => 'App sound';
+  String get appSound => 'Rutin Drop';
 
   @override
-  String get appSoundSubtitle => 'Use the built-in Rutin sound';
+  String get appSoundSubtitle => 'Rutin\'s signature sound';
 
   @override
   String get phoneDefaultSound => 'Phone default sound';

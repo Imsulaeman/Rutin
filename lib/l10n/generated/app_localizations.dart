@@ -1475,13 +1475,13 @@ abstract class AppLocalizations {
   /// No description provided for @appSound.
   ///
   /// In en, this message translates to:
-  /// **'App sound'**
+  /// **'Rutin Drop'**
   String get appSound;
 
   /// No description provided for @appSoundSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Use the built-in Rutin sound'**
+  /// **'Rutin\'s signature sound'**
   String get appSoundSubtitle;
 
   /// No description provided for @phoneDefaultSound.

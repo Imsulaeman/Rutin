@@ -749,10 +749,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get soundSection => 'SUARA';
 
   @override
-  String get appSound => 'Suara aplikasi';
+  String get appSound => 'Rutin Drop';
 
   @override
-  String get appSoundSubtitle => 'Pakai suara bawaan Rutin';
+  String get appSoundSubtitle => 'Suara khas Rutin';
 
   @override
   String get phoneDefaultSound => 'Suara bawaan ponsel';

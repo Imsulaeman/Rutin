@@ -1,12 +1,17 @@
 package com.rutin.app
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
+import android.media.Ringtone
+import android.media.RingtoneManager
 import android.net.Uri
 import android.app.NotificationManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -21,10 +26,16 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private var bgMusic: MediaPlayer? = null
+        private var previewRingtone: Ringtone? = null
 
         fun stopBgMusic() {
             bgMusic?.runCatching { stop(); release() }
             bgMusic = null
+        }
+
+        fun stopPreview() {
+            previewRingtone?.stop()
+            previewRingtone = null
         }
     }
     private val channelName = "habit_app/native_reminder"
@@ -201,9 +212,30 @@ class MainActivity : FlutterActivity() {
                         stopBgMusic()
                         result.success(null)
                     }
+                    "previewReminderSound" -> {
+                        val type = call.argument<String>("type") ?: "notification"
+                        val value = call.argument<String>("value") ?: "app"
+                        previewReminderSound(type, value)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun previewReminderSound(type: String, value: String) {
+        stopPreview()
+        val uri: Uri = if (value == "system") {
+            if (type == "alarm") Settings.System.DEFAULT_RINGTONE_URI
+            else Settings.System.DEFAULT_NOTIFICATION_URI
+        } else {
+            val raw = if (type == "alarm") R.raw.ringtone else R.raw.notif_chime
+            Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/$raw")
+        } ?: return
+        val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
+        previewRingtone = ringtone
+        ringtone.play()
+        Handler(Looper.getMainLooper()).postDelayed({ stopPreview() }, 3000)
     }
 
     private fun canUseFullScreenIntent(): Boolean {
