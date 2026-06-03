@@ -120,6 +120,15 @@ Recent significant decisions and completions. Oldest entries pruned — see git 
 ---
 
 **2026-06-03 - Codex**
+- **Habit header localization + dashboard compaction shipped**:
+  - Habit tab summary header no longer mixes hardcoded strings; the `Done today` state and the streak-start helper now come from ARB/localization.
+  - Home dashboard medicine rows were tightened into a denser layout: medicine name on the left, dosage on the same top line at the right, then the reminder time row, then the circular checklist row.
+  - Home dashboard habit rows were also trimmed slightly to match the denser card rhythm without changing the approved structure.
+- **Verified:** `flutter gen-l10n` and focused `dart analyze` passed; only the existing `onReorder` deprecation info remains in `habits_screen.dart`.
+
+---
+
+**2026-06-03 - Codex**
 - **Habit schedule UX + compact medal polish shipped**:
   - Habit cards now show a schedule label (`Every day` / localized weekday list) when streak is still 0 instead of the generic `Start today`.
   - Off-day habit interactions stay tappable but no longer mark progress: single-check controls go muted gray, multi-target dots stay muted, and taps show a localized `Not scheduled today` snackbar.

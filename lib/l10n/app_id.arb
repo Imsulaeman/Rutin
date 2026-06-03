@@ -155,6 +155,7 @@
       "count": { "type": "int" }
     }
   },
+  "startStreakHint": "Centang kebiasaan untuk mulai streak.",
   "earnedOn": "Dicapai {date}",
   "@earnedOn": {
     "placeholders": {

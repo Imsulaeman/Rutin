@@ -6,8 +6,6 @@ import '../../../l10n/l10n.dart';
 import '../data/habit_model.dart';
 import '../data/habit_repository.dart';
 
-const _habitTimeGradient = [Color(0xFF9B6BFF), Color(0xFF7C3AED)];
-
 /// Returns the nearest upcoming reminder time for [habit] today.
 /// Falls back to the smallest time (tomorrow's first reminder) if all passed.
 int? nearestReminderMinutes(Habit habit) {
@@ -107,8 +105,34 @@ class HabitCard extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (target > 1) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      scheduleLabel,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    if (nearestReminderMinutes(habit) != null) ...[
                       const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.alarm_rounded,
+                            size: 11,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _fmtTime(nearestReminderMinutes(habit)!),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (target > 0) ...[
+                      const SizedBox(height: 6),
                       _CompletionDots(
                         target: target,
                         completions: completions,
@@ -132,21 +156,9 @@ class HabitCard extends StatelessWidget {
                         },
                       ),
                     ],
-                    if (streak == 0)
-                      Text(
-                        scheduleLabel,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              if (nearestReminderMinutes(habit) != null) ...[
-                const SizedBox(width: 10),
-                _TimePill(label: _fmtTime(nearestReminderMinutes(habit)!)),
-              ],
               if (onMoreTap != null) ...[
                 const SizedBox(width: 8),
                 GestureDetector(
@@ -160,20 +172,6 @@ class HabitCard extends StatelessWidget {
                       color: AppTheme.muted,
                     ),
                   ),
-                ),
-              ],
-              if (target == 1) ...[
-                const SizedBox(width: 4),
-                Icon(
-                  isDone
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked,
-                  size: 24,
-                  color: isDone
-                      ? AppTheme.habitsColor
-                      : isScheduledToday
-                      ? cs.outlineVariant
-                      : AppTheme.muted,
                 ),
               ],
             ],
@@ -255,31 +253,6 @@ class _CompletionDots extends StatelessWidget {
           if (i != target - 1) const SizedBox(width: 2),
         ],
       ],
-    );
-  }
-}
-
-class _TimePill extends StatelessWidget {
-  const _TimePill({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: _habitTimeGradient),
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
     );
   }
 }

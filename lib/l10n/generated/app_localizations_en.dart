@@ -332,6 +332,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get startStreakHint => 'Check off habits to start your streak.';
+
+  @override
   String earnedOn(Object date) {
     return 'Earned $date';
   }

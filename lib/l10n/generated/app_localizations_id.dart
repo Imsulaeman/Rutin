@@ -333,6 +333,9 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get startStreakHint => 'Centang kebiasaan untuk mulai streak.';
+
+  @override
   String earnedOn(Object date) {
     return 'Dicapai $date';
   }

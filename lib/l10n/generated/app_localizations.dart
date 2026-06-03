@@ -692,6 +692,12 @@ abstract class AppLocalizations {
   /// **'🔥 Best streak: {count} days'**
   String bestStreakLabel(int count);
 
+  /// No description provided for @startStreakHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Check off habits to start your streak.'**
+  String get startStreakHint;
+
   /// No description provided for @earnedOn.
   ///
   /// In en, this message translates to:

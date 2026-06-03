@@ -1844,8 +1844,8 @@ class _TodayHeader extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   bestStreak > 0
-                      ? '🔥 Beruntun terbaik $bestStreak hari'
-                      : 'Centang kebiasaan untuk mulai streak',
+                      ? context.l10n.bestStreakLabel(bestStreak)
+                      : context.l10n.startStreakHint,
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),

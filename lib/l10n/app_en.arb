@@ -155,6 +155,7 @@
       "count": { "type": "int" }
     }
   },
+  "startStreakHint": "Check off habits to start your streak.",
   "earnedOn": "Earned {date}",
   "@earnedOn": {
     "placeholders": {

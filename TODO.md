@@ -22,6 +22,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Habit alarm uses `setAlarmClock` and respects `scheduleDays` (no alerts on off-days)
 - [x] Zero-streak habit label shows schedule (`Every day` / weekday list) instead of `Start today`
 - [x] Off-day habit taps stay interactive but show `Not scheduled today` with muted controls
+- [x] Habit tab summary header strings moved to ARB (no hardcoded mixed-language streak helper)
 - [x] Rewrite Connect the Dots → Flow Free style (grid, colored pairs, fill all cells) — spec in AGENTS.md
 - [x] Habit calendar visual — full cell background colors instead of tiny dots
 - [x] Compact habit cards (reduce padding, merge streak into name row)
@@ -124,6 +125,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] At-a-glance done / pending / missed
 - [x] Treatment program countdown
 - [x] Navbar solid background (non-transparent)
+- [x] Compact dashboard medicine rows: title + dosage on one line, tighter spacing, checklist under reminder time
 
 ## Feature: Treatment Program (generic — TB, Tifus, Malaria, ARV, etc.)
 - [x] TBTreatmentProfile data model

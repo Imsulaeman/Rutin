@@ -1303,22 +1303,14 @@ class _HomeMedicineRow extends StatelessWidget {
     return null;
   }
 
-  _HomeDose? _nowDose() {
-    for (final dose in doses) {
-      if (bucketFor(dose) == _HomeDoseBucket.now) return dose;
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final sortedDoses = _sortedDoses();
-    final nowDose = _nowDose();
     final allTakenToday = _allTakenToday();
     final nextDoseMinute = _nextDoseMinute();
     final dosage = (medicine.dosage ?? '').trim();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
       decoration: BoxDecoration(
         color: const Color(0xAA0D1423),
         borderRadius: BorderRadius.circular(16),
@@ -1336,39 +1328,50 @@ class _HomeMedicineRow extends StatelessWidget {
             ),
             child: Icon(Icons.medication_rounded, size: 17, color: _dotColor()),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  medicine.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    decoration: allTakenToday
-                        ? TextDecoration.lineThrough
-                        : null,
-                    decorationColor: _muted,
-                  ),
-                ),
-                if (dosage.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    dosage,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        medicine.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          decoration: allTakenToday
+                              ? TextDecoration.lineThrough
+                              : null,
+                          decorationColor: _muted,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    if (dosage.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          dosage,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
                 if (nextDoseMinute != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1381,8 +1384,8 @@ class _HomeMedicineRow extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (sortedDoses.length > 1) ...[
-                  const SizedBox(height: 6),
+                if (sortedDoses.isNotEmpty) ...[
+                  const SizedBox(height: 5),
                   _HomeMedicineDots(
                     doses: sortedDoses,
                     bucketFor: bucketFor,
@@ -1392,39 +1395,6 @@ class _HomeMedicineRow extends StatelessWidget {
               ],
             ),
           ),
-          if (sortedDoses.length == 1) ...[
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: nowDose == null ? null : () => onTapDose(nowDose),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: allTakenToday ? _success : Colors.transparent,
-                  border: Border.all(
-                    color: allTakenToday
-                        ? _success
-                        : nowDose != null
-                        ? _medGradient[0].withValues(alpha: 0.9)
-                        : _muted.withValues(alpha: 0.65),
-                    width: 2,
-                  ),
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  size: 15,
-                  color: allTakenToday
-                      ? Colors.white
-                      : nowDose != null
-                      ? const Color(0xFFEE5A8C)
-                      : Colors.transparent,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -1471,7 +1441,7 @@ class _TodayHabitRow extends StatelessWidget {
           ? () => onSetCompletions(completions + 1)
           : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
         decoration: BoxDecoration(
           color: const Color(0xAA0D1423),
           borderRadius: BorderRadius.circular(16),
@@ -1491,7 +1461,7 @@ class _TodayHabitRow extends StatelessWidget {
                 child: Text(habit.emoji, style: const TextStyle(fontSize: 17)),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 9),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1508,7 +1478,7 @@ class _TodayHabitRow extends StatelessWidget {
                     ),
                   ),
                   if (nextReminderMinute != null) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1525,8 +1495,8 @@ class _TodayHabitRow extends StatelessWidget {
                       ],
                     ),
                   ],
-                  if (target > 1) ...[
-                    const SizedBox(height: 6),
+                  if (target > 0) ...[
+                    const SizedBox(height: 5),
                     _HomeCompletionDots(
                       target: target,
                       completions: completions,
@@ -1546,28 +1516,6 @@ class _TodayHabitRow extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: _habitColor,
-                ),
-              ),
-            ],
-            if (target == 1) ...[
-              const SizedBox(width: 10),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: done ? _success : Colors.transparent,
-                  border: Border.all(
-                    color: done ? _success : _muted.withValues(alpha: 0.65),
-                    width: 2,
-                  ),
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  size: 15,
-                  color: done ? Colors.white : Colors.transparent,
                 ),
               ),
             ],
@@ -1651,6 +1599,7 @@ class _HomeMedicineDots extends StatelessWidget {
               final isTaken = bucket == _HomeDoseBucket.taken;
               final isNow = bucket == _HomeDoseBucket.now;
               final isMissed = bucket == _HomeDoseBucket.missed;
+              final isActionable = isNow || isTaken;
               final borderColor = isTaken
                   ? _success
                   : isNow
@@ -1666,7 +1615,7 @@ class _HomeMedicineDots extends StatelessWidget {
                   : Colors.transparent;
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => onTap(dose),
+                onTap: isActionable ? () => onTap(dose) : null,
                 child: Padding(
                   padding: const EdgeInsets.all(2),
                   child: Container(
