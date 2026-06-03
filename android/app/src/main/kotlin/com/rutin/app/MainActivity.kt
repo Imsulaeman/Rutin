@@ -371,7 +371,20 @@ class MainActivity : FlutterActivity() {
                     "checkPendingGate" -> {
                         val hasPending = intent?.getStringExtra("route") == "/morning-gate"
                         if (hasPending) intent?.removeExtra("route")
-                        result.success(hasPending)
+                        // Fallback: service may have been killed after sleep_active was set
+                        // but before USER_PRESENT was caught. Clear flag here (mirrors what
+                        // onUserPresent does) so skip doesn't re-trigger gate on next open.
+                        val sleepPrefs = applicationContext.getSharedPreferences(
+                            SleepModeService.PREFS, Context.MODE_PRIVATE
+                        )
+                        val sleepActive = sleepPrefs.getBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
+                        if (sleepActive) {
+                            sleepPrefs.edit()
+                                .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
+                                .remove(SleepModeService.KEY_SCREEN_OFF_TIME)
+                                .apply()
+                        }
+                        result.success(hasPending || sleepActive)
                     }
                     "setGameDismissedNormally" -> {
                         val value = call.arguments as? Boolean ?: true
