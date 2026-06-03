@@ -2,6 +2,80 @@
 
 ---
 
+## Release Candidate Gate - Before Public Release
+
+Device: Realme GT 2 Pro (RMX3301), Android 14
+Build: Release candidate APK / final debug candidate
+
+### Install / upgrade safety
+
+- [ ] Fresh install opens without red screen.
+- [ ] Upgrade over an existing installed build keeps user data and still opens cleanly.
+- [ ] App cold start succeeds after the device has been restarted.
+
+### Onboarding / first-run setup
+
+- [ ] Fresh install shows onboarding only once.
+- [ ] Permission bottom sheet advances step by step and does not disappear after the first permission tap.
+- [ ] Returning from Android settings does not break navigation or leave the app in a stuck state.
+- [ ] Settings -> Tutorial replays the coach marks correctly.
+
+### Medicine reliability
+
+- [ ] Medicine alarm fires when the app is foregrounded.
+- [ ] Medicine alarm still fires when the app is backgrounded.
+- [ ] Medicine alarm still fires when the phone is locked.
+- [ ] `Sudah diminum` stops the repeating alarm loop.
+- [ ] Ignoring a medicine alarm causes it to return about 1 minute later.
+- [ ] Overdue untaken dose appears correctly in UI on the same day.
+- [ ] Previous-day untaken dose is finalized as `missed` after day rollover.
+
+### Habit reminder reliability
+
+- [ ] Habit reminder appears when the screen is on.
+- [ ] Habit reminder appears when the screen is off / lock screen is shown.
+- [ ] Multi-time habit fires at both scheduled times.
+- [ ] Habit with schedule `Mon, Wed, Fri` does not notify on Tuesday / Thursday.
+- [ ] Reboot restores habit reminders with the same weekday rules.
+
+### Water reminder reliability
+
+- [ ] Water reminder continues on the expected cadence while the app is closed.
+- [ ] Reboot does not reset the water cadence.
+- [ ] `Sudah minum` action updates the app after reopening Water.
+- [ ] Inline undo still works after repeated add/remove actions.
+
+### Sleep mode reliability
+
+- [ ] Battery guidance opens app settings successfully.
+- [ ] Accessibility settings shortcut opens successfully.
+- [ ] Accessibility status updates after returning from settings.
+- [ ] Nightly sleep notification appears only during the configured sleep window.
+- [ ] Morning Gate launches from a real sleep trigger, not only from the test button.
+- [ ] Completing the wake-up game exits back to the app cleanly.
+- [ ] Home / app switching during Morning Gate still returns to one active gate.
+
+### Localization / UI consistency
+
+- [ ] Main user flows have no mixed Indonesian/English leaks.
+- [ ] Date and weekday formatting follows the selected locale.
+- [ ] Native notification copy follows the selected locale.
+
+### Data / settings safety
+
+- [ ] Backup export succeeds and produces a shareable file.
+- [ ] Profile name, age, and avatar persist after restart.
+- [ ] Language choice persists after restart.
+- [ ] Sleep settings persist after restart.
+
+### Play Store / release sanity
+
+- [ ] Release APK installs manually on the real phone.
+- [ ] App icon, app name, and splash all appear correctly.
+- [ ] No obvious debug-only labels, test buttons, or broken placeholders remain in the release candidate build.
+
+---
+
 ## Session 21 - 2026-05-31
 
 Date: 2026-05-31

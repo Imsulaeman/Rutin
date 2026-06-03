@@ -177,12 +177,20 @@ class _SettingsScreenState extends State<SettingsScreen>
               ),
             ),
             _SoundOption(
-              value: 'app',
+              value: 'chime',
               groupValue: currentValue,
               title: context.l10n.appSound,
               subtitle: context.l10n.appSoundSubtitle,
               onChanged: (value) => Navigator.pop(ctx, value),
-              onPreview: () => _previewSound('app', soundType),
+              onPreview: () => _previewSound('chime', soundType),
+            ),
+            _SoundOption(
+              value: 'ringtone',
+              groupValue: currentValue,
+              title: context.l10n.appRingtone,
+              subtitle: context.l10n.appRingtoneSubtitle,
+              onChanged: (value) => Navigator.pop(ctx, value),
+              onPreview: () => _previewSound('ringtone', soundType),
             ),
             _SoundOption(
               value: 'system',
@@ -203,9 +211,11 @@ class _SettingsScreenState extends State<SettingsScreen>
   }
 
   String _soundLabel(String value) {
-    return value == 'system'
-        ? context.l10n.phoneDefaultSound
-        : context.l10n.appSound;
+    return switch (value) {
+      'system' => context.l10n.phoneDefaultSound,
+      'ringtone' => context.l10n.appRingtone,
+      _ => context.l10n.appSound,
+    };
   }
 
   @override

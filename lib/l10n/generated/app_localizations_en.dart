@@ -750,10 +750,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appSound => 'Rutin Drop';
 
   @override
-  String get appSoundSubtitle => 'Rutin\'s signature sound';
+  String get appSoundSubtitle => 'Short crisp chime';
 
   @override
-  String get phoneDefaultSound => 'Phone default sound';
+  String get appRingtone => 'Rutin Ring';
+
+  @override
+  String get appRingtoneSubtitle => 'Full ringtone';
+
+  @override
+  String get phoneDefaultSound => 'Phone default';
 
   @override
   String get phoneDefaultSoundSubtitle =>

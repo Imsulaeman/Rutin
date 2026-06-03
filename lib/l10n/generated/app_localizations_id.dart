@@ -752,10 +752,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get appSound => 'Rutin Drop';
 
   @override
-  String get appSoundSubtitle => 'Suara khas Rutin';
+  String get appSoundSubtitle => 'Nada pendek khas Rutin';
 
   @override
-  String get phoneDefaultSound => 'Suara bawaan ponsel';
+  String get appRingtone => 'Rutin Ring';
+
+  @override
+  String get appRingtoneSubtitle => 'Ringtone penuh';
+
+  @override
+  String get phoneDefaultSound => 'Bawaan ponsel';
 
   @override
   String get phoneDefaultSoundSubtitle =>

@@ -1,7 +1,6 @@
 package com.rutin.app
 
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
@@ -225,13 +224,7 @@ class MainActivity : FlutterActivity() {
 
     private fun previewReminderSound(type: String, value: String) {
         stopPreview()
-        val uri: Uri = if (value == "system") {
-            if (type == "alarm") Settings.System.DEFAULT_RINGTONE_URI
-            else Settings.System.DEFAULT_NOTIFICATION_URI
-        } else {
-            val raw = if (type == "alarm") R.raw.ringtone else R.raw.notif_chime
-            Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/$raw")
-        } ?: return
+        val uri = ReminderSoundPrefs.soundUri(applicationContext, value, isAlarm = type == "alarm")
         val ringtone = RingtoneManager.getRingtone(applicationContext, uri) ?: return
         previewRingtone = ringtone
         ringtone.play()

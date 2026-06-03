@@ -1481,13 +1481,25 @@ abstract class AppLocalizations {
   /// No description provided for @appSoundSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Rutin\'s signature sound'**
+  /// **'Short crisp chime'**
   String get appSoundSubtitle;
+
+  /// No description provided for @appRingtone.
+  ///
+  /// In en, this message translates to:
+  /// **'Rutin Ring'**
+  String get appRingtone;
+
+  /// No description provided for @appRingtoneSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Full ringtone'**
+  String get appRingtoneSubtitle;
 
   /// No description provided for @phoneDefaultSound.
   ///
   /// In en, this message translates to:
-  /// **'Phone default sound'**
+  /// **'Phone default'**
   String get phoneDefaultSound;
 
   /// No description provided for @phoneDefaultSoundSubtitle.
