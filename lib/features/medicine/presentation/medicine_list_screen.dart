@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/haptics_service.dart';
+import '../../../core/services/medal_service.dart';
 import '../../../l10n/l10n.dart';
 import '../../../shared/providers/providers.dart';
 import '../../notifications/alarm_service.dart';
@@ -177,7 +178,10 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
       HapticsService.tap();
     }
     await repo.setTaken(dose.medicine.id, dose.scheduled, taken);
-    if (taken) AnalyticsService.medicineTaken();
+    if (taken) {
+      AnalyticsService.medicineTaken();
+      MedalService.checkMedicine();
+    }
     if (mounted) setState(() {});
   }
 

@@ -1057,4 +1057,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String ofGoalGlasses(int goal) {
     return 'of $goal glasses';
   }
+
+  @override
+  String get medalWaterTitle => 'Water Intake';
+
+  @override
+  String get medalMedicineTitle => 'Medicine Streak';
+
+  @override
+  String get medalHabitTitle => 'Habit Streak';
+
+  @override
+  String get medalPersonalBest => 'Personal best';
+
+  @override
+  String get medalStartStreak => 'Start your streak';
+
+  @override
+  String get medalNoBestYet => 'No record yet';
+
+  @override
+  String get medalWaterDesc =>
+      'Consecutive days hitting your daily water goal.';
+
+  @override
+  String get medalMedicineDesc =>
+      'Based on your best medicine adherence streak.';
+
+  @override
+  String get medalHabitDesc => 'Based on your best habit completion streak.';
+
+  @override
+  String medalCurrentCount(int count) {
+    return '↑ $count days';
+  }
+
+  @override
+  String medalBestAchieved(Object date) {
+    return 'Best: $date';
+  }
 }

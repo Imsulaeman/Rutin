@@ -184,7 +184,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Splash screen
 - [x] Empty states
 - [x] UI redesign pass
-- [ ] Dedicated medal/profile collection screen polish
+- [x] Dedicated medal/profile collection screen polish — replaced with 3 fixed medals (Water, Medicine, Habit); retire-habit flow removed
 - [x] Profile: user name + age + avatar picker (10 diverse characters) + stat chips
 
 ## ADA Portfolio Prep

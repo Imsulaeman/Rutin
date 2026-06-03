@@ -5,12 +5,11 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/haptics_service.dart';
+import '../../../core/services/medal_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/l10n.dart';
 import '../data/habit_model.dart';
 import '../data/habit_repository.dart';
-import '../data/medal_model.dart';
-import '../data/medal_repository.dart';
 import 'habit_card.dart';
 import 'emoji_picker.dart';
 import 'habit_reminder_service.dart';
@@ -33,7 +32,6 @@ class HabitsScreen extends StatefulWidget {
 
 class _HabitsScreenState extends State<HabitsScreen> {
   final _repo = HabitRepository();
-  final _medals = MedalRepository();
 
   List<dynamic> _flatItems = []; // Habit (ungrouped) | HabitGroup
   Map<String, List<Habit>> _groupHabits = {};
@@ -108,17 +106,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
     await _repo.markDone(habit.id);
     AnalyticsService.habitCompleted();
     HapticsService.success();
-    _updateMedal(habit);
+    MedalService.checkHabit();
     setState(() {});
-  }
-
-  void _updateMedal(Habit habit) {
-    final streak = _repo.getStreak(habit.id);
-    final medal = _medals.findByHabit(habit.name, habit.emoji);
-    if (medal != null && streak > medal.peakStreak) {
-      medal.peakStreak = streak;
-      _medals.save(medal);
-    }
   }
 
   void _showHabitActions(Habit habit) {
@@ -148,14 +137,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   _showMoveToGroup(habit);
                 },
               ),
-            ListTile(
-              leading: const Text('🏅', style: TextStyle(fontSize: 22)),
-              title: Text(context.l10n.habitTurnIntoMedal),
-              onTap: () {
-                Navigator.pop(ctx);
-                _retireAsModal(habit);
-              },
-            ),
             ListTile(
               leading: Icon(
                 Icons.delete_outline_rounded,
@@ -254,45 +235,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
       await _safeCancel(habit);
       await _repo.delete(habit.id);
       _load();
-    }
-  }
-
-  Future<void> _retireAsModal(Habit habit) async {
-    final streak = _repo.getStreak(habit.id);
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      builder: (_) => _RetireSheet(habit: habit, streak: streak),
-    );
-    if (confirmed != true) return;
-
-    final existing = _medals.findByHabit(habit.name, habit.emoji);
-    if (existing != null) {
-      if (streak > existing.peakStreak) {
-        existing.peakStreak = streak;
-        await _medals.save(existing);
-      }
-    } else {
-      await _medals.save(
-        Medal()
-          ..id = DateTime.now().millisecondsSinceEpoch.toString()
-          ..name = habit.name
-          ..emoji = habit.emoji
-          ..peakStreak = streak
-          ..awardedAt = DateTime.now()
-          ..type = 'habit',
-      );
-    }
-
-    await _safeCancel(habit);
-    await _repo.delete(habit.id);
-    _load();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.l10n.habitTurnedIntoMedal(habit.emoji, habit.name)),
-        ),
-      );
     }
   }
 
@@ -1050,58 +992,6 @@ class _SwipeToDelete extends StatelessWidget {
       ),
       onDismissed: (_) => onDelete(),
       child: child,
-    );
-  }
-}
-
-// ─── Retire sheet ─────────────────────────────────────────────────────────────
-
-class _RetireSheet extends StatelessWidget {
-  const _RetireSheet({required this.habit, required this.streak});
-  final Habit habit;
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 48),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(habit.emoji, style: const TextStyle(fontSize: 52)),
-          const SizedBox(height: 10),
-          Text(habit.name, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 4),
-          Text(
-            streak > 0
-                ? context.l10n.streakDaysRow(streak)
-                : context.l10n.noStreakYet,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: streak > 0 ? cs.primary : cs.onSurfaceVariant,
-              fontWeight: streak > 0 ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            context.l10n.retireHabitDescription,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: 28),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(context.l10n.retireHabitButton),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(context.l10n.cancel),
-          ),
-        ],
-      ),
     );
   }
 }

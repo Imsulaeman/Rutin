@@ -1975,6 +1975,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'of {goal} glasses'**
   String ofGoalGlasses(int goal);
+
+  /// No description provided for @medalWaterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Water Intake'**
+  String get medalWaterTitle;
+
+  /// No description provided for @medalMedicineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Medicine Streak'**
+  String get medalMedicineTitle;
+
+  /// No description provided for @medalHabitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Habit Streak'**
+  String get medalHabitTitle;
+
+  /// No description provided for @medalPersonalBest.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal best'**
+  String get medalPersonalBest;
+
+  /// No description provided for @medalStartStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Start your streak'**
+  String get medalStartStreak;
+
+  /// No description provided for @medalNoBestYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No record yet'**
+  String get medalNoBestYet;
+
+  /// No description provided for @medalWaterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Consecutive days hitting your daily water goal.'**
+  String get medalWaterDesc;
+
+  /// No description provided for @medalMedicineDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on your best medicine adherence streak.'**
+  String get medalMedicineDesc;
+
+  /// No description provided for @medalHabitDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on your best habit completion streak.'**
+  String get medalHabitDesc;
+
+  /// No description provided for @medalCurrentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'↑ {count} days'**
+  String medalCurrentCount(int count);
+
+  /// No description provided for @medalBestAchieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Best: {date}'**
+  String medalBestAchieved(Object date);
 }
 
 class _AppLocalizationsDelegate

@@ -3044,3 +3044,187 @@ Apply same pattern for `medicine_logs` and `tb_profiles`. Users will lose existi
 - Do not encrypt `habits`, `water_goals`, `water_logs`, `app_settings` — unnecessary overhead
 - Do not hardcode the cipher key — always read from secure storage
 - Do not use `EncryptedSharedPreferences` directly — `flutter_secure_storage` wraps Android Keystore correctly
+
+---
+
+## Spec: Medal Redesign
+
+**Status:** Ready to implement
+**Replaces:** The old "retire habit → medal" flow. Remove `_retireAsModal`, `_medals.findByHabit`, `MedalRepository.save()` call from `habits_screen.dart`, and the retire button from `_showHabitActions`.
+
+### What medals are now
+
+3 fixed, always-present medals. Auto-calculated — user never manually creates them.
+
+| Medal | Key | Source |
+|---|---|---|
+| Water Intake | `water` | Consecutive days hitting `WaterGoal.dailyTargetMl` |
+| Medicine Streak | `medicine` | Highest-ever streak across all medicines (uses `MedicineRepository.getMedicineStreak`) |
+| Habit Streak | `habit` | Highest-ever streak across all habits (uses `HabitRepository.getStreak`) |
+
+### PR vs current streak
+
+Both are shown. Medal always stores **personal best (PR)** — never resets to zero. If current streak > stored PR, update PR automatically. Rationale: health app, missed doses happen for real reasons, punishing reset discourages continued use.
+
+### Data model
+
+Do NOT create a new Hive model. Store in the existing `app_settings` box (`Box<String>`) using simple keys:
+
+```
+medal_water_pr        → "14"       (int as string)
+medal_water_best_date → "2026-05-20"
+medal_medicine_pr     → "30"
+medal_medicine_best_date → "2026-04-01"
+medal_habit_pr        → "21"
+medal_habit_best_date → "2026-05-10"
+```
+
+### Where to update PR
+
+Call `MedalService.checkAndUpdate()` in the same places streaks are already updated:
+- **Water**: after `_repo.addMl()` in `water_screen.dart` — check if today's total >= goal and if the day-streak grew
+- **Medicine**: after `repo.setTaken()` in `medicine_list_screen.dart`
+- **Habit**: after `_repo.markDone()` in `habits_screen.dart`
+
+### MedalService (new file: `lib/core/services/medal_service.dart`)
+
+```dart
+class MedalService {
+  static final _box = Hive.box<String>('app_settings');
+
+  static void checkWater(int currentMl, int goalMl) {
+    if (currentMl < goalMl) return;
+    final streak = _waterStreak();
+    _updatePr('water', streak);
+  }
+
+  static void checkMedicine() {
+    final repo = MedicineRepository();
+    final best = repo.getAll()
+        .map((m) => repo.getMedicineStreak(m.id))
+        .fold(0, math.max);
+    _updatePr('medicine', best);
+  }
+
+  static void checkHabit() {
+    final repo = HabitRepository();
+    final best = repo.getAll()
+        .map((h) => repo.getStreak(h.id))
+        .fold(0, math.max);
+    _updatePr('habit', best);
+  }
+
+  static int getPr(String key) =>
+      int.tryParse(_box.get('medal_${key}_pr') ?? '0') ?? 0;
+
+  static String? getBestDate(String key) =>
+      _box.get('medal_${key}_best_date');
+
+  static void _updatePr(String key, int streak) {
+    if (streak <= getPr(key)) return;
+    _box.put('medal_${key}_pr', '$streak');
+    _box.put('medal_${key}_best_date',
+        DateTime.now().toIso8601String().substring(0, 10));
+  }
+
+  // Consecutive days where water goal was met — scan WaterLog box
+  static int _waterStreak() {
+    final logs = Hive.box<WaterLog>('water_logs');
+    final goal = Hive.box<WaterGoal>('water_goals').values.firstOrNull;
+    if (goal == null) return 0;
+    final target = goal.dailyTargetMl;
+    int streak = 0;
+    for (var i = 0; i <= 365; i++) {
+      final day = DateTime.now().subtract(Duration(days: i));
+      final key = AppDateUtils.toDateString(day);
+      final total = logs.values
+          .where((l) => l.date == key)
+          .fold(0, (sum, l) => sum + l.mlLogged);
+      if (total >= target) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+}
+```
+
+### Medal card design
+
+3 cards stacked in the profile screen body (replaces the old medal list). Always visible — grayed if PR = 0.
+
+```
+┌──────────────────────────────────────────┐
+│ [3px blue left border]                   │
+│ 💧  Water Intake                         │
+│                                          │
+│      14           "Personal best"        │
+│      days                                │
+│                                          │
+│      ↑ 5 days  current streak            │
+│                        Best: 20 May 2026 │
+└──────────────────────────────────────────┘
+```
+
+- Left border color: `AppTheme.waterColor` / `AppTheme.medicineColor` / `AppTheme.habitsColor`
+- Icon: `Icons.water_drop_rounded` / `Icons.medication_rounded` / `Icons.auto_awesome_rounded`
+- PR number: `headlineLarge` weight, feature color
+- "Personal best" label: `bodySmall`, muted
+- Current streak row: `bodySmall`, white60
+- Best date: `bodySmall`, muted, right-aligned
+- Grayed state (PR = 0): everything `AppTheme.muted`, show "Start your streak" instead of numbers
+
+### Tap → bottom sheet
+
+General language only — no medicine names, no habit names.
+
+```
+Title:    "Water Intake"
+Body:     "Tracks consecutive days you hit your daily water goal."
+Stats:    Personal best: 14 days
+          Current streak: 5 days
+          Best achieved: 20 May 2026
+CTA:      [close button]
+```
+
+### Profile menu reorder
+
+In `profile_screen.dart`, move the medals ListTile (or new medals entry) **above** the History ListTile. Order: Medals → History → Sleep Mode → Treatment → Settings.
+
+### Remove from habits_screen.dart
+
+- `_retireAsModal()` method
+- `_medals.findByHabit()` call in `_updateMedal()`
+- `_updateMedal()` method entirely
+- "Turn into medal" `ListTile` from `_showHabitActions()`
+- `final _medals = MedalRepository()` field
+- Import of `MedalRepository`
+
+The `Medal` model and `MedalRepository` can stay for now (used by profile screen for old medal display) but will become unused after this — mark for deletion.
+
+### ARB keys needed (add before implementing)
+
+```
+medalWaterTitle / medalWaterTitle → "Water Intake" / "Asupan Air"
+medalMedicineTitle               → "Medicine Streak" / "Streak Obat"
+medalHabitTitle                  → "Habit Streak" / "Streak Kebiasaan"
+medalPersonalBest                → "Personal best" / "Rekor terbaik"
+medalCurrentStreak               → "↑ {count} days current" / "↑ {count} hari sekarang"  [int placeholder]
+medalBestDate                    → "Best: {date}" / "Terbaik: {date}"
+medalStartStreak                 → "Start your streak" / "Mulai streakmu"
+medalWaterDesc                   → "Consecutive days hitting your daily water goal." / "Hari berurutan memenuhi target minum harian."
+medalMedicineDesc                → "Based on your best medicine adherence streak." / "Berdasarkan streak minum obat terbaik."
+medalHabitDesc                   → "Based on your best habit completion streak." / "Berdasarkan streak kebiasaan terbaik."
+medalNoBestYet                   → "No record yet" / "Belum ada rekor"
+```
+
+### Verify
+- Profile screen shows exactly 3 medal cards
+- Water medal PR updates after hitting goal
+- Medicine/habit medal PR updates after marking done
+- PR never decreases; only increases when new streak exceeds old PR
+- Tapping each card opens correct bottom sheet
+- "Turn into medal" no longer appears in habits screen
+- `flutter analyze` clean

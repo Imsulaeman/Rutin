@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/haptics_service.dart';
+import '../../../core/services/medal_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/l10n.dart';
 import '../data/water_model.dart';
@@ -67,8 +68,10 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
     await _repo.addMl(amount);
     AnalyticsService.waterAdded(amount);
     if (!mounted) return;
+    final newTotal = _repo.getTodayMl();
+    MedalService.checkWater(newTotal, _goal.dailyTargetMl);
     setState(() {
-      _currentMl = _repo.getTodayMl();
+      _currentMl = newTotal;
       _undoAmountMl = amount;
     });
   }

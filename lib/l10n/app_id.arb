@@ -522,5 +522,26 @@
     "placeholders": {
       "goal": { "type": "int" }
     }
+  },
+  "medalWaterTitle": "Asupan Air",
+  "medalMedicineTitle": "Streak Obat",
+  "medalHabitTitle": "Streak Kebiasaan",
+  "medalPersonalBest": "Rekor terbaik",
+  "medalStartStreak": "Mulai streakmu",
+  "medalNoBestYet": "Belum ada rekor",
+  "medalWaterDesc": "Hari berurutan memenuhi target minum harian.",
+  "medalMedicineDesc": "Berdasarkan streak minum obat terbaik.",
+  "medalHabitDesc": "Berdasarkan streak kebiasaan terbaik.",
+  "medalCurrentCount": "↑ {count} hari",
+  "@medalCurrentCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medalBestAchieved": "Terbaik: {date}",
+  "@medalBestAchieved": {
+    "placeholders": {
+      "date": {}
+    }
   }
 }

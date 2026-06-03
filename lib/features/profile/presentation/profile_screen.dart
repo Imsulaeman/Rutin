@@ -3,12 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../core/services/medal_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/l10n.dart';
 import '../../habits/data/habit_model.dart';
 import '../../habits/data/habit_repository.dart';
-import '../../habits/data/medal_model.dart';
-import '../../habits/data/medal_repository.dart';
 import '../data/user_profile_model.dart';
 import '../../tb/data/tb_model.dart';
 
@@ -22,13 +21,11 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   static const _profileKey = 'primary';
 
-  final _medals = MedalRepository();
   final _habits = HabitRepository();
   final _nameCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
 
   late final Box<UserProfile> _profileBox;
-  List<Medal> _list = [];
   int _bestActiveStreak = 0;
   int _habitsDoneTotal = 0;
   int _editAvatarId = 0;
@@ -50,23 +47,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _load() {
-    final sorted = _medals.getAll()
-      ..sort((a, b) => b.awardedAt.compareTo(a.awardedAt));
     final allHabits = _habits.getAll();
     final best = allHabits.isEmpty
         ? 0
         : allHabits
-              .map((habit) => _habits.getStreak(habit.id))
+              .map((h) => _habits.getStreak(h.id))
               .reduce((a, b) => a > b ? a : b);
 
     setState(() {
-      _list = sorted;
       _bestActiveStreak = best;
       _habitsDoneTotal = Hive.box<HabitLog>('habit_logs').length;
       _profile = _profileBox.get(_profileKey);
       _treatment = Hive.box<TBTreatmentProfile>(
         'tb_profiles',
-      ).values.where((profile) => profile.isActive).firstOrNull;
+      ).values.where((p) => p.isActive).firstOrNull;
     });
   }
 
@@ -76,9 +70,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: CustomScrollView(
         slivers: [
           _buildHeader(context),
+
+          // ── 3 fixed medals ────────────────────────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            sliver: SliverList.list(
+              children: [
+                _MedalCard(
+                  title: context.l10n.medalWaterTitle,
+                  description: context.l10n.medalWaterDesc,
+                  icon: Icons.water_drop_rounded,
+                  color: AppTheme.waterColor,
+                  pr: MedalService.getPr('water'),
+                  current: MedalService.waterStreak(),
+                  bestDate: MedalService.getBestDate('water'),
+                ),
+                const SizedBox(height: 10),
+                _MedalCard(
+                  title: context.l10n.medalMedicineTitle,
+                  description: context.l10n.medalMedicineDesc,
+                  icon: Icons.medication_rounded,
+                  color: AppTheme.medicineColor,
+                  pr: MedalService.getPr('medicine'),
+                  current: MedalService.medicineStreak(),
+                  bestDate: MedalService.getBestDate('medicine'),
+                ),
+                const SizedBox(height: 10),
+                _MedalCard(
+                  title: context.l10n.medalHabitTitle,
+                  description: context.l10n.medalHabitDesc,
+                  icon: Icons.auto_awesome_rounded,
+                  color: AppTheme.habitsColor,
+                  pr: MedalService.getPr('habit'),
+                  current: MedalService.habitStreak(),
+                  bestDate: MedalService.getBestDate('habit'),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+
+          // ── Navigation tiles ──────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
               child: Card(
                 child: ListTile(
                   leading: const Icon(
@@ -98,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
               child: Card(
                 child: ListTile(
                   leading: const Icon(
@@ -118,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
               child: Card(
                 child: ListTile(
                   leading: const Icon(
@@ -146,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
               child: Card(
                 child: ListTile(
                   leading: const Icon(
@@ -164,18 +199,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          if (_list.isEmpty)
-            _buildEmpty(context)
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-              sliver: SliverList.separated(
-                itemCount: _list.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, index) =>
-                    _MedalCard(medal: _list[index]),
-              ),
-            ),
         ],
       ),
     );
@@ -188,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return SliverToBoxAdapter(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+        padding: const EdgeInsets.fromLTRB(24, 60, 24, 28),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFF1A1A2E), Color(0xFF0F2027)],
@@ -211,10 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
-                        colors: [
-                          AppTheme.habitsColor,
-                          AppTheme.medicineColor,
-                        ],
+                        colors: [AppTheme.habitsColor, AppTheme.medicineColor],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -292,29 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(fontSize: 13, color: Colors.white54),
               ),
             ],
-            const SizedBox(height: 24),
-            const Icon(
-              Icons.local_fire_department_rounded,
-              size: 52,
-              color: Colors.white,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$_bestActiveStreak',
-              style: const TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: -2,
-                height: 1,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              context.l10n.bestStreakDays,
-              style: const TextStyle(fontSize: 15, color: Colors.white60),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 12,
@@ -326,23 +324,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   label: context.l10n.bestStreak,
                 ),
                 _StatChip(
-                  icon: Icons.workspace_premium_rounded,
-                  value: '${_list.length}',
-                  label: context.l10n.medals,
-                ),
-                _StatChip(
                   icon: Icons.check_circle_rounded,
                   value: '$_habitsDoneTotal',
                   label: context.l10n.habitsDone,
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Text(
               context.l10n.medals,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: Colors.white),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
@@ -486,86 +479,219 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  Widget _buildEmpty(BuildContext context) {
-    return SliverFillRemaining(
-      hasScrollBody: false,
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.workspace_premium_rounded,
-              size: 56,
-              color: AppTheme.streakColor,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              context.l10n.noMedalsYet,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              context.l10n.retireFirstHabitForMedal,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
+// ─── Medal card ───────────────────────────────────────────────────────────────
+
 class _MedalCard extends StatelessWidget {
-  const _MedalCard({required this.medal});
-  final Medal medal;
+  const _MedalCard({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.color,
+    required this.pr,
+    required this.current,
+    required this.bestDate,
+  });
+
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color color;
+  final int pr;
+  final int current;
+  final String? bestDate;
 
   @override
   Widget build(BuildContext context) {
-    final awarded = medal.awardedAt;
-    final dateStr = formatLongDate(context, awarded);
+    final hasData = pr > 0;
+    final textColor = hasData ? Colors.white : AppTheme.muted;
+    final accentColor = hasData ? color : AppTheme.muted;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return GestureDetector(
+      onTap: () => _showDetail(context),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border(
+            left: BorderSide(color: accentColor, width: 3),
+            top: BorderSide(color: AppTheme.border),
+            right: BorderSide(color: AppTheme.border),
+            bottom: BorderSide(color: AppTheme.border),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Icon
             Container(
-              width: 56,
-              height: 56,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: AppTheme.streakColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(14),
+                color: accentColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Center(
-                child: Text(medal.emoji, style: const TextStyle(fontSize: 26)),
-              ),
+              child: Icon(icon, color: accentColor, size: 20),
             ),
             const SizedBox(width: 14),
+            // Title + current streak
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    medal.name,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    title,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
+                  if (hasData)
+                    Text(
+                      context.l10n.medalCurrentCount(current),
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  else
+                    Text(
+                      context.l10n.medalStartStreak,
+                      style: const TextStyle(
+                        color: AppTheme.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // PR block
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (hasData) ...[
                   Text(
-                    context.l10n.bestStreakLabel(medal.peakStreak),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.streakColor,
+                    '$pr',
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    context.l10n.days,
+                    style: const TextStyle(
+                      color: AppTheme.muted,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    context.l10n.earnedOn(dateStr),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    context.l10n.medalPersonalBest,
+                    style: const TextStyle(
+                      color: AppTheme.muted,
+                      fontSize: 10,
+                    ),
                   ),
-                ],
+                ] else
+                  Text(
+                    context.l10n.medalNoBestYet,
+                    style: const TextStyle(
+                      color: AppTheme.muted,
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDetail(BuildContext context) {
+    final hasData = pr > 0;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              description,
+              style: const TextStyle(color: AppTheme.muted, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            if (hasData) ...[
+              _DetailRow(
+                label: context.l10n.medalPersonalBest,
+                value: '$pr ${context.l10n.days}',
+                valueColor: color,
+              ),
+              const SizedBox(height: 10),
+              _DetailRow(
+                label: context.l10n.streak(current),
+                value: context.l10n.medalCurrentCount(current),
+              ),
+              if (bestDate != null) ...[
+                const SizedBox(height: 10),
+                _DetailRow(
+                  label: context.l10n.medalBestAchieved(bestDate!),
+                  value: '',
+                ),
+              ],
+            ] else
+              Text(
+                context.l10n.medalStartStreak,
+                style: const TextStyle(color: AppTheme.muted, fontSize: 14),
+              ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context),
+                style: FilledButton.styleFrom(
+                  backgroundColor: color.withValues(alpha: 0.2),
+                  foregroundColor: color,
+                ),
+                child: Text(context.l10n.done),
               ),
             ),
           ],
@@ -574,6 +700,34 @@ class _MedalCard extends StatelessWidget {
     );
   }
 }
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value, this.valueColor});
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: AppTheme.muted, fontSize: 13)),
+        if (value.isNotEmpty)
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ─── Shared widgets ───────────────────────────────────────────────────────────
 
 class _StatChip extends StatelessWidget {
   const _StatChip({

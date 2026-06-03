@@ -2,6 +2,17 @@
 
 ---
 
+## 2026-06-03 (medal redesign)
+
+- Replaced retire-habit medal system with 3 fixed auto-calculated medals: Water Intake, Medicine Streak, Habit Streak.
+- Created `MedalService` — stores PR + best date in `app_settings` Hive box, never resets on streak break, only updates when new streak exceeds stored PR.
+- Profile screen redesigned: 3 medal cards with colored left borders, PR + current streak display, tappable for detail bottom sheet. Medals section appears above navigation tiles.
+- Removed `_RetireSheet`, `_retireAsModal`, `_updateMedal`, `MedalRepository` import from habits screen. "Turn into medal" option removed from habit actions menu.
+- Wired `MedalService.checkHabit()` on mark-done, `checkMedicine()` on dose taken, `checkWater()` on ml added.
+- 11 new ARB keys added. `flutter analyze` clean.
+
+---
+
 ## 2026-06-03 (continued)
 
 - Completed ARB migration: all 225 `localized()` calls across 19 files replaced with `context.l10n.keyName`. Added 100+ new keys to both `app_en.arb` and `app_id.arb` (simple keys, parameterized keys with typed int placeholders, multi-placeholder keys). Deleted `localized()` helper from `l10n.dart`. Ran `flutter gen-l10n` and `flutter analyze` — zero errors, zero remaining `localized()` calls.

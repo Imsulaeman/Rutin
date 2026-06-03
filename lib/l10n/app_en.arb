@@ -522,5 +522,26 @@
     "placeholders": {
       "goal": { "type": "int" }
     }
+  },
+  "medalWaterTitle": "Water Intake",
+  "medalMedicineTitle": "Medicine Streak",
+  "medalHabitTitle": "Habit Streak",
+  "medalPersonalBest": "Personal best",
+  "medalStartStreak": "Start your streak",
+  "medalNoBestYet": "No record yet",
+  "medalWaterDesc": "Consecutive days hitting your daily water goal.",
+  "medalMedicineDesc": "Based on your best medicine adherence streak.",
+  "medalHabitDesc": "Based on your best habit completion streak.",
+  "medalCurrentCount": "↑ {count} days",
+  "@medalCurrentCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medalBestAchieved": "Best: {date}",
+  "@medalBestAchieved": {
+    "placeholders": {
+      "date": {}
+    }
   }
 }

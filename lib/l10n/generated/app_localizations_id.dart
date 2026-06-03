@@ -1060,4 +1060,41 @@ class AppLocalizationsId extends AppLocalizations {
   String ofGoalGlasses(int goal) {
     return 'dari $goal gelas';
   }
+
+  @override
+  String get medalWaterTitle => 'Asupan Air';
+
+  @override
+  String get medalMedicineTitle => 'Streak Obat';
+
+  @override
+  String get medalHabitTitle => 'Streak Kebiasaan';
+
+  @override
+  String get medalPersonalBest => 'Rekor terbaik';
+
+  @override
+  String get medalStartStreak => 'Mulai streakmu';
+
+  @override
+  String get medalNoBestYet => 'Belum ada rekor';
+
+  @override
+  String get medalWaterDesc => 'Hari berurutan memenuhi target minum harian.';
+
+  @override
+  String get medalMedicineDesc => 'Berdasarkan streak minum obat terbaik.';
+
+  @override
+  String get medalHabitDesc => 'Berdasarkan streak kebiasaan terbaik.';
+
+  @override
+  String medalCurrentCount(int count) {
+    return '↑ $count hari';
+  }
+
+  @override
+  String medalBestAchieved(Object date) {
+    return 'Terbaik: $date';
+  }
 }
