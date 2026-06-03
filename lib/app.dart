@@ -49,6 +49,32 @@ CustomTransitionPage<void> _fadePage({
   );
 }
 
+// Push routes: subtle slide-up + fade — signals "going deeper" vs tab fade
+CustomTransitionPage<void> _slidePage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.06),
+          end: Offset.zero,
+        ).animate(curved),
+        child: FadeTransition(opacity: curved, child: child),
+      );
+    },
+  );
+}
+
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
@@ -121,63 +147,80 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/medicine/add',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const AddMedicineScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const AddMedicineScreen()),
     ),
     GoRoute(
       path: '/medicine/history',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const MedicineHistoryScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const MedicineHistoryScreen()),
     ),
     GoRoute(
       path: '/habits/add',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, state) => AddHabitScreen(habit: state.extra as Habit?),
+      pageBuilder: (_, state) => _slidePage(
+        key: state.pageKey,
+        child: AddHabitScreen(habit: state.extra as Habit?),
+      ),
     ),
     GoRoute(
       path: '/habits/history',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const HabitHistoryScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const HabitHistoryScreen()),
     ),
     GoRoute(
       path: '/settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const SettingsScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const SettingsScreen()),
     ),
     GoRoute(
       path: '/history',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const HistoryScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const HistoryScreen()),
     ),
     GoRoute(
       path: '/treatment/onboarding',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const TreatmentOnboardingScreen(),
+      pageBuilder: (_, state) => _slidePage(
+        key: state.pageKey,
+        child: const TreatmentOnboardingScreen(),
+      ),
     ),
     GoRoute(
       path: '/treatment/detail',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const TreatmentDetailScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const TreatmentDetailScreen()),
     ),
     GoRoute(
       path: '/sleep-settings',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const SleepSettingsScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const SleepSettingsScreen()),
     ),
     GoRoute(
       path: '/morning-gate',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const MorningGateScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const MorningGateScreen()),
     ),
     GoRoute(
       path: '/wakeup-game',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, state) =>
-          WakeupGameScreen(forceGameIndex: state.extra as int?),
+      pageBuilder: (_, state) => _slidePage(
+        key: state.pageKey,
+        child: WakeupGameScreen(forceGameIndex: state.extra as int?),
+      ),
     ),
     GoRoute(
       path: '/onboarding',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, _) => const OnboardingScreen(),
+      pageBuilder: (_, state) =>
+          _slidePage(key: state.pageKey, child: const OnboardingScreen()),
     ),
   ],
 );
