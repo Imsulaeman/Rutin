@@ -203,5 +203,324 @@
       "day": { "type": "int" },
       "left": { "type": "int" }
     }
+  },
+  "saving": "Saving...",
+  "create": "Create",
+  "add": "Add",
+  "enable": "Enable",
+  "later": "Later",
+  "next": "Next",
+  "replace": "Replace",
+  "end": "End",
+  "complete": "Complete",
+  "incomplete": "Incomplete",
+  "completed": "Completed",
+  "logged": "logged",
+  "partial": "Partial",
+  "offDay": "Off day",
+  "startToday": "Start today",
+  "days": "days",
+  "date": "Date",
+  "status": "Status",
+  "condition": "Condition",
+  "startDate": "Start Date",
+  "duration": "Duration",
+  "dosage": "Dosage",
+  "medicineName": "Medicine name",
+  "name": "Name",
+  "age": "Age",
+  "perfect": "Perfect",
+  "good": "Good",
+  "miss": "Miss",
+  "noRoutine": "No routine",
+  "newRoutine": "New routine",
+  "combineIntoRoutine": "Combine into routine",
+  "deleteRoutine": "Delete routine",
+  "editRoutine": "Edit routine",
+  "editNameAndEmoji": "Edit name & emoji",
+  "deleteRoutineBody": "This routine will be deleted.",
+  "deleteRoutineOnly": "Delete routine only",
+  "deleteRoutineAndHabits": "Delete routine and habits",
+  "editHabit": "Edit Habit",
+  "habitAlreadyCompleted": "Already completed today",
+  "habitMoveToRoutine": "Move to routine",
+  "habitTurnIntoMedal": "Turn into medal",
+  "moveTo": "Move to",
+  "retireHabitDescription": "This habit will leave the active list and be saved as a medal.",
+  "retireHabitButton": "🏅  Turn into Medal",
+  "habitsEmptyHint": "Tap + to add a habit, then create a routine from the All tab.",
+  "groupEmptyHint": "No habits here yet.\nTap + or use \"Move to routine\" from All.",
+  "allDone": "All done! 🎉",
+  "doneToday": "Done today",
+  "combine": "Combine",
+  "createRoutineHint": "Create a routine first from the Habits tab",
+  "enableReminder": "Enable reminder",
+  "addTime": "Add time",
+  "reminderTime": "Reminder time",
+  "chooseEmoji": "Choose an emoji",
+  "emojiCategoryActivity": "Activity",
+  "emojiCategoryMorningNight": "Morning & Night",
+  "emojiCategoryFoodDrink": "Food & Drink",
+  "emojiCategoryStudyWork": "Study & Work",
+  "emojiCategoryHealth": "Health",
+  "emojiCategoryGeneral": "General",
+  "habitHistory": "Habit History",
+  "noHabitsScheduled": "No habits were scheduled.",
+  "noHabitsYetShort": "No habits yet.",
+  "medicineHistory": "Medicine History",
+  "allTaken": "All taken",
+  "noSchedule": "No schedule",
+  "reviewDoses": "Review doses that were taken, missed, or are not due yet.",
+  "noMedicineForDay": "No medicine scheduled for this day.",
+  "notDueYet": "Not due yet",
+  "noLogYet": "No log yet",
+  "noDoseSchedule": "No dose schedule yet",
+  "deleteMedicineTitle": "Delete medicine?",
+  "noMedicineToday": "No medicine today",
+  "habitCompletedLog": "Habit completed",
+  "recentActivityForDay": "Recent activity for this day.",
+  "nothingLoggedToday": "Nothing logged on this day.",
+  "scheduleTimes": "SCHEDULE TIMES",
+  "mealRule": "MEAL RULE",
+  "medicineNameRequired": "Medicine name is required",
+  "dosageHint": "Example: 1 tablet",
+  "enableAndStart": "Enable & Start",
+  "onboarding1Headline": "Struggling to\nstay consistent?",
+  "onboarding1Body": "Medicine, water, exercise — small habits that are easy to forget but matter for your health.",
+  "onboarding2Headline": "Rutin keeps all\nyour routines.",
+  "onboarding2Body": "Medicine reminders, habits, water tracking, and morning wake-up games — free, offline, forever.",
+  "onboarding3Headline": "One last\nstep.",
+  "onboarding3Body": "Rutin needs notification permission so reminders work when the app is closed.",
+  "tapToSetName": "Tap to set your name",
+  "bestStreak": "Best streak",
+  "habitsDone": "Habits done",
+  "habitsAchieved": "Habits you have achieved",
+  "chooseCharacter": "Choose your character",
+  "sleepModeSubtitle": "Settings and morning wake-up games",
+  "settingsSubtitle": "Language, accessibility, about",
+  "accessibilityNotAllowed": "Not allowed yet, required for Sleep Mode",
+  "medicineAlarmSection": "MEDICINE ALARM",
+  "fullScreenAlarm": "Full-screen alarm",
+  "fullScreenAlarmAllowed": "Allowed, alarms can take over the screen",
+  "fullScreenAlarmNotAllowed": "Not allowed yet, alarms may stay as heads-up only",
+  "soundSection": "SOUND",
+  "appSound": "App sound",
+  "appSoundSubtitle": "Use the built-in Rutin sound",
+  "phoneDefaultSound": "Phone default sound",
+  "phoneDefaultSoundSubtitle": "Use the phone default notification or ringtone",
+  "notificationSound": "Notification sound",
+  "notificationSoundSubtitle": "Used for Water and Habit reminders",
+  "medicineAlarmSound": "Medicine alarm sound",
+  "medicineAlarmSoundSubtitle": "Used for full-screen medicine alarms",
+  "otherSection": "OTHER",
+  "tutorial": "Tutorial",
+  "tutorialSubtitle": "Replay the onboarding screens",
+  "dataSection": "DATA",
+  "exportBackup": "Export backup (JSON)",
+  "exportBackupSubtitle": "All medicines, habits, water, and logs",
+  "skipGateTitle": "Skip the gate?",
+  "skipGateBody": "This morning game will be skipped. Your streak stays safe.",
+  "streakFirstDay": "First day!",
+  "noHabitsToday": "No habits today",
+  "sleepModeStartError": "Sleep mode could not start. Try enabling it again after updating the app.",
+  "allowBackgroundTitle": "Allow Background Activity",
+  "allowBackgroundBody": "Rutin needs background access so medicine alarms, water reminders, and Sleep Mode can still appear on time.\n\nAfter the Rutin app settings page opens, go to Battery, then turn off battery optimization or allow background activity.",
+  "enableAccessibilityHint": "For the best experience, enable Accessibility Service.",
+  "accessibilityService": "Accessibility Service",
+  "notAllowedYet": "Not allowed yet",
+  "backgroundAllowed": "Background access is already allowed",
+  "backgroundNotConfirmed": "Not confirmed yet. On some phones this status may stay unchanged even after background access is enabled.",
+  "sleepTriggerSimulated": "The morning gate should appear now. If not, check whether Sleep Mode is enabled.",
+  "skipArrow": "Skip →",
+  "watchClosely": "Watch closely...",
+  "tapTheSequence": "Tap the sequence!",
+  "wrongRepeatRound": "Wrong! Repeat the round...",
+  "connectTheColors": "Connect the Colors",
+  "gameComplete": "Game complete. Have a great day!",
+  "noActiveProgramDot": "No active program.",
+  "exportPdf": "Export PDF",
+  "endProgram": "End program",
+  "endProgramTitle": "End program?",
+  "endProgramBody": "The active program will be stopped.",
+  "pdfTitle": "Rutin - Treatment Adherence Report",
+  "startDateLabel": "Start date",
+  "conditionName": "Condition name",
+  "treatmentDuration": "Treatment duration",
+  "other": "Other",
+  "numberOfDays": "Number of days",
+  "linkedMedicine": "Linked medicine (optional)",
+  "noLinkedMedicine": "No linked medicine",
+  "treatmentValidationError": "Enter a condition and valid duration.",
+  "replaceActiveProgram": "Replace active program?",
+  "replaceProgramBody": "The previous program will be stopped.",
+  "waterSettings": "Water Settings",
+  "waterGoalReached": "Goal reached! Great job!",
+  "remindersStart": "Reminders start",
+  "remindersFinished": "Reminders finished for today",
+  "comingSoon": "Coming soon...",
+  "glassSize": "Glass size",
+  "start": "Start",
+  "reminder": "Reminder",
+  "scheduledDoses": "Scheduled Doses",
+  "takenDoses": "Taken Doses",
+  "exportedFrom": "Exported from Rutin",
+  "failedToSave": "Failed to save: {error}",
+  "@failedToSave": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "failedToScheduleAlarm": "Failed to schedule alarm: {error}",
+  "@failedToScheduleAlarm": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "exportBackupFailed": "Export failed: {error}",
+  "@exportBackupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "deleteHabitTitle": "Delete habit?",
+  "deleteHabitBody": "{name} will be permanently deleted.",
+  "@deleteHabitBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteRoutineTitle": "Delete \"{name}\"?",
+  "@deleteRoutineTitle": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteRoutineWithHabitsBody": "This routine has {count} habits. What should happen to them?",
+  "@deleteRoutineWithHabitsBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "habitsCompletedCount": "{completed} of {total} habits completed",
+  "@habitsCompletedCount": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "habitTurnedIntoMedal": "{emoji} {name} turned into a medal!",
+  "@habitTurnedIntoMedal": {
+    "placeholders": {
+      "emoji": {},
+      "name": {}
+    }
+  },
+  "tookMedicine": "Took {name}",
+  "@tookMedicine": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "drankWaterMl": "Drank {ml} ml of water",
+  "@drankWaterMl": {
+    "placeholders": {
+      "ml": { "type": "int" }
+    }
+  },
+  "ageYearsOld": "{age} years old",
+  "@ageYearsOld": {
+    "placeholders": {
+      "age": { "type": "int" }
+    }
+  },
+  "medicineDueNow": "{count} due now",
+  "@medicineDueNow": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medicineMissedCount": "{count} missed",
+  "@medicineMissedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medicineDoneProgress": "{taken}/{total} done",
+  "@medicineDoneProgress": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "noMedicineTodayHint": "Add a medicine schedule with + so today's doses appear here.",
+  "streakDay": "Day {streak}",
+  "@streakDay": {
+    "placeholders": {
+      "streak": { "type": "int" }
+    }
+  },
+  "daysRemaining": "{count} days remaining",
+  "@daysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "adherenceLabel": "Adherence: {pct}%",
+  "@adherenceLabel": {
+    "placeholders": {
+      "pct": { "type": "int" }
+    }
+  },
+  "last7Days": "Last 7 days: {taken}/{total} doses",
+  "@last7Days": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "months": "{count} months",
+  "@months": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "gameRoundInfo": "Round {round}/3  •  {colors} colors",
+  "@gameRoundInfo": {
+    "placeholders": {
+      "round": { "type": "int" },
+      "colors": { "type": "int" }
+    }
+  },
+  "reminderInMinutes": "Reminder in {minutes} min",
+  "@reminderInMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "reminderInHours": "Reminder in {hours}h",
+  "@reminderInHours": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "reminderInHoursMinutes": "Reminder in {hours}h {minutes}m",
+  "@reminderInHoursMinutes": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "waterGlassesSummary": "{glasses} glasses/day - reminder every {minutes} min",
+  "@waterGlassesSummary": {
+    "placeholders": {
+      "glasses": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "ofGoalGlasses": "of {goal} glasses",
+  "@ofGoalGlasses": {
+    "placeholders": {
+      "goal": { "type": "int" }
+    }
   }
 }

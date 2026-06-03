@@ -7,9 +7,31 @@
 
 ---
 
+## Status Update — 2026-06-03
+
+This review was originally written before the P1-P4 implementation batch. The biggest findings from this report are now already shipped:
+
+- Custom fonts are live: `Bricolage Grotesque` for display and `DM Sans` for UI/body.
+- The permission flow was rewritten into a step-by-step bottom sheet.
+- Sensitive Hive boxes `medicines`, `medicine_logs`, and `tb_profiles` now use encryption.
+- Home now uses Riverpod providers for `WaterRepository` and `HabitRepository`.
+- Shell routes use fade transitions, the Home calendar icon goes to `History`, and many inline `localized()` strings were moved into ARB files.
+- Firebase Analytics no longer sends medicine names or habit names.
+- Accessibility Service now has a narrow manifest description for Play Store review.
+- Repository tests were added for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`.
+
+Remaining relevant gaps from this report are the items still open in `TODO.md`, especially:
+
+- lazy-opening non-critical Hive boxes if startup time becomes a real issue
+- polishing medal/profile collection surfaces
+- richer empty states / CTA treatment if we want a more portfolio-styled first-run experience
+- final device/manual verification for the nightly sleep-mode transition
+
+---
+
 ## Executive Summary
 
-Rutin is a solidly built, offline-first Flutter health app with a strong design foundation: intentional dark palette, consistent feature color coding, and a custom bottom nav. The animation layer shows real craft — particularly `_Pressable` (press scale feedback), staggered entrance, and the ambient bobbing sun. The main gaps are: a generic font stack that limits premium feel, a few animation correctness issues, one poor UX pattern (the permission dialog), and minor code inconsistencies. Security posture is good — sensitive files are gitignored and not committed.
+Rutin is a solidly built, offline-first Flutter health app with a strong design foundation: intentional dark palette, consistent feature color coding, custom typography, and a distinctive bottom nav. The animation layer shows real craft — particularly `_Pressable`, staggered entrance, and the ambient bobbing sun. After the P1-P4 follow-up batch, the biggest review blockers are no longer typography, permission UX, or analytics privacy. The remaining work is mostly polish, startup-performance tradeoffs, and final manual verification rather than foundational product risk.
 
 ---
 
@@ -29,17 +51,17 @@ Rutin is a solidly built, offline-first Flutter health app with a strong design 
 
 ### Issues
 
-**[HIGH] No custom display font.**
-The app uses the system default font (Roboto on Android). For an ADA portfolio project competing against polished apps, this is the single biggest design gap. The typography scale is well-defined (`w800 -2.0 tracking` for displayLarge) but it's rendered in a generic typeface. A free Google Font like "DM Sans", "Plus Jakarta Sans", or "Bricolage Grotesque" would immediately elevate the perceived quality.
+**[DONE] Custom display font was previously missing.**
+This was a real issue in the original review, but it has now been fixed. The app now uses `Bricolage Grotesque` for display/headline text and `DM Sans` for UI/body text.
 
 **[MEDIUM] Section headers use `.toUpperCase()` in code.**
 `context.l10n.medicine.toUpperCase()` (home_screen.dart:402) is not safe for all locales — Turkish `I` capitalisation is a known Flutter gotcha, and Indonesian has no uppercase issue but the call is still fragile. Use `ARB` strings that are already in the correct display form, or apply `TextStyle(letterSpacing: 0.8)` without `.toUpperCase()`.
 
-**[MEDIUM] Permission dialog UX is confusing.**
-`_maybeShowPermissionWizard` (home_screen.dart:801) presents a single `AlertDialog` with three separate `TextButton`s, each requesting a different permission and each dismissing the dialog. A user who taps "Notifications" grants that permission and the dialog disappears — they never see the other two buttons unless they reopen the app. This is a first-run friction point. Fix: use a step-by-step bottom sheet that walks through each permission individually, or at minimum keep the dialog open after each tap.
+**[DONE] Permission dialog UX was confusing.**
+This was fixed after the review. The app now uses a guided step-by-step bottom sheet instead of a one-shot `AlertDialog`.
 
-**[MEDIUM] `_Header` calendar button is a no-op.**
-Both the menu icon and the calendar icon at `home_screen.dart:1009` call the same `onMenu` callback (→ goes to /profile). The calendar icon implies a date-picker or history view but currently does nothing different. Either wire it to `/history` or remove it.
+**[DONE] `_Header` calendar button was a no-op.**
+This has already been wired to `History`.
 
 **[LOW] `_EmptyHint` is text-only.**
 Empty states for Medicine, Water, and Habits are plain muted text. For a health app, a small illustration or icon + a call-to-action button ("Add your first medicine") would both delight first-time users and improve activation. Given the scattered-idea goal of ADA portfolio, this is worth investing in.
@@ -87,8 +109,8 @@ Action item: add a `pre-commit` hook or CI check to block accidental commits of 
 
 ### Issues
 
-**[MEDIUM] Hive data is stored unencrypted.**
-All health data — medicines, TB treatment profiles, habits, user profile — is stored in Hive boxes with no encryption. On a non-rooted device this is acceptable. On a rooted device or via ADB backup, a third party could extract the Hive files and read all data. For a medical app (TB treatment tracking is explicitly a feature), consider `hive_flutter` with `HiveAesCipher` for sensitive boxes (`medicines`, `medicine_logs`, `tb_profiles`). Generate the encryption key via `flutter_secure_storage`.
+**[DONE] Sensitive Hive data was previously unencrypted.**
+This has now been addressed for the highest-risk boxes: `medicines`, `medicine_logs`, and `tb_profiles` use `HiveAesCipher` with a key stored through `flutter_secure_storage`.
 
 ```dart
 // Minimum viable approach for sensitive boxes
@@ -101,14 +123,14 @@ final encryptedBox = await Hive.openBox<Medicine>(
 );
 ```
 
-**[MEDIUM] `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` without rationale.**
-The app requests battery optimization exemption via permission in `AndroidManifest.xml`. Google Play's policy requires that this permission be used only for alarms/reminders and that the user is given a rationale before the system dialog. Missing rationale = potential Play Store rejection during review. Show an explanation dialog before calling `requestIgnoreBatteryOptimizations()`.
+**[DONE] Battery optimization rationale was previously missing.**
+The app now shows an explanation dialog before opening the settings handoff.
 
 **[LOW] Accessibility Service scope.**
-`RutinAccessibilityService` is declared. Google Play has increased scrutiny on accessibility services since 2023 — apps must declare a specific, narrow use case in the Play Store listing. Ensure the `android:description` in the service declaration clearly states "detects when user unlocks device after sleep window to show morning routine" and that the store listing says the same.
+The manifest description is now in place, which is good progress. The remaining part is making sure the Play Store listing wording stays equally narrow and consistent.
 
-**[LOW] Firebase Analytics with health context.**
-`AnalyticsService.medicineTaken()` sends events to Firebase. Confirm no PII or medication names are sent in event parameters — health information combined with a device ID may trigger GDPR / Indonesian PDP Law No. 27/2022 obligations even for analytics. Audit every `logEvent` call to ensure parameter values are anonymized aggregates only.
+**[DONE] Firebase Analytics health-context audit.**
+This issue has already been addressed. Medicine names and habit names are no longer sent in analytics event parameters.
 
 **[INFO] No HTTPS endpoints (by design).**
 The app is fully offline-first with no direct REST calls from Dart code. Firebase SDK handles its own transport. This is a strong security posture for this class of app.
@@ -119,11 +141,11 @@ The app is fully offline-first with no direct REST calls from Dart code. Firebas
 
 ### Issues
 
-**[MEDIUM] Inconsistent dependency injection in HomeScreen.**
-`_HomeScreenState` instantiates `WaterRepository()` and `HabitRepository()` directly (home_screen.dart:61-62) while using `ref.watch(medicineRepositoryProvider)` for medicine. All three repositories should come from Riverpod providers. This also means `WaterRepository` and `HabitRepository` on the home screen are separate instances from any other screen — Hive is a shared box so data is consistent, but the pattern breaks testability.
+**[DONE] Inconsistent dependency injection in HomeScreen.**
+This was fixed after the review. Home now reads `WaterRepository` and `HabitRepository` from providers instead of constructing them directly.
 
-**[MEDIUM] `_permissionDialogShown` is a static bool.**
-`static bool _permissionDialogShown = false` (home_screen.dart:56) resets to `false` on every cold start. If the user dismisses the dialog without granting permissions, it will reappear every cold start. Store this flag in Hive `app_settings` so it persists: only show once, or only show again after 7 days.
+**[DONE] `_permissionDialogShown` static flag issue.**
+This has already been fixed by persisting the permission-flow shown state in Hive `app_settings`.
 
 **[MEDIUM] `localized()` parallel localization system.**
 The codebase uses both `context.l10n.someKey` (ARB-based, type-safe) and `localized(context, id: '...', en: '...')` (inline bilingual string, home_screen.dart:158+). The `localized()` pattern bypasses ARB files entirely, meaning Indonesian strings for home screen are hardcoded in Dart rather than extracted to `app_id.arb`. This makes future translation work harder and creates a split source of truth. Migrate all `localized()` calls to ARB entries.
@@ -134,8 +156,8 @@ The codebase uses both `context.l10n.someKey` (ARB-based, type-safe) and `locali
 **[LOW] `_FadeSlideIn` uses `Transform.translate` which triggers compositing.**
 `Transform.translate` with `Offset(0, 16 * ...)` during the entrance animation causes a repaint each frame. This is acceptable for an entrance animation that runs once, but should use `FractionalTranslation` instead of `Transform.translate` for the offset — it avoids a separate compositing layer.
 
-**[INFO] No integration tests.**
-The app has no test files visible in the repo. Given the critical nature (medicine reminders, TB treatment tracking), at minimum the repository layer (streak calculation, dose logging) should have unit tests. `HabitRepository.getStreak()` and `MedicineRepository.isTaken()` are pure logic functions that are very testable.
+**[PARTIAL] Test coverage is no longer zero.**
+There are now focused repository tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()`. Broader integration or widget testing is still not in place.
 
 **[INFO] `main.dart` opens all Hive boxes sequentially at startup.**
 13 Hive boxes are opened in sequence before `runApp`. On a slower device this can add 200–400ms to cold start. Consider lazy-opening non-critical boxes (medals, history) after the first frame using `addPostFrameCallback`.
@@ -162,17 +184,19 @@ From `scattered-idea.md`:
 
 | Priority | Category | Item |
 |---|---|---|
-| P1 | Security | Add `HiveAesCipher` for `medicines`, `medicine_logs`, `tb_profiles` boxes |
-| P1 | UX | Rewrite permission dialog as step-by-step bottom sheet |
-| P1 | Design | Add a custom Google Font (DM Sans or Plus Jakarta Sans) to `pubspec.yaml` |
-| P2 | Animation | Add `curve: Curves.easeOut` to the checkbox `AnimatedContainer` |
-| P2 | Animation | Wrap the FAB in `_Pressable` for press scale feedback |
-| P2 | Code | Move `WaterRepository` and `HabitRepository` in `HomeScreen` to Riverpod providers |
-| P2 | Code | Persist `_permissionDialogShown` to Hive instead of a static bool |
-| P3 | Code | Migrate all `localized()` inline strings to ARB files |
-| P3 | Animation | Define custom `GoRouter` page transitions (fade, 280ms easeOut) |
-| P3 | UX | Wire the calendar icon in the home header to `/history` or remove it |
-| P3 | Design | Improve empty states with a small icon + CTA button |
-| P4 | Code | Add unit tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()` |
-| P4 | Play Store | Add battery optimization rationale dialog before requesting exemption |
-| P4 | Play Store | Narrow and document `RutinAccessibilityService` purpose in manifest description |
+| Done | Security | Add `HiveAesCipher` for `medicines`, `medicine_logs`, `tb_profiles` boxes |
+| Done | UX | Rewrite permission dialog as step-by-step bottom sheet |
+| Done | Design | Add custom fonts via `google_fonts` |
+| Done | Animation | Add `curve: Curves.easeOut` to the checkbox `AnimatedContainer` |
+| Done | Animation | Wrap the FAB in `_Pressable` for press scale feedback |
+| Done | Code | Move `WaterRepository` and `HabitRepository` in `HomeScreen` to Riverpod providers |
+| Done | Code | Persist permission-flow shown state to Hive |
+| Partial | Code | Migrate major `localized()` inline strings on Home to ARB files; app-wide migration is still not finished |
+| Done | Animation | Define custom `GoRouter` page transitions (fade, 280ms easeOut) |
+| Done | UX | Wire the calendar icon in the home header to `/history` |
+| Open | Design | Improve empty states with a small icon + CTA button |
+| Done | Code | Add unit tests for `HabitRepository.getStreak()` and `MedicineRepository.isTaken()` |
+| Done | Play Store | Add battery optimization rationale dialog before opening settings |
+| Done | Play Store | Narrow and document `RutinAccessibilityService` purpose in manifest description |
+| Open | Performance | Lazy-open non-critical Hive boxes if startup cost becomes noticeable |
+| Open | QA | Finish manual nightly sleep-mode transition verification |

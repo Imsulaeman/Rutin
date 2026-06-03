@@ -157,7 +157,7 @@ class _WakeupGameScreenState extends State<WakeupGameScreen> {
                   child: TextButton(
                     onPressed: _onSkip,
                     child: Text(
-                      localized(context, id: 'Lewati →', en: 'Skip →'),
+                      context.l10n.skipArrow,
                       style: TextStyle(color: Colors.white30, fontSize: 13),
                     ),
                   ),
@@ -199,16 +199,8 @@ class _Header extends StatelessWidget {
                 const SizedBox(width: 5),
                 Text(
                   streak == 0
-                      ? localized(
-                          context,
-                          id: 'Hari pertama!',
-                          en: 'First day!',
-                        )
-                      : localized(
-                          context,
-                          id: 'Hari ke-$streak',
-                          en: 'Day $streak',
-                        ),
+                      ? context.l10n.streakFirstDay
+                      : context.l10n.streakDay(streak),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -377,16 +369,8 @@ class _SequenceGameState extends State<_SequenceGame>
           duration: const Duration(milliseconds: 300),
           child: Text(
             _isPlaying
-                ? localized(
-                    context,
-                    id: 'Perhatikan...',
-                    en: 'Watch closely...',
-                  )
-                : localized(
-                    context,
-                    id: 'Ketuk urutannya!',
-                    en: 'Tap the sequence!',
-                  ),
+                ? context.l10n.watchClosely
+                : context.l10n.tapTheSequence,
             key: ValueKey(_isPlaying),
             style: TextStyle(
               fontSize: 20,
@@ -398,11 +382,7 @@ class _SequenceGameState extends State<_SequenceGame>
         const SizedBox(height: 8),
         Text(
           _isPlaying
-              ? localized(
-                  context,
-                  id: 'Putaran ${_round + 1}/3  •  ${_sequence.length} warna',
-                  en: 'Round ${_round + 1}/3  •  ${_sequence.length} colors',
-                )
+              ? context.l10n.gameRoundInfo(_round + 1, _sequence.length)
               : '${_userInput.length}/${_sequence.length}',
           style: const TextStyle(color: Colors.white38, fontSize: 13),
         ),
@@ -469,11 +449,7 @@ class _SequenceGameState extends State<_SequenceGame>
         const SizedBox(height: 24),
         if (_wrongTap)
           Text(
-            localized(
-              context,
-              id: 'Salah! Ulangi putaran...',
-              en: 'Wrong! Repeat the round...',
-            ),
+            context.l10n.wrongRepeatRound,
             style: TextStyle(
               color: Colors.red.shade400,
               fontSize: 13,
@@ -651,8 +627,8 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       final distance = (best.y - center).abs();
       final isPerfect = distance < _tileHeight * 0.3;
       final label = isPerfect
-          ? localized(context, id: 'Sempurna', en: 'Perfect')
-          : localized(context, id: 'Bagus', en: 'Good');
+          ? context.l10n.perfect
+          : context.l10n.good;
       final color = isPerfect
           ? const Color(0xFF4CC56A)
           : const Color(0xFFFFB300);
@@ -672,11 +648,7 @@ class _PianoTilesGameState extends State<_PianoTilesGame>
       setState(() {
         _laneFlash[lane] = Colors.red.withValues(alpha: 0.45);
         _judgments.add(
-          _Judgment(
-            localized(context, id: 'Meleset', en: 'Miss'),
-            Colors.redAccent,
-            lane,
-          ),
+          _Judgment(context.l10n.miss, Colors.redAccent, lane),
         );
       });
       Future.delayed(const Duration(milliseconds: 220), () {
@@ -1220,11 +1192,7 @@ class _ConnectDotsGameState extends State<_ConnectDotsGame> {
             children: [
               Expanded(
                 child: Text(
-                  localized(
-                    context,
-                    id: 'Hubungkan Warnanya',
-                    en: 'Connect the Colors',
-                  ),
+                  context.l10n.connectTheColors,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -1468,11 +1436,7 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    localized(
-                      context,
-                      id: 'Selamat pagi!',
-                      en: 'Good morning!',
-                    ),
+                    '${context.l10n.greetingMorning}!',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -1482,11 +1446,7 @@ class _CelebrationOverlayState extends State<_CelebrationOverlay>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    localized(
-                      context,
-                      id: 'Game selesai. Selamat beraktivitas!',
-                      en: 'Game complete. Have a great day!',
-                    ),
+                    context.l10n.gameComplete,
                     style: TextStyle(color: Colors.white54, fontSize: 14),
                   ),
                 ],

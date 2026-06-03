@@ -49,7 +49,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
   @override
   void initState() {
     super.initState();
-    // Reflect any data change (add/edit/delete/log) instantly.
     _habitsL = Hive.box<Habit>('habits').listenable();
     _groupsL = Hive.box<HabitGroup>('habit_groups').listenable();
     _logsL = Hive.box<HabitLog>('habit_logs').listenable();
@@ -74,7 +73,6 @@ class _HabitsScreenState extends State<HabitsScreen> {
       _groupHabits = {
         for (final g in _repo.getGroups()) g.id: _repo.habitsInGroup(g.id),
       };
-      // Validate selected group still exists
       if (_selectedGroupId != null &&
           !_groupHabits.containsKey(_selectedGroupId)) {
         _selectedGroupId = null;
@@ -101,13 +99,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     if (_repo.isCompletedToday(habit.id)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            localized(
-              context,
-              id: 'Sudah dilakukan hari ini',
-              en: 'Already completed today',
-            ),
-          ),
+          content: Text(context.l10n.habitAlreadyCompleted),
           duration: Duration(seconds: 1),
         ),
       );
@@ -150,13 +142,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
             if (groups.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.drive_file_move_rounded),
-                title: Text(
-                  localized(
-                    context,
-                    id: 'Pindahkan ke rutinitas',
-                    en: 'Move to routine',
-                  ),
-                ),
+                title: Text(context.l10n.habitMoveToRoutine),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showMoveToGroup(habit);
@@ -164,9 +150,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               ),
             ListTile(
               leading: const Text('🏅', style: TextStyle(fontSize: 22)),
-              title: Text(
-                localized(context, id: 'Jadikan medali', en: 'Turn into medal'),
-              ),
+              title: Text(context.l10n.habitTurnIntoMedal),
               onTap: () {
                 Navigator.pop(ctx);
                 _retireAsModal(habit);
@@ -203,16 +187,14 @@ class _HabitsScreenState extends State<HabitsScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Text(
-                localized(context, id: 'Pindahkan ke', en: 'Move to'),
+                context.l10n.moveTo,
                 style: Theme.of(ctx).textTheme.titleMedium,
               ),
             ),
             if (habit.groupId != null)
               ListTile(
                 leading: const Text('📋', style: TextStyle(fontSize: 20)),
-                title: Text(
-                  localized(context, id: 'Tanpa rutinitas', en: 'No routine'),
-                ),
+                title: Text(context.l10n.noRoutine),
                 onTap: () => Navigator.pop(ctx, ''),
               ),
             for (final g in groups)
@@ -251,16 +233,8 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(
-          localized(context, id: 'Hapus kebiasaan?', en: 'Delete habit?'),
-        ),
-        content: Text(
-          localized(
-            context,
-            id: '${habit.name} akan dihapus permanen.',
-            en: '${habit.name} will be permanently deleted.',
-          ),
-        ),
+        title: Text(context.l10n.deleteHabitTitle),
+        content: Text(context.l10n.deleteHabitBody(habit.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -316,13 +290,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            localized(
-              context,
-              id: '${habit.emoji} ${habit.name} dijadikan medali!',
-              en: '${habit.emoji} ${habit.name} turned into a medal!',
-            ),
-          ),
+          content: Text(context.l10n.habitTurnedIntoMedal(habit.emoji, habit.name)),
         ),
       );
     }
@@ -338,9 +306,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: Text(
-            localized(context, id: 'Rutinitas baru', en: 'New routine'),
-          ),
+          title: Text(context.l10n.newRoutine),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -420,7 +386,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(localized(context, id: 'Buat', en: 'Create')),
+              child: Text(context.l10n.create),
             ),
           ],
         ),
@@ -444,22 +410,14 @@ class _HabitsScreenState extends State<HabitsScreen> {
     );
     if (targetIndex == -1) return;
 
-    final nameCtrl = TextEditingController(
-      text: localized(context, id: 'Rutinitas baru', en: 'New routine'),
-    );
+    final nameCtrl = TextEditingController(text: context.l10n.newRoutine);
     String emoji = target.emoji;
 
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: Text(
-            localized(
-              context,
-              id: 'Gabungkan jadi rutinitas',
-              en: 'Combine into routine',
-            ),
-          ),
+          title: Text(context.l10n.combineIntoRoutine),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -539,7 +497,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(localized(context, id: 'Gabungkan', en: 'Combine')),
+              child: Text(context.l10n.combine),
             ),
           ],
         ),
@@ -584,9 +542,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => AlertDialog(
-          title: Text(
-            localized(context, id: 'Ubah rutinitas', en: 'Edit routine'),
-          ),
+          title: Text(context.l10n.editRoutine),
           content: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -644,31 +600,16 @@ class _HabitsScreenState extends State<HabitsScreen> {
     }
   }
 
-  /// Returns true if the group was deleted (either mode), false if cancelled.
-  /// 'only' → habits move to "Tanpa rutinitas"; 'all' → habits deleted too.
   Future<bool> _deleteGroup(HabitGroup group) async {
     final habitCount =
         _groupHabits[group.id]?.length ?? _repo.habitsInGroup(group.id).length;
 
-    // No habits → simple confirm, nothing to keep.
     if (habitCount == 0) {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(
-            localized(
-              context,
-              id: 'Hapus "${group.name}"?',
-              en: 'Delete "${group.name}"?',
-            ),
-          ),
-          content: Text(
-            localized(
-              context,
-              id: 'Rutinitas ini akan dihapus.',
-              en: 'This routine will be deleted.',
-            ),
-          ),
+          title: Text(context.l10n.deleteRoutineTitle(group.name)),
+          content: Text(context.l10n.deleteRoutineBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -695,35 +636,19 @@ class _HabitsScreenState extends State<HabitsScreen> {
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(
-          localized(
-            context,
-            id: 'Hapus "${group.name}"?',
-            en: 'Delete "${group.name}"?',
-          ),
-        ),
+        title: Text(context.l10n.deleteRoutineTitle(group.name)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              localized(
-                context,
-                id: 'Rutinitas ini punya $habitCount kebiasaan. Mau diapakan?',
-                en: 'This routine has $habitCount habits. What should happen to them?',
-              ),
+              context.l10n.deleteRoutineWithHabitsBody(habitCount),
               style: Theme.of(ctx).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: () => Navigator.pop(ctx, 'only'),
-              child: Text(
-                localized(
-                  context,
-                  id: 'Hapus rutinitas saja',
-                  en: 'Delete routine only',
-                ),
-              ),
+              child: Text(context.l10n.deleteRoutineOnly),
             ),
             const SizedBox(height: 8),
             FilledButton(
@@ -731,13 +656,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
               style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error,
               ),
-              child: Text(
-                localized(
-                  context,
-                  id: 'Hapus beserta kebiasaannya',
-                  en: 'Delete routine and habits',
-                ),
-              ),
+              child: Text(context.l10n.deleteRoutineAndHabits),
             ),
           ],
         ),
@@ -882,13 +801,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.edit_rounded),
-              title: Text(
-                localized(
-                  context,
-                  id: 'Ubah nama & emoji',
-                  en: 'Edit name & emoji',
-                ),
-              ),
+              title: Text(context.l10n.editNameAndEmoji),
               onTap: () {
                 Navigator.pop(ctx);
                 _renameGroup(g);
@@ -899,9 +812,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 Icons.delete_outline_rounded,
                 color: Theme.of(context).colorScheme.error,
               ),
-              title: Text(
-                localized(context, id: 'Hapus rutinitas', en: 'Delete routine'),
-              ),
+              title: Text(context.l10n.deleteRoutine),
               onTap: () {
                 Navigator.pop(ctx);
                 _deleteGroup(g);
@@ -941,7 +852,7 @@ class _TabBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           _Tab(
-            label: localized(context, id: 'Semua', en: 'All'),
+            label: context.l10n.all,
             selected: selectedGroupId == null,
             onTap: () => onSelect(null),
           ),
@@ -1050,11 +961,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            localized(
-              context,
-              id: 'Tap + untuk menambah kebiasaan, lalu buat rutinitas dari tab Semua.',
-              en: 'Tap + to add a habit, then create a routine from the All tab.',
-            ),
+            context.l10n.habitsEmptyHint,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1126,16 +1033,8 @@ class _SwipeToDelete extends StatelessWidget {
       confirmDismiss: (_) => showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(
-            localized(context, id: 'Hapus kebiasaan?', en: 'Delete habit?'),
-          ),
-          content: Text(
-            localized(
-              context,
-              id: '${habit.name} akan dihapus permanen.',
-              en: '${habit.name} will be permanently deleted.',
-            ),
-          ),
+          title: Text(context.l10n.deleteHabitTitle),
+          content: Text(context.l10n.deleteHabitBody(habit.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -1185,11 +1084,7 @@ class _RetireSheet extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            localized(
-              context,
-              id: 'Kebiasaan ini akan dihapus dari daftar aktif dan disimpan sebagai medali.',
-              en: 'This habit will leave the active list and be saved as a medal.',
-            ),
+            context.l10n.retireHabitDescription,
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
@@ -1198,13 +1093,7 @@ class _RetireSheet extends StatelessWidget {
           const SizedBox(height: 28),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              localized(
-                context,
-                id: '🏅  Jadikan Medali',
-                en: '🏅  Turn into Medal',
-              ),
-            ),
+            child: Text(context.l10n.retireHabitButton),
           ),
           const SizedBox(height: 8),
           TextButton(
@@ -1285,7 +1174,7 @@ class _EditModeViewState extends State<_EditModeView> {
         if (oldGroupId != intoGroupId) {
           await widget.repo.autoSortNewItem(intoGroupId, item.id);
         }
-        widget.onEnsureExpanded(intoGroupId); // show where it landed
+        widget.onEnsureExpanded(intoGroupId);
       } else {
         item.groupId = null;
         await widget.repo.save(item);
@@ -1305,7 +1194,7 @@ class _EditModeViewState extends State<_EditModeView> {
       if (cur != -1 && cur < idx) idx--;
       flat.insert(idx.clamp(0, flat.length), item);
       await widget.repo.reorderFlatList(flat);
-      widget.onEnsureExpanded(item.id); // unfold so the whole stack is visible
+      widget.onEnsureExpanded(item.id);
     }
 
     widget.onReloaded();
@@ -1411,8 +1300,6 @@ class _EditModeViewState extends State<_EditModeView> {
                 color: Theme.of(context).colorScheme.onError,
               ),
             ),
-            // We handle the delete (with its own dialog) ourselves and reload,
-            // so always return false to keep Dismissible from removing the row.
             confirmDismiss: (_) async {
               await widget.onGroupDelete(item);
               return false;
@@ -1565,7 +1452,6 @@ class _EditGroupBlock extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Header: long-press anywhere here to drag the whole group
           LongPressDraggable<Object>(
             data: group,
             delay: const Duration(milliseconds: 350),
@@ -1654,7 +1540,6 @@ class _EditGroupBlock extends StatelessWidget {
               ),
             ),
           ),
-          // Expanded children with inner drop zones
           if (isExpanded) ...[
             Divider(height: 1, color: AppTheme.border),
             Padding(
@@ -1823,11 +1708,7 @@ class _UngroupedHabitDropTarget extends StatelessWidget {
                           border: Border.all(color: AppTheme.habitsColor),
                         ),
                         child: Text(
-                          localized(
-                            context,
-                            id: 'Gabungkan jadi rutinitas',
-                            en: 'Combine into routine',
-                          ),
+                          context.l10n.combineIntoRoutine,
                           style: TextStyle(
                             color: AppTheme.habitsColor,
                             fontSize: 12,
@@ -1933,11 +1814,7 @@ class _GroupView extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Text(
-            localized(
-              context,
-              id: 'Belum ada kebiasaan di sini.\nTap + atau gunakan "Pindahkan ke rutinitas" dari Semua.',
-              en: 'No habits here yet.\nTap + or use "Move to routine" from All.',
-            ),
+            context.l10n.groupEmptyHint,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1951,7 +1828,7 @@ class _GroupView extends StatelessWidget {
       buildDefaultDragHandles: false,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       onReorder: onReorder,
-      itemCount: habits.length + 1, // +1 for mascot banner
+      itemCount: habits.length + 1,
       itemBuilder: (ctx, i) {
         if (i == habits.length) {
           return const Padding(
@@ -2051,17 +1928,7 @@ class _TodayHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  allDone
-                      ? localized(
-                          context,
-                          id: 'Semua selesai! 🎉',
-                          en: 'All done! 🎉',
-                        )
-                      : localized(
-                          context,
-                          id: 'Selesai hari ini',
-                          en: 'Done today',
-                        ),
+                  allDone ? context.l10n.allDone : context.l10n.doneToday,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 3),

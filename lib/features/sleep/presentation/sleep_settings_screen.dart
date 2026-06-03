@@ -118,15 +118,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
         _saveNative();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            localized(
-              context,
-              id: 'Mode tidur belum dapat dijalankan. Coba aktifkan kembali setelah memperbarui aplikasi.',
-              en: 'Sleep mode could not start. Try enabling it again after updating the app.',
-            ),
-          ),
-        ),
+        SnackBar(content: Text(context.l10n.sleepModeStartError)),
       );
     }
   }
@@ -135,24 +127,12 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(
-          localized(
-            dialogContext,
-            id: 'Izinkan Berjalan di Latar',
-            en: 'Allow Background Activity',
-          ),
-        ),
-        content: Text(
-          localized(
-            dialogContext,
-            id: 'Rutin perlu diizinkan berjalan di latar agar alarm obat, pengingat air, dan Mode Tidur tetap muncul tepat waktu.\n\nSetelah halaman Pengaturan Aplikasi Rutin terbuka, masuk ke Baterai lalu matikan optimasi baterai atau izinkan aktivitas latar belakang.',
-            en: 'Rutin needs background access so medicine alarms, water reminders, and Sleep Mode can still appear on time.\n\nAfter the Rutin app settings page opens, go to Battery, then turn off battery optimization or allow background activity.',
-          ),
-        ),
+        title: Text(context.l10n.allowBackgroundTitle),
+        content: Text(context.l10n.allowBackgroundBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(localized(dialogContext, id: 'Nanti', en: 'Later')),
+            child: Text(context.l10n.later),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -163,8 +143,6 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
     );
 
     if (confirmed == true) {
-      // Let the dialog route finish closing before we hand off to Android
-      // settings, otherwise some devices swallow the jump.
       await Future<void>.delayed(const Duration(milliseconds: 120));
       if (!mounted) return;
       await _ch.invokeMethod('openBatteryOptimization');
@@ -214,11 +192,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            localized(
-                              context,
-                              id: 'Untuk pengalaman terbaik, aktifkan Accessibility Service.',
-                              en: 'For the best experience, enable Accessibility Service.',
-                            ),
+                            context.l10n.enableAccessibilityHint,
                             style: TextStyle(
                               fontSize: 13,
                               color: cs.onErrorContainer,
@@ -228,9 +202,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                         TextButton(
                           onPressed: () =>
                               _ch.invokeMethod('openAccessibilitySettings'),
-                          child: Text(
-                            localized(context, id: 'Aktifkan', en: 'Enable'),
-                          ),
+                          child: Text(context.l10n.enable),
                         ),
                       ],
                     ),
@@ -288,21 +260,11 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                       : Icons.warning_amber_rounded,
                   color: _accessibilityGranted ? Colors.green : cs.error,
                 ),
-                title: Text(
-                  localized(
-                    context,
-                    id: 'Accessibility Service',
-                    en: 'Accessibility Service',
-                  ),
-                ),
+                title: Text(context.l10n.accessibilityService),
                 subtitle: Text(
                   _accessibilityGranted
-                      ? localized(context, id: 'Diizinkan', en: 'Allowed')
-                      : localized(
-                          context,
-                          id: 'Belum diizinkan',
-                          en: 'Not allowed yet',
-                        ),
+                      ? context.l10n.allowed
+                      : context.l10n.notAllowedYet,
                 ),
                 trailing: _accessibilityGranted
                     ? null
@@ -323,16 +285,8 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
                 title: Text(context.l10n.batteryOptimization),
                 subtitle: Text(
                   _batteryOptimizationIgnored
-                      ? localized(
-                          context,
-                          id: 'Sudah diizinkan berjalan di latar belakang',
-                          en: 'Background access is already allowed',
-                        )
-                      : localized(
-                          context,
-                          id: 'Belum terkonfirmasi. Di beberapa HP, status ini bisa tetap tidak berubah walaupun izin latar belakang sudah diaktifkan.',
-                          en: 'Not confirmed yet. On some phones this status may stay unchanged even after background access is enabled.',
-                        ),
+                      ? context.l10n.backgroundAllowed
+                      : context.l10n.backgroundNotConfirmed,
                 ),
                 trailing: TextButton(
                   onPressed: _openBatteryOptimization,
@@ -373,11 +327,7 @@ class _SleepSettingsScreenState extends State<SleepSettingsScreen>
             ),
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
-              final message = localized(
-                context,
-                id: 'Gerbang pagi seharusnya muncul sekarang. Jika tidak, cek apakah Mode Tidur aktif.',
-                en: 'The morning gate should appear now. If not, check whether Sleep Mode is enabled.',
-              );
+              final message = context.l10n.sleepTriggerSimulated;
               await _ch.invokeMethod('simulateSleepTrigger');
               if (!mounted) return;
               messenger.showSnackBar(

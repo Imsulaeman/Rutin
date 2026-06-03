@@ -111,14 +111,10 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
     final nowMin = now.hour * 60 + now.minute;
 
     if (nowMin < _goal.startTimeMinutes) {
-      return '${localized(context, id: 'Pengingat mulai', en: 'Reminders start')} ${_pad(_goal.startTimeMinutes ~/ 60)}:${_pad(_goal.startTimeMinutes % 60)}';
+      return '${context.l10n.remindersStart} ${_pad(_goal.startTimeMinutes ~/ 60)}:${_pad(_goal.startTimeMinutes % 60)}';
     }
     if (nowMin >= _goal.endTimeMinutes) {
-      return localized(
-        context,
-        id: 'Pengingat selesai hari ini',
-        en: 'Reminders finished for today',
-      );
+      return context.l10n.remindersFinished;
     }
 
     final elapsed = nowMin - _goal.startTimeMinutes;
@@ -127,37 +123,21 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
         _goal.startTimeMinutes + ((elapsed / interval).ceil() * interval);
 
     if (nextMin >= _goal.endTimeMinutes) {
-      return localized(
-        context,
-        id: 'Pengingat selesai hari ini',
-        en: 'Reminders finished for today',
-      );
+      return context.l10n.remindersFinished;
     }
 
     final diff = nextMin - nowMin;
     if (diff <= 0) {
-      return localized(context, id: 'Sebentar lagi...', en: 'Coming soon...');
+      return context.l10n.comingSoon;
     }
     if (diff < 60) {
-      return localized(
-        context,
-        id: 'Pengingat dalam $diff menit',
-        en: 'Reminder in $diff min',
-      );
+      return context.l10n.reminderInMinutes(diff);
     }
     final hours = diff ~/ 60;
     final minutes = diff % 60;
     return minutes == 0
-        ? localized(
-            context,
-            id: 'Pengingat dalam ${hours}j',
-            en: 'Reminder in ${hours}h',
-          )
-        : localized(
-            context,
-            id: 'Pengingat dalam ${hours}j ${minutes}m',
-            en: 'Reminder in ${hours}h ${minutes}m',
-          );
+        ? context.l10n.reminderInHours(hours)
+        : context.l10n.reminderInHoursMinutes(hours, minutes);
   }
 
   String _pad(int n) => n.toString().padLeft(2, '0');
@@ -191,11 +171,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.tune_rounded),
-                    tooltip: localized(
-                      context,
-                      id: 'Pengaturan air',
-                      en: 'Water settings',
-                    ),
+                    tooltip: context.l10n.waterSettings,
                     onPressed: _openSettings,
                   ),
                 ],
@@ -229,11 +205,7 @@ class _WaterScreenState extends State<WaterScreen> with WidgetsBindingObserver {
                             ),
                             child: Text(
                               isDone
-                                  ? localized(
-                                      context,
-                                      id: 'Target tercapai! Mantap!',
-                                      en: 'Goal reached! Great job!',
-                                    )
+                                  ? context.l10n.waterGoalReached
                                   : context.l10n.waterMascotNudge,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
@@ -591,7 +563,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            localized(context, id: 'Pengaturan Air', en: 'Water Settings'),
+            context.l10n.waterSettings,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 10),
@@ -623,7 +595,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
           ),
           Row(
             children: [
-              Text(localized(context, id: 'Ukuran gelas', en: 'Glass size')),
+              Text(context.l10n.glassSize),
               const Spacer(),
               DropdownButton<int>(
                 value: _glassSizeMl,
@@ -639,7 +611,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Text(localized(context, id: 'Mulai', en: 'Start')),
+              Text(context.l10n.start),
               const SizedBox(width: 12),
               DropdownButton<int>(
                 value: _startHour,
@@ -680,7 +652,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      localized(context, id: 'Pengingat', en: 'Reminder'),
+                      context.l10n.reminder,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
@@ -701,11 +673,7 @@ class _WaterSettingsSheetState extends State<_WaterSettingsSheet> {
           ),
           const SizedBox(height: 12),
           Text(
-            localized(
-              context,
-              id: '$_glasses gelas/hari - pengingat setiap $_intervalMin menit',
-              en: '$_glasses glasses/day - reminder every $_intervalMin min',
-            ),
+            context.l10n.waterGlassesSummary(_glasses, _intervalMin),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),

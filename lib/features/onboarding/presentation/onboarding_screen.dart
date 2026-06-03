@@ -73,7 +73,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: TextButton(
                 onPressed: _finish,
                 child: Text(
-                  localized(context, id: 'Lewati', en: 'Skip'),
+                  context.l10n.skip,
                   style: const TextStyle(color: _muted, fontSize: 14),
                 ),
               ),
@@ -85,42 +85,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   _OnboardingPage(
                     asset: 'assets/med_pill_mascot.webp',
-                    headline: localized(
-                      context,
-                      id: 'Susah konsisten?\nKamu tidak sendirian.',
-                      en: 'Struggling to\nstay consistent?',
-                    ),
-                    body: localized(
-                      context,
-                      id: 'Minum obat, minum air, olahraga — kebiasaan kecil yang mudah terlupakan tapi penting untuk kesehatanmu.',
-                      en: 'Medicine, water, exercise — small habits that are easy to forget but matter for your health.',
-                    ),
+                    headline: context.l10n.onboarding1Headline,
+                    body: context.l10n.onboarding1Body,
                   ),
                   _OnboardingPage(
                     asset: 'assets/star_mascot.webp',
-                    headline: localized(
-                      context,
-                      id: 'Rutin jaga semua\nrutinitasmu.',
-                      en: 'Rutin keeps all\nyour routines.',
-                    ),
-                    body: localized(
-                      context,
-                      id: 'Pengingat obat, kebiasaan harian, air minum, dan game bangun pagi — gratis, offline, selamanya.',
-                      en: 'Medicine reminders, habits, water tracking, and morning wake-up games — free, offline, forever.',
-                    ),
+                    headline: context.l10n.onboarding2Headline,
+                    body: context.l10n.onboarding2Body,
                   ),
                   _OnboardingPage(
                     asset: 'assets/flame_mascot.webp',
-                    headline: localized(
-                      context,
-                      id: 'Satu langkah\nterakhir.',
-                      en: 'One last\nstep.',
-                    ),
-                    body: localized(
-                      context,
-                      id: 'Rutin perlu izin notifikasi agar pengingat bisa jalan saat kamu tidak buka aplikasi.',
-                      en: 'Rutin needs notification permission so reminders work when the app is closed.',
-                    ),
+                    headline: context.l10n.onboarding3Headline,
+                    body: context.l10n.onboarding3Body,
                   ),
                 ],
               ),
@@ -159,17 +135,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         )
                       : Text(
-                          isLast
-                              ? localized(
-                                  context,
-                                  id: 'Aktifkan & Mulai',
-                                  en: 'Enable & Start',
-                                )
-                              : localized(
-                                  context,
-                                  id: 'Lanjut',
-                                  en: 'Next',
-                                ),
+                          isLast ? context.l10n.enableAndStart : context.l10n.next,
                         ),
                 ),
               ),

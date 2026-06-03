@@ -50,6 +50,7 @@ Full details: `docs/ARCHITECTURE.md`
 
 - **Bahasa Indonesia default**, English secondary
 - **Localization must stay complete in both supported languages** - every new visible string, dialog, snackbar, helper text, empty state, mascot nudge, and date/day/month label must respect the selected locale
+- **Always use ARB for new strings** — never hardcode visible strings inline in Dart. Workflow: (1) add key to `lib/l10n/app_en.arb` and `lib/l10n/app_id.arb`, (2) run `flutter gen-l10n`, (3) use `context.l10n.yourKey` in Dart. The `localized()` helper no longer exists and must not be recreated. Strings with dynamic values use typed ARB placeholders (`{name}`, `{count}` with `"type":"int"`) — never string interpolation inside `localized()`. Apostrophes in strings with placeholders must be doubled (`''`) per ICU format rules.
 - **Offline-first** — no account, no internet required, ever
 - **Free forever** — no paywalls, no premium tier
 - **Medicine reminder is alarm-grade** — re-notifies every 1 min until taken

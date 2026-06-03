@@ -70,7 +70,7 @@ class WaterProgressWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        localized(context, id: 'dari $goal gelas', en: 'of $goal glasses'),
+                        context.l10n.ofGoalGlasses(goal),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

@@ -37,9 +37,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
     ).values.where((m) => m.isActive).toList();
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          localized(context, id: 'Program Pengobatan', en: 'Treatment Program'),
-        ),
+        title: Text(context.l10n.treatmentProgram),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -47,11 +45,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
           TextField(
             controller: _condition,
             decoration: InputDecoration(
-              labelText: localized(
-                context,
-                id: 'Nama kondisi',
-                en: 'Condition name',
-              ),
+              labelText: context.l10n.conditionName,
             ),
           ),
           const SizedBox(height: 10),
@@ -75,20 +69,12 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
           const SizedBox(height: 18),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              localized(context, id: 'Tanggal mulai', en: 'Start date'),
-            ),
+            title: Text(context.l10n.startDateLabel),
             trailing: Text(_date(context, _start)),
             onTap: _pickDate,
           ),
           const SizedBox(height: 12),
-          Text(
-            localized(
-              context,
-              id: 'Durasi pengobatan',
-              en: 'Treatment duration',
-            ),
-          ),
+          Text(context.l10n.treatmentDuration),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -103,13 +89,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
               ])
                 ChoiceChip(
                   selected: !_custom && _duration == option.$1,
-                  label: Text(
-                    localized(
-                      context,
-                      id: '${option.$2} bulan',
-                      en: '${option.$2} months',
-                    ),
-                  ),
+                  label: Text(context.l10n.months(option.$2)),
                   onSelected: (_) => setState(() {
                     _duration = option.$1;
                     _custom = false;
@@ -117,7 +97,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
                 ),
               ChoiceChip(
                 selected: _custom,
-                label: Text(localized(context, id: 'Lainnya', en: 'Other')),
+                label: Text(context.l10n.other),
                 onSelected: (_) => setState(() => _custom = true),
               ),
             ],
@@ -128,11 +108,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
               controller: _customDays,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: localized(
-                  context,
-                  id: 'Jumlah hari',
-                  en: 'Number of days',
-                ),
+                labelText: context.l10n.numberOfDays,
               ),
             ),
           ],
@@ -140,22 +116,12 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
           DropdownButtonFormField<String>(
             initialValue: _medicineId,
             decoration: InputDecoration(
-              labelText: localized(
-                context,
-                id: 'Obat yang digunakan (opsional)',
-                en: 'Linked medicine (optional)',
-              ),
+              labelText: context.l10n.linkedMedicine,
             ),
             items: [
               DropdownMenuItem(
                 value: '',
-                child: Text(
-                  localized(
-                    context,
-                    id: 'Tanpa obat terhubung',
-                    en: 'No linked medicine',
-                  ),
-                ),
+                child: Text(context.l10n.noLinkedMedicine),
               ),
               for (final medicine in medicines)
                 DropdownMenuItem(
@@ -187,15 +153,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
     final days = _custom ? int.tryParse(_customDays.text) ?? 0 : _duration;
     if (_condition.text.trim().isEmpty || days <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            localized(
-              context,
-              id: 'Isi nama kondisi dan durasi yang valid.',
-              en: 'Enter a condition and valid duration.',
-            ),
-          ),
-        ),
+        SnackBar(content: Text(context.l10n.treatmentValidationError)),
       );
       return;
     }
@@ -205,20 +163,8 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
       final replace = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(
-            localized(
-              context,
-              id: 'Ganti program aktif?',
-              en: 'Replace active program?',
-            ),
-          ),
-          content: Text(
-            localized(
-              context,
-              id: 'Program sebelumnya akan dihentikan.',
-              en: 'The previous program will be stopped.',
-            ),
-          ),
+          title: Text(context.l10n.replaceActiveProgram),
+          content: Text(context.l10n.replaceProgramBody),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -226,7 +172,7 @@ class _TreatmentOnboardingScreenState extends State<TreatmentOnboardingScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text(localized(context, id: 'Ganti', en: 'Replace')),
+              child: Text(context.l10n.replace),
             ),
           ],
         ),

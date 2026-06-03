@@ -47,9 +47,7 @@ class _HabitHistoryScreenState extends State<HabitHistoryScreen> {
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: Text(
-          localized(context, id: 'Riwayat Kebiasaan', en: 'Habit History'),
-        ),
+        title: Text(context.l10n.habitHistory),
       ),
       body: ValueListenableBuilder<Box<HabitLog>>(
         valueListenable: Hive.box<HabitLog>('habit_logs').listenable(),
@@ -183,26 +181,14 @@ class _HabitHistoryScreenState extends State<HabitHistoryScreen> {
                     const SizedBox(height: 6),
                     Text(
                       activeCount == 0
-                          ? localized(
-                              context,
-                              id: 'Tidak ada kebiasaan terjadwal.',
-                              en: 'No habits were scheduled.',
-                            )
-                          : localized(
-                              context,
-                              id: '$completedCount dari $activeCount kebiasaan selesai',
-                              en: '$completedCount of $activeCount habits completed',
-                            ),
+                          ? context.l10n.noHabitsScheduled
+                          : context.l10n.habitsCompletedCount(completedCount, activeCount),
                       style: const TextStyle(color: _grey),
                     ),
                     const SizedBox(height: 16),
                     if (selectedRows.isEmpty)
                       Text(
-                        localized(
-                          context,
-                          id: 'Belum ada kebiasaan.',
-                          en: 'No habits yet.',
-                        ),
+                        context.l10n.noHabitsYetShort,
                         style: const TextStyle(color: _grey),
                       )
                     else
@@ -339,10 +325,7 @@ class _Legend extends StatelessWidget {
       runSpacing: 8,
       children: [
         _LegendItem(label: context.l10n.done, color: _full),
-        _LegendItem(
-          label: localized(context, id: 'Sebagian', en: 'Partial'),
-          color: _partial,
-        ),
+        _LegendItem(label: context.l10n.partial, color: _partial),
         _LegendItem(label: context.l10n.missed, color: const Color(0x26FFFFFF)),
       ],
     );
@@ -387,7 +370,7 @@ class _HabitDayTile extends StatelessWidget {
         ? _partial
         : const Color(0x33FFFFFF);
     final statusText = row.isOffDay
-        ? localized(context, id: 'Libur', en: 'Off day')
+        ? context.l10n.offDay
         : '${row.completions}/${row.target}';
 
     return Container(

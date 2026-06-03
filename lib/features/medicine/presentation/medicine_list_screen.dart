@@ -219,13 +219,11 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     final medicines = repo.getAll();
     final allDoses = _todayDoses(repo);
 
-    // group doses by medicine id (order from getAll())
     final dosesByMedicine = <String, List<_Dose>>{};
     for (final d in allDoses) {
       dosesByMedicine.putIfAbsent(d.medicine.id, () => []).add(d);
     }
 
-    // counts for the slim banner
     int nowCount = 0, takenCount = 0, missedCount = 0;
     for (final d in allDoses) {
       switch (_bucketFor(repo, d)) {
@@ -384,29 +382,13 @@ class _DayBanner extends StatelessWidget {
     final String statusText;
 
     if (nowCount > 0) {
-      statusText = localized(
-        context,
-        id: '$nowCount perlu diminum',
-        en: '$nowCount due now',
-      );
+      statusText = context.l10n.medicineDueNow(nowCount);
     } else if (missedCount > 0) {
-      statusText = localized(
-        context,
-        id: '$missedCount terlewat',
-        en: '$missedCount missed',
-      );
+      statusText = context.l10n.medicineMissedCount(missedCount);
     } else if (taken == total) {
-      statusText = localized(
-        context,
-        id: 'Semua sudah diminum',
-        en: 'All taken',
-      );
+      statusText = context.l10n.allTaken;
     } else {
-      statusText = localized(
-        context,
-        id: '$taken/$total selesai',
-        en: '$taken/$total done',
-      );
+      statusText = context.l10n.medicineDoneProgress(taken, total);
     }
 
     return Container(
@@ -487,8 +469,6 @@ class _MedicineCard extends StatelessWidget {
         break;
       }
     }
-    // Show next alarm for the most relevant dose:
-    // prefer upcoming/now doses; fall back to any dose if all taken/missed.
     final debugText =
         (relevantDose != null ? debugTextFor(relevantDose) : null) ??
         doses.map(debugTextFor).where((t) => t != null).firstOrNull;
@@ -543,11 +523,7 @@ class _MedicineCard extends StatelessWidget {
           const SizedBox(height: 12),
           if (doses.isEmpty)
             Text(
-              localized(
-                context,
-                id: 'Belum ada jadwal dosis',
-                en: 'No dose schedule yet',
-              ),
+              context.l10n.noDoseSchedule,
               style: const TextStyle(color: _grey, fontSize: 13),
             )
           else
@@ -733,11 +709,7 @@ class _SwipeMedicine extends StatelessWidget {
               builder: (ctx) => AlertDialog(
                 backgroundColor: _surface,
                 title: Text(
-                  localized(
-                    context,
-                    id: 'Hapus obat?',
-                    en: 'Delete medicine?',
-                  ),
+                  context.l10n.deleteMedicineTitle,
                   style: TextStyle(color: Colors.white),
                 ),
                 content: Text(
@@ -798,11 +770,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              localized(
-                context,
-                id: 'Belum ada obat hari ini',
-                en: 'No medicine today',
-              ),
+              context.l10n.noMedicineToday,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -811,11 +779,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              localized(
-                context,
-                id: 'Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di sini.',
-                en: "Add a medicine schedule with + so today's doses appear here.",
-              ),
+              context.l10n.noMedicineTodayHint,
               textAlign: TextAlign.center,
               style: TextStyle(color: _grey, fontSize: 13, height: 1.45),
             ),

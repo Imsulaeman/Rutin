@@ -21,15 +21,7 @@ class TreatmentDetailScreen extends StatelessWidget {
         if (profile == null) {
           return Scaffold(
             appBar: AppBar(),
-            body: Center(
-              child: Text(
-                localized(
-                  context,
-                  id: 'Tidak ada program aktif.',
-                  en: 'No active program.',
-                ),
-              ),
-            ),
+            body: Center(child: Text(context.l10n.noActiveProgramDot)),
           );
         }
         final repo = MedicineRepository();
@@ -52,11 +44,7 @@ class TreatmentDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        localized(
-                          context,
-                          id: 'Hari ke-$days',
-                          en: 'Day $days',
-                        ),
+                        context.l10n.streakDay(days),
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 12),
@@ -66,16 +54,8 @@ class TreatmentDetailScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         left == 0
-                            ? localized(
-                                context,
-                                id: 'Program selesai',
-                                en: 'Program complete',
-                              )
-                            : localized(
-                                context,
-                                id: '$left hari tersisa',
-                                en: '$left days remaining',
-                              ),
+                            ? context.l10n.treatmentProgramComplete
+                            : context.l10n.daysRemaining(left),
                       ),
                     ],
                   ),
@@ -89,20 +69,14 @@ class TreatmentDetailScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          localized(
-                            context,
-                            id: 'Kepatuhan: ${(adherence * 100).round()}%',
-                            en: 'Adherence: ${(adherence * 100).round()}%',
+                          context.l10n.adherenceLabel(
+                            (adherence * 100).round(),
                           ),
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          localized(
-                            context,
-                            id: '7 hari terakhir: ${recent.$1}/${recent.$2} dosis',
-                            en: 'Last 7 days: ${recent.$1}/${recent.$2} doses',
-                          ),
+                          context.l10n.last7Days(recent.$1, recent.$2),
                         ),
                       ],
                     ),
@@ -112,15 +86,11 @@ class TreatmentDetailScreen extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () => _sharePdf(context, profile, repo),
                 icon: const Icon(Icons.picture_as_pdf_rounded),
-                label: Text(
-                  localized(context, id: 'Ekspor PDF', en: 'Export PDF'),
-                ),
+                label: Text(context.l10n.exportPdf),
               ),
               TextButton(
                 onPressed: () => _end(context, profile),
-                child: Text(
-                  localized(context, id: 'Akhiri program', en: 'End program'),
-                ),
+                child: Text(context.l10n.endProgram),
               ),
             ],
           ),
@@ -133,16 +103,8 @@ class TreatmentDetailScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          localized(context, id: 'Akhiri program?', en: 'End program?'),
-        ),
-        content: Text(
-          localized(
-            context,
-            id: 'Program aktif akan dihentikan.',
-            en: 'The active program will be stopped.',
-          ),
-        ),
+        title: Text(context.l10n.endProgramTitle),
+        content: Text(context.l10n.endProgramBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -150,7 +112,7 @@ class TreatmentDetailScreen extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(localized(context, id: 'Akhiri', en: 'End')),
+            child: Text(context.l10n.end),
           ),
         ],
       ),
@@ -194,8 +156,8 @@ class TreatmentDetailScreen extends StatelessWidget {
         '$scheduled',
         '$taken',
         taken == scheduled && scheduled > 0
-            ? localized(context, id: 'Lengkap', en: 'Complete')
-            : localized(context, id: 'Tidak lengkap', en: 'Incomplete'),
+            ? context.l10n.complete
+            : context.l10n.incomplete,
       ]);
     }
     pdf.addPage(
@@ -203,39 +165,31 @@ class TreatmentDetailScreen extends StatelessWidget {
         build: (_) => [
           pw.Header(
             level: 0,
-            child: pw.Text(
-              localized(
-                context,
-                id: 'Rutin - Laporan Kepatuhan Pengobatan',
-                en: 'Rutin - Treatment Adherence Report',
-              ),
-            ),
+            child: pw.Text(context.l10n.pdfTitle),
+          ),
+          pw.Text('${context.l10n.condition}: ${profile.conditionName}'),
+          pw.Text(
+            '${context.l10n.startDate}: ${_date(context, profile.startDate)}',
           ),
           pw.Text(
-            '${localized(context, id: 'Kondisi', en: 'Condition')}: ${profile.conditionName}',
+            '${context.l10n.duration}: ${profile.durationDays} ${context.l10n.days}',
           ),
           pw.Text(
-            '${localized(context, id: 'Tanggal Mulai', en: 'Start Date')}: ${_date(context, profile.startDate)}',
-          ),
-          pw.Text(
-            '${localized(context, id: 'Durasi', en: 'Duration')}: ${profile.durationDays} ${localized(context, id: 'hari', en: 'days')}',
-          ),
-          pw.Text(
-            '${localized(context, id: 'Obat', en: 'Medicine')}: ${medicine?.name ?? '-'}',
+            '${context.l10n.medicine}: ${medicine?.name ?? '-'}',
           ),
           pw.SizedBox(height: 16),
           pw.TableHelper.fromTextArray(
             headers: [
-              localized(context, id: 'Tanggal', en: 'Date'),
-              localized(context, id: 'Dosis Terjadwal', en: 'Scheduled Doses'),
-              localized(context, id: 'Dosis Diminum', en: 'Taken Doses'),
-              localized(context, id: 'Status', en: 'Status'),
+              context.l10n.date,
+              context.l10n.scheduledDoses,
+              context.l10n.takenDoses,
+              context.l10n.status,
             ],
             data: rows,
           ),
           pw.SizedBox(height: 16),
           pw.Text(
-            '${localized(context, id: 'Diekspor dari Rutin', en: 'Exported from Rutin')} - ${_date(context, DateTime.now())}',
+            '${context.l10n.exportedFrom} - ${_date(context, DateTime.now())}',
           ),
         ],
       ),

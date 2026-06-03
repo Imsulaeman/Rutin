@@ -189,15 +189,8 @@ class _MorningGateScreenState extends State<MorningGateScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          localized(context, id: 'Lewati gerbang?', en: 'Skip the gate?'),
-        ),
-        content: Text(
-          localized(
-            context,
-            id: 'Game pagi ini akan dilewati. Streak kamu tetap aman.',
-            en: 'This morning game will be skipped. Your streak stays safe.',
-          ),
+        title: Text(context.l10n.skipGateTitle),
+        content: Text(context.l10n.skipGateBody,
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -208,7 +201,7 @@ class _MorningGateScreenState extends State<MorningGateScreen>
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              localized(context, id: 'Lewati', en: 'Skip'),
+              context.l10n.skip,
               style: TextStyle(color: Colors.redAccent),
             ),
           ),
@@ -371,8 +364,8 @@ class _StreakPill extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             streak == 0
-                ? localized(context, id: 'Hari pertama!', en: 'First day!')
-                : localized(context, id: 'Hari ke-$streak', en: 'Day $streak'),
+                ? context.l10n.streakFirstDay
+                : context.l10n.streakDay(streak),
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -405,13 +398,7 @@ class _MedicineCard extends StatelessWidget {
       doneCount: doneCount,
       totalCount: totalCount,
       child: rows.isEmpty
-          ? _EmptyCardText(
-              text: localized(
-                context,
-                id: 'Tidak ada obat hari ini',
-                en: 'No medicine today',
-              ),
-            )
+          ? _EmptyCardText(text: context.l10n.noMedicineToday)
           : Column(
               children: [
                 for (int i = 0; i < rows.length; i++) ...[
@@ -448,13 +435,7 @@ class _HabitsCard extends StatelessWidget {
       doneCount: doneCount,
       totalCount: totalCount,
       child: rows.isEmpty
-          ? _EmptyCardText(
-              text: localized(
-                context,
-                id: 'Tidak ada kebiasaan hari ini',
-                en: 'No habits today',
-              ),
-            )
+          ? _EmptyCardText(text: context.l10n.noHabitsToday)
           : Column(
               children: [
                 for (int i = 0; i < rows.length; i++) ...[
@@ -771,7 +752,7 @@ class _EmergencyExit extends StatelessWidget {
     return TextButton(
       onPressed: onPressed,
       child: Text(
-        localized(context, id: 'Lewati', en: 'Skip'),
+        context.l10n.skip,
         style: TextStyle(color: Colors.white24, fontSize: 12),
       ),
     );

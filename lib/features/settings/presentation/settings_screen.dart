@@ -103,13 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              localized(
-                context,
-                id: 'Gagal mengekspor backup: $e',
-                en: 'Export failed: $e',
-              ),
-            ),
+            content: Text(context.l10n.exportBackupFailed(e.toString())),
           ),
         );
       }
@@ -175,39 +169,15 @@ class _SettingsScreenState extends State<SettingsScreen>
             RadioListTile<String>(
               value: 'app',
               groupValue: currentValue,
-              title: Text(
-                localized(
-                  context,
-                  id: 'Suara aplikasi',
-                  en: 'App sound',
-                ),
-              ),
-              subtitle: Text(
-                localized(
-                  context,
-                  id: 'Pakai suara bawaan Rutin',
-                  en: 'Use the built-in Rutin sound',
-                ),
-              ),
+              title: Text(context.l10n.appSound),
+              subtitle: Text(context.l10n.appSoundSubtitle),
               onChanged: (value) => Navigator.pop(ctx, value),
             ),
             RadioListTile<String>(
               value: 'system',
               groupValue: currentValue,
-              title: Text(
-                localized(
-                  context,
-                  id: 'Suara bawaan ponsel',
-                  en: 'Phone default sound',
-                ),
-              ),
-              subtitle: Text(
-                localized(
-                  context,
-                  id: 'Pakai notifikasi atau ringtone default ponsel',
-                  en: 'Use the phone default notification or ringtone',
-                ),
-              ),
+              title: Text(context.l10n.phoneDefaultSound),
+              subtitle: Text(context.l10n.phoneDefaultSoundSubtitle),
               onChanged: (value) => Navigator.pop(ctx, value),
             ),
             const SizedBox(height: 8),
@@ -222,16 +192,8 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   String _soundLabel(String value) {
     return value == 'system'
-        ? localized(
-            context,
-            id: 'Suara bawaan ponsel',
-            en: 'Phone default sound',
-          )
-        : localized(
-            context,
-            id: 'Suara aplikasi',
-            en: 'App sound',
-          );
+        ? context.l10n.phoneDefaultSound
+        : context.l10n.appSound;
   }
 
   @override
@@ -284,11 +246,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                         subtitle: Text(
                           _accessibilityGranted
                               ? context.l10n.allowed
-                              : localized(
-                                  context,
-                                  id: 'Belum diizinkan, diperlukan untuk Mode Tidur',
-                                  en: 'Not allowed yet, required for Sleep Mode',
-                                ),
+                              : context.l10n.accessibilityNotAllowed,
                         ),
                         trailing: _accessibilityGranted
                             ? null
@@ -301,13 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                 ),
                 const SizedBox(height: 22),
-                _SectionLabel(
-                  localized(
-                    context,
-                    id: 'ALARM OBAT',
-                    en: 'MEDICINE ALARM',
-                  ),
-                ),
+                _SectionLabel(context.l10n.medicineAlarmSection),
                 const SizedBox(height: 8),
                 Card(
                   child: ListTile(
@@ -317,25 +269,11 @@ class _SettingsScreenState extends State<SettingsScreen>
                           : Icons.warning_amber_rounded,
                       color: _fullScreenIntentAllowed ? _green : _amber,
                     ),
-                    title: Text(
-                      localized(
-                        context,
-                        id: 'Alarm layar penuh',
-                        en: 'Full-screen alarm',
-                      ),
-                    ),
+                    title: Text(context.l10n.fullScreenAlarm),
                     subtitle: Text(
                       _fullScreenIntentAllowed
-                          ? localized(
-                              context,
-                              id: 'Diizinkan, alarm bisa mengambil alih layar',
-                              en: 'Allowed, alarms can take over the screen',
-                            )
-                          : localized(
-                              context,
-                              id: 'Belum diizinkan, alarm bisa turun jadi heads-up saja',
-                              en: 'Not allowed yet, alarms may stay as heads-up only',
-                            ),
+                          ? context.l10n.fullScreenAlarmAllowed
+                          : context.l10n.fullScreenAlarmNotAllowed,
                     ),
                     trailing: _fullScreenIntentAllowed
                         ? null
@@ -363,9 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                 ),
                 const SizedBox(height: 22),
-                _SectionLabel(
-                  localized(context, id: 'SUARA', en: 'SOUND'),
-                ),
+                _SectionLabel(context.l10n.soundSection),
                 const SizedBox(height: 8),
                 Card(
                   child: Column(
@@ -374,20 +310,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                         leading: const Icon(
                           Icons.notifications_active_rounded,
                         ),
-                        title: Text(
-                          localized(
-                            context,
-                            id: 'Suara notifikasi',
-                            en: 'Notification sound',
-                          ),
-                        ),
-                        subtitle: Text(
-                          localized(
-                            context,
-                            id: 'Dipakai untuk pengingat Air dan Kebiasaan',
-                            en: 'Used for Water and Habit reminders',
-                          ),
-                        ),
+                        title: Text(context.l10n.notificationSound),
+                        subtitle: Text(context.l10n.notificationSoundSubtitle),
                         trailing: Text(
                           _soundLabel(_notificationSound),
                           style: const TextStyle(
@@ -397,11 +321,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           ),
                         ),
                         onTap: () => _pickSound(
-                          title: localized(
-                            context,
-                            id: 'Suara notifikasi',
-                            en: 'Notification sound',
-                          ),
+                          title: context.l10n.notificationSound,
                           currentValue: _notificationSound,
                           onSelected: (value) =>
                               _setSoundSettings(notificationSound: value),
@@ -410,20 +330,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                       const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.music_note_rounded),
-                        title: Text(
-                          localized(
-                            context,
-                            id: 'Suara alarm obat',
-                            en: 'Medicine alarm sound',
-                          ),
-                        ),
-                        subtitle: Text(
-                          localized(
-                            context,
-                            id: 'Dipakai untuk alarm obat layar penuh',
-                            en: 'Used for full-screen medicine alarms',
-                          ),
-                        ),
+                        title: Text(context.l10n.medicineAlarmSound),
+                        subtitle: Text(context.l10n.medicineAlarmSoundSubtitle),
                         trailing: Text(
                           _soundLabel(_alarmSound),
                           style: const TextStyle(
@@ -433,11 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           ),
                         ),
                         onTap: () => _pickSound(
-                          title: localized(
-                            context,
-                            id: 'Suara alarm obat',
-                            en: 'Medicine alarm sound',
-                          ),
+                          title: context.l10n.medicineAlarmSound,
                           currentValue: _alarmSound,
                           onSelected: (value) =>
                               _setSoundSettings(alarmSound: value),
@@ -447,23 +351,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                 ),
                 const SizedBox(height: 22),
-                _SectionLabel(
-                  localized(context, id: 'LAINNYA', en: 'OTHER'),
-                ),
+                _SectionLabel(context.l10n.otherSection),
                 const SizedBox(height: 8),
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.play_circle_outline_rounded),
-                    title: Text(
-                      localized(context, id: 'Tutorial', en: 'Tutorial'),
-                    ),
-                    subtitle: Text(
-                      localized(
-                        context,
-                        id: 'Lihat ulang layar pengenalan',
-                        en: 'Replay the onboarding screens',
-                      ),
-                    ),
+                    title: Text(context.l10n.tutorial),
+                    subtitle: Text(context.l10n.tutorialSubtitle),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () {
                       TutorialTrigger.fire();
@@ -472,27 +366,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                   ),
                 ),
                 const SizedBox(height: 22),
-                _SectionLabel(
-                  localized(context, id: 'DATA', en: 'DATA'),
-                ),
+                _SectionLabel(context.l10n.dataSection),
                 const SizedBox(height: 8),
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.download_rounded),
-                    title: Text(
-                      localized(
-                        context,
-                        id: 'Ekspor backup (JSON)',
-                        en: 'Export backup (JSON)',
-                      ),
-                    ),
-                    subtitle: Text(
-                      localized(
-                        context,
-                        id: 'Semua obat, kebiasaan, air, dan log',
-                        en: 'All medicines, habits, water, and logs',
-                      ),
-                    ),
+                    title: Text(context.l10n.exportBackup),
+                    subtitle: Text(context.l10n.exportBackupSubtitle),
                     trailing: _backupBusy
                         ? const SizedBox(
                             width: 20,

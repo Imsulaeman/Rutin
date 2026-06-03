@@ -45,7 +45,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: Text(localized(context, id: 'Riwayat', en: 'History')),
+        title: Text(context.l10n.history),
         actions: [
           IconButton(
             icon: const Icon(Icons.today_rounded),
@@ -249,12 +249,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         continue;
       }
       final name =
-          medicines.get(log.medicineId)?.name ??
-          localized(context, id: 'Obat', en: 'Medicine');
+          medicines.get(log.medicineId)?.name ?? context.l10n.medicine;
       items.add(
         _FeedItem(
           color: AppTheme.medicineColor,
-          title: localized(context, id: 'Minum $name', en: 'Took $name'),
+          title: context.l10n.tookMedicine(name),
           trailing: _clock(log.takenAt!),
           sortTime: log.takenAt!,
         ),
@@ -268,13 +267,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _FeedItem(
           color: AppTheme.habitsColor,
           title: habit == null
-              ? localized(
-                  context,
-                  id: 'Kebiasaan selesai',
-                  en: 'Habit completed',
-                )
+              ? context.l10n.habitCompletedLog
               : '${habit.emoji} ${habit.name}',
-          trailing: localized(context, id: 'Selesai', en: 'Completed'),
+          trailing: context.l10n.completed,
         ),
       );
     }
@@ -284,12 +279,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       items.add(
         _FeedItem(
           color: AppTheme.waterColor,
-          title: localized(
-            context,
-            id: 'Minum ${log.mlLogged} ml air',
-            en: 'Drank ${log.mlLogged} ml of water',
-          ),
-          trailing: localized(context, id: 'dicatat', en: 'logged'),
+          title: context.l10n.drankWaterMl(log.mlLogged),
+          trailing: context.l10n.logged,
         ),
       );
     }
@@ -362,15 +353,15 @@ class _Legend extends StatelessWidget {
       runSpacing: 8,
       children: [
         _LegendItem(
-          label: localized(context, id: 'Obat', en: 'Medicine'),
+          label: context.l10n.medicine,
           color: AppTheme.medicineColor,
         ),
         _LegendItem(
-          label: localized(context, id: 'Kebiasaan', en: 'Habits'),
+          label: context.l10n.habits,
           color: AppTheme.habitsColor,
         ),
         _LegendItem(
-          label: localized(context, id: 'Air', en: 'Water'),
+          label: context.l10n.water,
           color: AppTheme.waterColor,
         ),
       ],
@@ -429,21 +420,13 @@ class _SelectedDayCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            localized(
-              context,
-              id: 'Aktivitas terbaru untuk tanggal ini.',
-              en: 'Recent activity for this day.',
-            ),
+            context.l10n.recentActivityForDay,
             style: const TextStyle(color: _grey, fontSize: 12),
           ),
           const SizedBox(height: 16),
           if (items.isEmpty)
             Text(
-              localized(
-                context,
-                id: 'Tidak ada aktivitas pada hari ini.',
-                en: 'Nothing logged on this day.',
-              ),
+              context.l10n.nothingLoggedToday,
               style: const TextStyle(color: _grey),
             )
           else

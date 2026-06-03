@@ -79,13 +79,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            localized(
-              context,
-              id: 'Gagal menjadwalkan alarm: $e',
-              en: 'Failed to schedule alarm: $e',
-            ),
-          ),
+          content: Text(context.l10n.failedToScheduleAlarm(e.toString())),
         ),
       );
       return;
@@ -143,36 +137,22 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                   children: [
                     _TextField(
                       controller: _nameController,
-                      label: localized(
-                        context,
-                        id: 'Nama obat',
-                        en: 'Medicine name',
-                      ),
+                      label: context.l10n.medicineName,
                       validator: (v) => (v == null || v.trim().isEmpty)
-                          ? localized(
-                              context,
-                              id: 'Nama obat wajib diisi',
-                              en: 'Medicine name is required',
-                            )
+                          ? context.l10n.medicineNameRequired
                           : null,
                     ),
                     const SizedBox(height: 14),
                     _TextField(
                       controller: _dosageController,
-                      label: localized(context, id: 'Dosis', en: 'Dosage'),
-                      hintText: localized(
-                        context,
-                        id: 'Contoh: 1 tablet',
-                        en: 'Example: 1 tablet',
-                      ),
+                      label: context.l10n.dosage,
+                      hintText: context.l10n.dosageHint,
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 18),
-              _SectionTitle(
-                localized(context, id: 'WAKTU MINUM', en: 'SCHEDULE TIMES'),
-              ),
+              _SectionTitle(context.l10n.scheduleTimes),
               const SizedBox(height: 10),
               _SectionCard(
                 child: Column(
@@ -201,11 +181,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              localized(
-                                context,
-                                id: 'Tambah waktu',
-                                en: 'Add time',
-                              ),
+                              context.l10n.addTime,
                               style: TextStyle(
                                 color: _medGradient.first,
                                 fontSize: 13,
@@ -220,9 +196,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              _SectionTitle(
-                localized(context, id: 'ATURAN MAKAN', en: 'MEAL RULE'),
-              ),
+              _SectionTitle(context.l10n.mealRule),
               const SizedBox(height: 10),
               _SectionCard(
                 child: Wrap(
@@ -247,9 +221,7 @@ class _AddMedicineScreenState extends ConsumerState<AddMedicineScreen> {
                 ),
                 onPressed: _saving ? null : _save,
                 child: Text(
-                  _saving
-                      ? localized(context, id: 'Menyimpan...', en: 'Saving...')
-                      : context.l10n.save,
+                  _saving ? context.l10n.saving : context.l10n.save,
                 ),
               ),
             ],

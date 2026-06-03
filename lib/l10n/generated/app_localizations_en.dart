@@ -426,4 +426,635 @@ class AppLocalizationsEn extends AppLocalizations {
   String treatmentDaysRemaining(int day, int left) {
     return 'Day $day - $left days remaining';
   }
+
+  @override
+  String get saving => 'Saving...';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get enable => 'Enable';
+
+  @override
+  String get later => 'Later';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get replace => 'Replace';
+
+  @override
+  String get end => 'End';
+
+  @override
+  String get complete => 'Complete';
+
+  @override
+  String get incomplete => 'Incomplete';
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String get logged => 'logged';
+
+  @override
+  String get partial => 'Partial';
+
+  @override
+  String get offDay => 'Off day';
+
+  @override
+  String get startToday => 'Start today';
+
+  @override
+  String get days => 'days';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String get condition => 'Condition';
+
+  @override
+  String get startDate => 'Start Date';
+
+  @override
+  String get duration => 'Duration';
+
+  @override
+  String get dosage => 'Dosage';
+
+  @override
+  String get medicineName => 'Medicine name';
+
+  @override
+  String get name => 'Name';
+
+  @override
+  String get age => 'Age';
+
+  @override
+  String get perfect => 'Perfect';
+
+  @override
+  String get good => 'Good';
+
+  @override
+  String get miss => 'Miss';
+
+  @override
+  String get noRoutine => 'No routine';
+
+  @override
+  String get newRoutine => 'New routine';
+
+  @override
+  String get combineIntoRoutine => 'Combine into routine';
+
+  @override
+  String get deleteRoutine => 'Delete routine';
+
+  @override
+  String get editRoutine => 'Edit routine';
+
+  @override
+  String get editNameAndEmoji => 'Edit name & emoji';
+
+  @override
+  String get deleteRoutineBody => 'This routine will be deleted.';
+
+  @override
+  String get deleteRoutineOnly => 'Delete routine only';
+
+  @override
+  String get deleteRoutineAndHabits => 'Delete routine and habits';
+
+  @override
+  String get editHabit => 'Edit Habit';
+
+  @override
+  String get habitAlreadyCompleted => 'Already completed today';
+
+  @override
+  String get habitMoveToRoutine => 'Move to routine';
+
+  @override
+  String get habitTurnIntoMedal => 'Turn into medal';
+
+  @override
+  String get moveTo => 'Move to';
+
+  @override
+  String get retireHabitDescription =>
+      'This habit will leave the active list and be saved as a medal.';
+
+  @override
+  String get retireHabitButton => '🏅  Turn into Medal';
+
+  @override
+  String get habitsEmptyHint =>
+      'Tap + to add a habit, then create a routine from the All tab.';
+
+  @override
+  String get groupEmptyHint =>
+      'No habits here yet.\nTap + or use \"Move to routine\" from All.';
+
+  @override
+  String get allDone => 'All done! 🎉';
+
+  @override
+  String get doneToday => 'Done today';
+
+  @override
+  String get combine => 'Combine';
+
+  @override
+  String get createRoutineHint => 'Create a routine first from the Habits tab';
+
+  @override
+  String get enableReminder => 'Enable reminder';
+
+  @override
+  String get addTime => 'Add time';
+
+  @override
+  String get reminderTime => 'Reminder time';
+
+  @override
+  String get chooseEmoji => 'Choose an emoji';
+
+  @override
+  String get emojiCategoryActivity => 'Activity';
+
+  @override
+  String get emojiCategoryMorningNight => 'Morning & Night';
+
+  @override
+  String get emojiCategoryFoodDrink => 'Food & Drink';
+
+  @override
+  String get emojiCategoryStudyWork => 'Study & Work';
+
+  @override
+  String get emojiCategoryHealth => 'Health';
+
+  @override
+  String get emojiCategoryGeneral => 'General';
+
+  @override
+  String get habitHistory => 'Habit History';
+
+  @override
+  String get noHabitsScheduled => 'No habits were scheduled.';
+
+  @override
+  String get noHabitsYetShort => 'No habits yet.';
+
+  @override
+  String get medicineHistory => 'Medicine History';
+
+  @override
+  String get allTaken => 'All taken';
+
+  @override
+  String get noSchedule => 'No schedule';
+
+  @override
+  String get reviewDoses =>
+      'Review doses that were taken, missed, or are not due yet.';
+
+  @override
+  String get noMedicineForDay => 'No medicine scheduled for this day.';
+
+  @override
+  String get notDueYet => 'Not due yet';
+
+  @override
+  String get noLogYet => 'No log yet';
+
+  @override
+  String get noDoseSchedule => 'No dose schedule yet';
+
+  @override
+  String get deleteMedicineTitle => 'Delete medicine?';
+
+  @override
+  String get noMedicineToday => 'No medicine today';
+
+  @override
+  String get habitCompletedLog => 'Habit completed';
+
+  @override
+  String get recentActivityForDay => 'Recent activity for this day.';
+
+  @override
+  String get nothingLoggedToday => 'Nothing logged on this day.';
+
+  @override
+  String get scheduleTimes => 'SCHEDULE TIMES';
+
+  @override
+  String get mealRule => 'MEAL RULE';
+
+  @override
+  String get medicineNameRequired => 'Medicine name is required';
+
+  @override
+  String get dosageHint => 'Example: 1 tablet';
+
+  @override
+  String get enableAndStart => 'Enable & Start';
+
+  @override
+  String get onboarding1Headline => 'Struggling to\nstay consistent?';
+
+  @override
+  String get onboarding1Body =>
+      'Medicine, water, exercise — small habits that are easy to forget but matter for your health.';
+
+  @override
+  String get onboarding2Headline => 'Rutin keeps all\nyour routines.';
+
+  @override
+  String get onboarding2Body =>
+      'Medicine reminders, habits, water tracking, and morning wake-up games — free, offline, forever.';
+
+  @override
+  String get onboarding3Headline => 'One last\nstep.';
+
+  @override
+  String get onboarding3Body =>
+      'Rutin needs notification permission so reminders work when the app is closed.';
+
+  @override
+  String get tapToSetName => 'Tap to set your name';
+
+  @override
+  String get bestStreak => 'Best streak';
+
+  @override
+  String get habitsDone => 'Habits done';
+
+  @override
+  String get habitsAchieved => 'Habits you have achieved';
+
+  @override
+  String get chooseCharacter => 'Choose your character';
+
+  @override
+  String get sleepModeSubtitle => 'Settings and morning wake-up games';
+
+  @override
+  String get settingsSubtitle => 'Language, accessibility, about';
+
+  @override
+  String get accessibilityNotAllowed =>
+      'Not allowed yet, required for Sleep Mode';
+
+  @override
+  String get medicineAlarmSection => 'MEDICINE ALARM';
+
+  @override
+  String get fullScreenAlarm => 'Full-screen alarm';
+
+  @override
+  String get fullScreenAlarmAllowed =>
+      'Allowed, alarms can take over the screen';
+
+  @override
+  String get fullScreenAlarmNotAllowed =>
+      'Not allowed yet, alarms may stay as heads-up only';
+
+  @override
+  String get soundSection => 'SOUND';
+
+  @override
+  String get appSound => 'App sound';
+
+  @override
+  String get appSoundSubtitle => 'Use the built-in Rutin sound';
+
+  @override
+  String get phoneDefaultSound => 'Phone default sound';
+
+  @override
+  String get phoneDefaultSoundSubtitle =>
+      'Use the phone default notification or ringtone';
+
+  @override
+  String get notificationSound => 'Notification sound';
+
+  @override
+  String get notificationSoundSubtitle => 'Used for Water and Habit reminders';
+
+  @override
+  String get medicineAlarmSound => 'Medicine alarm sound';
+
+  @override
+  String get medicineAlarmSoundSubtitle =>
+      'Used for full-screen medicine alarms';
+
+  @override
+  String get otherSection => 'OTHER';
+
+  @override
+  String get tutorial => 'Tutorial';
+
+  @override
+  String get tutorialSubtitle => 'Replay the onboarding screens';
+
+  @override
+  String get dataSection => 'DATA';
+
+  @override
+  String get exportBackup => 'Export backup (JSON)';
+
+  @override
+  String get exportBackupSubtitle => 'All medicines, habits, water, and logs';
+
+  @override
+  String get skipGateTitle => 'Skip the gate?';
+
+  @override
+  String get skipGateBody =>
+      'This morning game will be skipped. Your streak stays safe.';
+
+  @override
+  String get streakFirstDay => 'First day!';
+
+  @override
+  String get noHabitsToday => 'No habits today';
+
+  @override
+  String get sleepModeStartError =>
+      'Sleep mode could not start. Try enabling it again after updating the app.';
+
+  @override
+  String get allowBackgroundTitle => 'Allow Background Activity';
+
+  @override
+  String get allowBackgroundBody =>
+      'Rutin needs background access so medicine alarms, water reminders, and Sleep Mode can still appear on time.\n\nAfter the Rutin app settings page opens, go to Battery, then turn off battery optimization or allow background activity.';
+
+  @override
+  String get enableAccessibilityHint =>
+      'For the best experience, enable Accessibility Service.';
+
+  @override
+  String get accessibilityService => 'Accessibility Service';
+
+  @override
+  String get notAllowedYet => 'Not allowed yet';
+
+  @override
+  String get backgroundAllowed => 'Background access is already allowed';
+
+  @override
+  String get backgroundNotConfirmed =>
+      'Not confirmed yet. On some phones this status may stay unchanged even after background access is enabled.';
+
+  @override
+  String get sleepTriggerSimulated =>
+      'The morning gate should appear now. If not, check whether Sleep Mode is enabled.';
+
+  @override
+  String get skipArrow => 'Skip →';
+
+  @override
+  String get watchClosely => 'Watch closely...';
+
+  @override
+  String get tapTheSequence => 'Tap the sequence!';
+
+  @override
+  String get wrongRepeatRound => 'Wrong! Repeat the round...';
+
+  @override
+  String get connectTheColors => 'Connect the Colors';
+
+  @override
+  String get gameComplete => 'Game complete. Have a great day!';
+
+  @override
+  String get noActiveProgramDot => 'No active program.';
+
+  @override
+  String get exportPdf => 'Export PDF';
+
+  @override
+  String get endProgram => 'End program';
+
+  @override
+  String get endProgramTitle => 'End program?';
+
+  @override
+  String get endProgramBody => 'The active program will be stopped.';
+
+  @override
+  String get pdfTitle => 'Rutin - Treatment Adherence Report';
+
+  @override
+  String get startDateLabel => 'Start date';
+
+  @override
+  String get conditionName => 'Condition name';
+
+  @override
+  String get treatmentDuration => 'Treatment duration';
+
+  @override
+  String get other => 'Other';
+
+  @override
+  String get numberOfDays => 'Number of days';
+
+  @override
+  String get linkedMedicine => 'Linked medicine (optional)';
+
+  @override
+  String get noLinkedMedicine => 'No linked medicine';
+
+  @override
+  String get treatmentValidationError =>
+      'Enter a condition and valid duration.';
+
+  @override
+  String get replaceActiveProgram => 'Replace active program?';
+
+  @override
+  String get replaceProgramBody => 'The previous program will be stopped.';
+
+  @override
+  String get waterSettings => 'Water Settings';
+
+  @override
+  String get waterGoalReached => 'Goal reached! Great job!';
+
+  @override
+  String get remindersStart => 'Reminders start';
+
+  @override
+  String get remindersFinished => 'Reminders finished for today';
+
+  @override
+  String get comingSoon => 'Coming soon...';
+
+  @override
+  String get glassSize => 'Glass size';
+
+  @override
+  String get start => 'Start';
+
+  @override
+  String get reminder => 'Reminder';
+
+  @override
+  String get scheduledDoses => 'Scheduled Doses';
+
+  @override
+  String get takenDoses => 'Taken Doses';
+
+  @override
+  String get exportedFrom => 'Exported from Rutin';
+
+  @override
+  String failedToSave(Object error) {
+    return 'Failed to save: $error';
+  }
+
+  @override
+  String failedToScheduleAlarm(Object error) {
+    return 'Failed to schedule alarm: $error';
+  }
+
+  @override
+  String exportBackupFailed(Object error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String get deleteHabitTitle => 'Delete habit?';
+
+  @override
+  String deleteHabitBody(Object name) {
+    return '$name will be permanently deleted.';
+  }
+
+  @override
+  String deleteRoutineTitle(Object name) {
+    return 'Delete \"$name\"?';
+  }
+
+  @override
+  String deleteRoutineWithHabitsBody(int count) {
+    return 'This routine has $count habits. What should happen to them?';
+  }
+
+  @override
+  String habitsCompletedCount(int completed, int total) {
+    return '$completed of $total habits completed';
+  }
+
+  @override
+  String habitTurnedIntoMedal(Object emoji, Object name) {
+    return '$emoji $name turned into a medal!';
+  }
+
+  @override
+  String tookMedicine(Object name) {
+    return 'Took $name';
+  }
+
+  @override
+  String drankWaterMl(int ml) {
+    return 'Drank $ml ml of water';
+  }
+
+  @override
+  String ageYearsOld(int age) {
+    return '$age years old';
+  }
+
+  @override
+  String medicineDueNow(int count) {
+    return '$count due now';
+  }
+
+  @override
+  String medicineMissedCount(int count) {
+    return '$count missed';
+  }
+
+  @override
+  String medicineDoneProgress(int taken, int total) {
+    return '$taken/$total done';
+  }
+
+  @override
+  String get noMedicineTodayHint =>
+      'Add a medicine schedule with + so today\'s doses appear here.';
+
+  @override
+  String streakDay(int streak) {
+    return 'Day $streak';
+  }
+
+  @override
+  String daysRemaining(int count) {
+    return '$count days remaining';
+  }
+
+  @override
+  String adherenceLabel(int pct) {
+    return 'Adherence: $pct%';
+  }
+
+  @override
+  String last7Days(int taken, int total) {
+    return 'Last 7 days: $taken/$total doses';
+  }
+
+  @override
+  String months(Object count) {
+    return '$count months';
+  }
+
+  @override
+  String gameRoundInfo(int round, int colors) {
+    return 'Round $round/3  •  $colors colors';
+  }
+
+  @override
+  String reminderInMinutes(int minutes) {
+    return 'Reminder in $minutes min';
+  }
+
+  @override
+  String reminderInHours(int hours) {
+    return 'Reminder in ${hours}h';
+  }
+
+  @override
+  String reminderInHoursMinutes(int hours, int minutes) {
+    return 'Reminder in ${hours}h ${minutes}m';
+  }
+
+  @override
+  String waterGlassesSummary(int glasses, int minutes) {
+    return '$glasses glasses/day - reminder every $minutes min';
+  }
+
+  @override
+  String ofGoalGlasses(int goal) {
+    return 'of $goal glasses';
+  }
 }

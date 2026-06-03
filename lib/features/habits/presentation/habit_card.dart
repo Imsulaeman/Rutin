@@ -126,11 +126,7 @@ class HabitCard extends StatelessWidget {
                     ],
                     if (streak == 0)
                       Text(
-                        localized(
-                          context,
-                          id: 'Mulai hari ini',
-                          en: 'Start today',
-                        ),
+                        context.l10n.startToday,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),

@@ -170,7 +170,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 
 ## Feature: Analytics + Infrastructure
 - [x] Firebase Analytics setup (`com.rutin.app`)
-- [x] Key events: medicine_taken, medicine_added, medicine_archived, medicine_deleted, habit_completed, habit_added, water_added
+- [x] Key events: medicine_taken, medicine_added, medicine_deleted, habit_completed, habit_added, water_added
 - [x] Medicine list uses delete-only flow; archive removed
 - [x] Multi-dose support (unlimited times per medicine in add flow)
 - [x] RECEIVE_BOOT_COMPLETED reschedule (medicine and water confirmed after reboot)
@@ -220,12 +220,12 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] **FAB press feedback**: wrap FAB `GestureDetector` in `_Pressable` in `app.dart`
 - [x] **Dependency injection**: move `WaterRepository()` and `HabitRepository()` in `HomeScreen` to Riverpod providers
 - [x] **Permission flag persistence**: save `_permissionDialogShown` to Hive `app_settings` instead of static bool
-- [x] **Battery optimization rationale**: show explanation dialog before calling `requestIgnoreBatteryOptimizations`
+- [x] **Battery optimization rationale**: flow changed — Rutin no longer calls `requestIgnoreBatteryOptimizations` directly; pre-dialog in `sleep_settings_screen.dart` explains battery access before opening app settings via native channel
 
 ### P3 — Polish
 - [x] **GoRouter page transitions**: add `CustomTransitionPage` with fade (280ms easeOut) for shell routes
 - [x] **Calendar icon in home header**: wire to `/history` or remove
-- [x] **Migrate `localized()` calls to ARB**: move all inline `localized(context, id:..., en:...)` strings to `app_en.arb` and `app_id.arb`
+- [x] **Migrate `localized()` calls to ARB**: 225 calls across 19 files migrated; `localized()` helper deleted from l10n.dart; 0 remaining calls; `flutter analyze` clean
 - [x] **Ambient sun easing**: apply `CurvedAnimation(curve: Curves.easeInOut)` to `_ambient` controller to smooth sine reversal
 
 ### P4 — Backlog

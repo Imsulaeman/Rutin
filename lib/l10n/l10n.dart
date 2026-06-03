@@ -11,14 +11,6 @@ extension BuildContextL10n on BuildContext {
   String get localeTag => locale.languageCode;
 }
 
-String localized(
-  BuildContext context, {
-  required String id,
-  required String en,
-}) {
-  return Localizations.localeOf(context).languageCode == 'id' ? id : en;
-}
-
 String medicineMealTimingLabel(BuildContext context, String value) {
   switch (value) {
     case 'sebelum_makan':

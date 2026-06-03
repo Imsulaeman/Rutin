@@ -203,5 +203,324 @@
       "day": { "type": "int" },
       "left": { "type": "int" }
     }
+  },
+  "saving": "Menyimpan...",
+  "create": "Buat",
+  "add": "Tambah",
+  "enable": "Aktifkan",
+  "later": "Nanti",
+  "next": "Lanjut",
+  "replace": "Ganti",
+  "end": "Akhiri",
+  "complete": "Lengkap",
+  "incomplete": "Tidak lengkap",
+  "completed": "Selesai",
+  "logged": "dicatat",
+  "partial": "Sebagian",
+  "offDay": "Libur",
+  "startToday": "Mulai hari ini",
+  "days": "hari",
+  "date": "Tanggal",
+  "status": "Status",
+  "condition": "Kondisi",
+  "startDate": "Tanggal Mulai",
+  "duration": "Durasi",
+  "dosage": "Dosis",
+  "medicineName": "Nama obat",
+  "name": "Nama",
+  "age": "Usia",
+  "perfect": "Sempurna",
+  "good": "Bagus",
+  "miss": "Meleset",
+  "noRoutine": "Tanpa rutinitas",
+  "newRoutine": "Rutinitas baru",
+  "combineIntoRoutine": "Gabungkan jadi rutinitas",
+  "deleteRoutine": "Hapus rutinitas",
+  "editRoutine": "Ubah rutinitas",
+  "editNameAndEmoji": "Ubah nama & emoji",
+  "deleteRoutineBody": "Rutinitas ini akan dihapus.",
+  "deleteRoutineOnly": "Hapus rutinitas saja",
+  "deleteRoutineAndHabits": "Hapus beserta kebiasaannya",
+  "editHabit": "Edit Kebiasaan",
+  "habitAlreadyCompleted": "Sudah dilakukan hari ini",
+  "habitMoveToRoutine": "Pindahkan ke rutinitas",
+  "habitTurnIntoMedal": "Jadikan medali",
+  "moveTo": "Pindahkan ke",
+  "retireHabitDescription": "Kebiasaan ini akan dihapus dari daftar aktif dan disimpan sebagai medali.",
+  "retireHabitButton": "🏅  Jadikan Medali",
+  "habitsEmptyHint": "Tap + untuk menambah kebiasaan, lalu buat rutinitas dari tab Semua.",
+  "groupEmptyHint": "Belum ada kebiasaan di sini.\nTap + atau gunakan \"Pindahkan ke rutinitas\" dari Semua.",
+  "allDone": "Semua selesai! 🎉",
+  "doneToday": "Selesai hari ini",
+  "combine": "Gabungkan",
+  "createRoutineHint": "Buat rutinitas dulu dari tab Kebiasaan",
+  "enableReminder": "Aktifkan pengingat",
+  "addTime": "Tambah waktu",
+  "reminderTime": "Waktu pengingat",
+  "chooseEmoji": "Pilih emoji",
+  "emojiCategoryActivity": "Aktivitas",
+  "emojiCategoryMorningNight": "Pagi & Malam",
+  "emojiCategoryFoodDrink": "Makan & Minum",
+  "emojiCategoryStudyWork": "Belajar & Kerja",
+  "emojiCategoryHealth": "Kesehatan",
+  "emojiCategoryGeneral": "Umum",
+  "habitHistory": "Riwayat Kebiasaan",
+  "noHabitsScheduled": "Tidak ada kebiasaan terjadwal.",
+  "noHabitsYetShort": "Belum ada kebiasaan.",
+  "medicineHistory": "Riwayat Obat",
+  "allTaken": "Semua diminum",
+  "noSchedule": "Belum ada jadwal",
+  "reviewDoses": "Lihat dosis yang diminum, terlewat, atau belum jatuh tempo.",
+  "noMedicineForDay": "Tidak ada jadwal obat di hari ini.",
+  "notDueYet": "Belum waktunya",
+  "noLogYet": "Belum ada log",
+  "noDoseSchedule": "Belum ada jadwal dosis",
+  "deleteMedicineTitle": "Hapus obat?",
+  "noMedicineToday": "Belum ada obat hari ini",
+  "habitCompletedLog": "Kebiasaan selesai",
+  "recentActivityForDay": "Aktivitas terbaru untuk tanggal ini.",
+  "nothingLoggedToday": "Tidak ada aktivitas pada hari ini.",
+  "scheduleTimes": "WAKTU MINUM",
+  "mealRule": "ATURAN MAKAN",
+  "medicineNameRequired": "Nama obat wajib diisi",
+  "dosageHint": "Contoh: 1 tablet",
+  "enableAndStart": "Aktifkan & Mulai",
+  "onboarding1Headline": "Susah konsisten?\nKamu tidak sendirian.",
+  "onboarding1Body": "Minum obat, minum air, olahraga — kebiasaan kecil yang mudah terlupakan tapi penting untuk kesehatanmu.",
+  "onboarding2Headline": "Rutin jaga semua\nrutinitasmu.",
+  "onboarding2Body": "Pengingat obat, kebiasaan harian, air minum, dan game bangun pagi — gratis, offline, selamanya.",
+  "onboarding3Headline": "Satu langkah\nterakhir.",
+  "onboarding3Body": "Rutin perlu izin notifikasi agar pengingat bisa jalan saat kamu tidak buka aplikasi.",
+  "tapToSetName": "Ketuk untuk isi nama",
+  "bestStreak": "Streak terbaik",
+  "habitsDone": "Habit selesai",
+  "habitsAchieved": "Kebiasaan yang sudah kamu capai",
+  "chooseCharacter": "Pilih karaktermu",
+  "sleepModeSubtitle": "Pengaturan dan game bangun pagi",
+  "settingsSubtitle": "Bahasa, aksesibilitas, tentang",
+  "accessibilityNotAllowed": "Belum diizinkan, diperlukan untuk Mode Tidur",
+  "medicineAlarmSection": "ALARM OBAT",
+  "fullScreenAlarm": "Alarm layar penuh",
+  "fullScreenAlarmAllowed": "Diizinkan, alarm bisa mengambil alih layar",
+  "fullScreenAlarmNotAllowed": "Belum diizinkan, alarm bisa turun jadi heads-up saja",
+  "soundSection": "SUARA",
+  "appSound": "Suara aplikasi",
+  "appSoundSubtitle": "Pakai suara bawaan Rutin",
+  "phoneDefaultSound": "Suara bawaan ponsel",
+  "phoneDefaultSoundSubtitle": "Pakai notifikasi atau ringtone default ponsel",
+  "notificationSound": "Suara notifikasi",
+  "notificationSoundSubtitle": "Dipakai untuk pengingat Air dan Kebiasaan",
+  "medicineAlarmSound": "Suara alarm obat",
+  "medicineAlarmSoundSubtitle": "Dipakai untuk alarm obat layar penuh",
+  "otherSection": "LAINNYA",
+  "tutorial": "Tutorial",
+  "tutorialSubtitle": "Lihat ulang layar pengenalan",
+  "dataSection": "DATA",
+  "exportBackup": "Ekspor backup (JSON)",
+  "exportBackupSubtitle": "Semua obat, kebiasaan, air, dan log",
+  "skipGateTitle": "Lewati gerbang?",
+  "skipGateBody": "Game pagi ini akan dilewati. Streak kamu tetap aman.",
+  "streakFirstDay": "Hari pertama!",
+  "noHabitsToday": "Tidak ada kebiasaan hari ini",
+  "sleepModeStartError": "Mode tidur belum dapat dijalankan. Coba aktifkan kembali setelah memperbarui aplikasi.",
+  "allowBackgroundTitle": "Izinkan Berjalan di Latar",
+  "allowBackgroundBody": "Rutin perlu diizinkan berjalan di latar agar alarm obat, pengingat air, dan Mode Tidur tetap muncul tepat waktu.\n\nSetelah halaman Pengaturan Aplikasi Rutin terbuka, masuk ke Baterai lalu matikan optimasi baterai atau izinkan aktivitas latar belakang.",
+  "enableAccessibilityHint": "Untuk pengalaman terbaik, aktifkan Accessibility Service.",
+  "accessibilityService": "Accessibility Service",
+  "notAllowedYet": "Belum diizinkan",
+  "backgroundAllowed": "Sudah diizinkan berjalan di latar belakang",
+  "backgroundNotConfirmed": "Belum terkonfirmasi. Di beberapa HP, status ini bisa tetap tidak berubah walaupun izin latar belakang sudah diaktifkan.",
+  "sleepTriggerSimulated": "Gerbang pagi seharusnya muncul sekarang. Jika tidak, cek apakah Mode Tidur aktif.",
+  "skipArrow": "Lewati →",
+  "watchClosely": "Perhatikan...",
+  "tapTheSequence": "Ketuk urutannya!",
+  "wrongRepeatRound": "Salah! Ulangi putaran...",
+  "connectTheColors": "Hubungkan Warnanya",
+  "gameComplete": "Game selesai. Selamat beraktivitas!",
+  "noActiveProgramDot": "Tidak ada program aktif.",
+  "exportPdf": "Ekspor PDF",
+  "endProgram": "Akhiri program",
+  "endProgramTitle": "Akhiri program?",
+  "endProgramBody": "Program aktif akan dihentikan.",
+  "pdfTitle": "Rutin - Laporan Kepatuhan Pengobatan",
+  "startDateLabel": "Tanggal mulai",
+  "conditionName": "Nama kondisi",
+  "treatmentDuration": "Durasi pengobatan",
+  "other": "Lainnya",
+  "numberOfDays": "Jumlah hari",
+  "linkedMedicine": "Obat yang digunakan (opsional)",
+  "noLinkedMedicine": "Tanpa obat terhubung",
+  "treatmentValidationError": "Isi nama kondisi dan durasi yang valid.",
+  "replaceActiveProgram": "Ganti program aktif?",
+  "replaceProgramBody": "Program sebelumnya akan dihentikan.",
+  "waterSettings": "Pengaturan Air",
+  "waterGoalReached": "Target tercapai! Mantap!",
+  "remindersStart": "Pengingat mulai",
+  "remindersFinished": "Pengingat selesai hari ini",
+  "comingSoon": "Sebentar lagi...",
+  "glassSize": "Ukuran gelas",
+  "start": "Mulai",
+  "reminder": "Pengingat",
+  "scheduledDoses": "Dosis Terjadwal",
+  "takenDoses": "Dosis Diminum",
+  "exportedFrom": "Diekspor dari Rutin",
+  "failedToSave": "Gagal menyimpan: {error}",
+  "@failedToSave": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "failedToScheduleAlarm": "Gagal menjadwalkan alarm: {error}",
+  "@failedToScheduleAlarm": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "exportBackupFailed": "Gagal mengekspor backup: {error}",
+  "@exportBackupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "deleteHabitTitle": "Hapus kebiasaan?",
+  "deleteHabitBody": "{name} akan dihapus permanen.",
+  "@deleteHabitBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteRoutineTitle": "Hapus \"{name}\"?",
+  "@deleteRoutineTitle": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteRoutineWithHabitsBody": "Rutinitas ini punya {count} kebiasaan. Mau diapakan?",
+  "@deleteRoutineWithHabitsBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "habitsCompletedCount": "{completed} dari {total} kebiasaan selesai",
+  "@habitsCompletedCount": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "habitTurnedIntoMedal": "{emoji} {name} dijadikan medali!",
+  "@habitTurnedIntoMedal": {
+    "placeholders": {
+      "emoji": {},
+      "name": {}
+    }
+  },
+  "tookMedicine": "Minum {name}",
+  "@tookMedicine": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "drankWaterMl": "Minum {ml} ml air",
+  "@drankWaterMl": {
+    "placeholders": {
+      "ml": { "type": "int" }
+    }
+  },
+  "ageYearsOld": "{age} tahun",
+  "@ageYearsOld": {
+    "placeholders": {
+      "age": { "type": "int" }
+    }
+  },
+  "medicineDueNow": "{count} perlu diminum",
+  "@medicineDueNow": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medicineMissedCount": "{count} terlewat",
+  "@medicineMissedCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medicineDoneProgress": "{taken}/{total} selesai",
+  "@medicineDoneProgress": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "noMedicineTodayHint": "Tambah jadwal obat dari tombol + agar dosis hari ini langsung muncul di sini.",
+  "streakDay": "Hari ke-{streak}",
+  "@streakDay": {
+    "placeholders": {
+      "streak": { "type": "int" }
+    }
+  },
+  "daysRemaining": "{count} hari tersisa",
+  "@daysRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "adherenceLabel": "Kepatuhan: {pct}%",
+  "@adherenceLabel": {
+    "placeholders": {
+      "pct": { "type": "int" }
+    }
+  },
+  "last7Days": "7 hari terakhir: {taken}/{total} dosis",
+  "@last7Days": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "months": "{count} bulan",
+  "@months": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "gameRoundInfo": "Putaran {round}/3  •  {colors} warna",
+  "@gameRoundInfo": {
+    "placeholders": {
+      "round": { "type": "int" },
+      "colors": { "type": "int" }
+    }
+  },
+  "reminderInMinutes": "Pengingat dalam {minutes} menit",
+  "@reminderInMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "reminderInHours": "Pengingat dalam {hours}j",
+  "@reminderInHours": {
+    "placeholders": {
+      "hours": { "type": "int" }
+    }
+  },
+  "reminderInHoursMinutes": "Pengingat dalam {hours}j {minutes}m",
+  "@reminderInHoursMinutes": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "waterGlassesSummary": "{glasses} gelas/hari - pengingat setiap {minutes} menit",
+  "@waterGlassesSummary": {
+    "placeholders": {
+      "glasses": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "ofGoalGlasses": "dari {goal} gelas",
+  "@ofGoalGlasses": {
+    "placeholders": {
+      "goal": { "type": "int" }
+    }
   }
 }

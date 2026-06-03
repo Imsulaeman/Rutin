@@ -52,9 +52,7 @@ class _MedicineHistoryScreenState extends ConsumerState<MedicineHistoryScreen> {
       appBar: AppBar(
         backgroundColor: _navy,
         foregroundColor: Colors.white,
-        title: Text(
-          localized(context, id: 'Riwayat Obat', en: 'Medicine History'),
-        ),
+        title: Text(context.l10n.medicineHistory),
       ),
       body: ValueListenableBuilder<Box<MedicineLog>>(
         valueListenable: Hive.box<MedicineLog>('medicine_logs').listenable(),
@@ -233,19 +231,10 @@ class _Legend extends StatelessWidget {
       spacing: 12,
       runSpacing: 8,
       children: [
-        _LegendItem(
-          label: localized(context, id: 'Semua diminum', en: 'All taken'),
-          color: _green,
-        ),
-        _LegendItem(
-          label: localized(context, id: 'Sebagian', en: 'Partial'),
-          color: _amber,
-        ),
+        _LegendItem(label: context.l10n.allTaken, color: _green),
+        _LegendItem(label: context.l10n.partial, color: _amber),
         _LegendItem(label: context.l10n.missed, color: _red),
-        _LegendItem(
-          label: localized(context, id: 'Belum ada jadwal', en: 'No schedule'),
-          color: _grey,
-        ),
+        _LegendItem(label: context.l10n.noSchedule, color: _grey),
       ],
     );
   }
@@ -307,21 +296,13 @@ class _SelectedDayCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            localized(
-              context,
-              id: 'Lihat dosis yang diminum, terlewat, atau belum jatuh tempo.',
-              en: 'Review doses that were taken, missed, or are not due yet.',
-            ),
+            context.l10n.reviewDoses,
             style: TextStyle(color: _grey, fontSize: 12),
           ),
           const SizedBox(height: 16),
           if (doses.isEmpty)
             Text(
-              localized(
-                context,
-                id: 'Tidak ada jadwal obat di hari ini.',
-                en: 'No medicine scheduled for this day.',
-              ),
+              context.l10n.noMedicineForDay,
               style: TextStyle(color: _grey),
             )
           else
@@ -361,9 +342,9 @@ class _HistoryDoseTile extends StatelessWidget {
     };
     final label = switch (status) {
       'taken' => context.l10n.taken,
-      'upcoming' => localized(context, id: 'Belum waktunya', en: 'Not due yet'),
+      'upcoming' => context.l10n.notDueYet,
       'missed' => context.l10n.missed,
-      _ => localized(context, id: 'Belum ada log', en: 'No log yet'),
+      _ => context.l10n.noLogYet,
     };
 
     return Container(
@@ -499,8 +480,6 @@ String _historyStatus(MedicineRepository repo, _HistoryDose dose) {
     dose.scheduled.month,
     dose.scheduled.day,
   );
-  // Past-day misses should already be finalized into logs.
-  // Today still uses live overdue state.
   if (doseDay.isBefore(today)) return 'upcoming';
   if (dose.scheduled.isAfter(now)) return 'upcoming';
   return 'missed';

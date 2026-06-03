@@ -109,13 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context.l10n.sleepMode,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(
-                    localized(
-                      context,
-                      id: 'Pengaturan dan game bangun pagi',
-                      en: 'Settings and morning wake-up games',
-                    ),
-                  ),
+                  subtitle: Text(context.l10n.sleepModeSubtitle),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/sleep-settings'),
                 ),
@@ -163,13 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context.l10n.settings,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: Text(
-                    localized(
-                      context,
-                      id: 'Bahasa, aksesibilitas, tentang',
-                      en: 'Language, accessibility, about',
-                    ),
-                  ),
+                  subtitle: Text(context.l10n.settingsSubtitle),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/settings'),
                 ),
@@ -293,22 +281,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               GestureDetector(
                 onTap: _openEditSheet,
                 child: Text(
-                  localized(
-                    context,
-                    id: 'Ketuk untuk isi nama',
-                    en: 'Tap to set your name',
-                  ),
+                  context.l10n.tapToSetName,
                   style: const TextStyle(fontSize: 15, color: Colors.white38),
                 ),
               ),
             if (hasAge) ...[
               const SizedBox(height: 4),
               Text(
-                localized(
-                  context,
-                  id: '${profile!.age} tahun',
-                  en: '${profile.age} years old',
-                ),
+                context.l10n.ageYearsOld(profile!.age),
                 style: const TextStyle(fontSize: 13, color: Colors.white54),
               ),
             ],
@@ -331,11 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              localized(
-                context,
-                id: 'hari streak terbaik',
-                en: 'best streak days',
-              ),
+              context.l10n.bestStreakDays,
               style: const TextStyle(fontSize: 15, color: Colors.white60),
             ),
             const SizedBox(height: 16),
@@ -347,29 +323,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _StatChip(
                   icon: Icons.local_fire_department_rounded,
                   value: '$_bestActiveStreak',
-                  label: localized(
-                    context,
-                    id: 'Streak terbaik',
-                    en: 'Best streak',
-                  ),
+                  label: context.l10n.bestStreak,
                 ),
                 _StatChip(
                   icon: Icons.workspace_premium_rounded,
                   value: '${_list.length}',
-                  label: localized(
-                    context,
-                    id: 'Medali',
-                    en: 'Medals',
-                  ),
+                  label: context.l10n.medals,
                 ),
                 _StatChip(
                   icon: Icons.check_circle_rounded,
                   value: '$_habitsDoneTotal',
-                  label: localized(
-                    context,
-                    id: 'Habit selesai',
-                    en: 'Habits done',
-                  ),
+                  label: context.l10n.habitsDone,
                 ),
               ],
             ),
@@ -382,11 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 2),
             Text(
-              localized(
-                context,
-                id: 'Kebiasaan yang sudah kamu capai',
-                en: 'Habits you have achieved',
-              ),
+              context.l10n.habitsAchieved,
               style: const TextStyle(fontSize: 13, color: Colors.white54),
             ),
           ],
@@ -422,11 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  localized(
-                    context,
-                    id: 'Pilih karaktermu',
-                    en: 'Choose your character',
-                  ),
+                  context.l10n.chooseCharacter,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -471,9 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   controller: _nameCtrl,
                   maxLength: 30,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _sheetInputDecoration(
-                    localized(context, id: 'Nama', en: 'Name'),
-                  ),
+                  decoration: _sheetInputDecoration(context.l10n.name),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -481,9 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   style: const TextStyle(color: Colors.white),
-                  decoration: _sheetInputDecoration(
-                    localized(context, id: 'Usia', en: 'Age'),
-                  ),
+                  decoration: _sheetInputDecoration(context.l10n.age),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -508,7 +460,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (!sheetContext.mounted) return;
                       Navigator.of(sheetContext).pop();
                     },
-                    child: Text(localized(context, id: 'Simpan', en: 'Save')),
+                    child: Text(context.l10n.save),
                   ),
                 ),
               ],
@@ -647,11 +599,7 @@ class _StatChip extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: const Color(0xFFF4A92B),
-          ),
+          Icon(icon, size: 18, color: const Color(0xFFF4A92B)),
           const SizedBox(height: 4),
           Text(
             value,

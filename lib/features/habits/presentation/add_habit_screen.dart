@@ -105,9 +105,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            localized(context, id: 'Rutinitas baru', en: 'New routine'),
-          ),
+          title: Text(context.l10n.newRoutine),
           content: Row(
             children: [
               GestureDetector(
@@ -150,7 +148,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(localized(context, id: 'Buat', en: 'Create')),
+              child: Text(context.l10n.create),
             ),
           ],
         ),
@@ -203,7 +201,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
 
       await _repo.save(habit);
 
-      // Auto-sort by time on first placement into a group
       if (_selectedGroupId != null) {
         await _repo.autoSortNewItem(_selectedGroupId!, habit.id);
       }
@@ -218,15 +215,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            localized(
-              context,
-              id: 'Gagal menyimpan: $e',
-              en: 'Failed to save: $e',
-            ),
-          ),
-        ),
+        SnackBar(content: Text(context.l10n.failedToSave(e.toString()))),
       );
     }
   }
@@ -238,9 +227,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isEdit
-              ? localized(context, id: 'Edit Kebiasaan', en: 'Edit Habit')
-              : context.l10n.addHabit,
+          _isEdit ? context.l10n.editHabit : context.l10n.addHabit,
         ),
       ),
       body: Form(
@@ -248,7 +235,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
           children: [
-            // Name + Emoji
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -286,8 +272,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               ],
             ),
             const SizedBox(height: 32),
-
-            // Group picker
             Row(
               children: [
                 _label(context, context.l10n.routineLabel),
@@ -295,7 +279,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 TextButton.icon(
                   onPressed: _createGroup,
                   icon: const Icon(Icons.add_rounded, size: 16),
-                  label: Text(localized(context, id: 'Tambah', en: 'Add')),
+                  label: Text(context.l10n.add),
                 ),
               ],
             ),
@@ -305,9 +289,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               runSpacing: 8,
               children: [
                 ChoiceChip(
-                  label: Text(
-                    localized(context, id: 'Tanpa rutinitas', en: 'No routine'),
-                  ),
+                  label: Text(context.l10n.noRoutine),
                   selected: _selectedGroupId == null,
                   onSelected: (_) => setState(() => _selectedGroupId = null),
                 ),
@@ -324,19 +306,13 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  localized(
-                    context,
-                    id: 'Buat rutinitas dulu dari tab Kebiasaan',
-                    en: 'Create a routine first from the Habits tab',
-                  ),
+                  context.l10n.createRoutineHint,
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ),
             const SizedBox(height: 32),
-
-            // Schedule
             _label(context, context.l10n.scheduleLabel),
             const SizedBox(height: 10),
             Wrap(
@@ -359,8 +335,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               }),
             ),
             const SizedBox(height: 32),
-
-            // Reminder
             _label(context, context.l10n.reminderLabel),
             const SizedBox(height: 10),
             Container(
@@ -380,15 +354,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     ),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            localized(
-                              context,
-                              id: 'Aktifkan pengingat',
-                              en: 'Enable reminder',
-                            ),
-                          ),
-                        ),
+                        Expanded(child: Text(context.l10n.enableReminder)),
                         Switch(
                           value: _reminderEnabled,
                           onChanged: _toggleReminder,
@@ -432,11 +398,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    localized(
-                                      context,
-                                      id: 'Tambah waktu',
-                                      en: 'Add time',
-                                    ),
+                                    context.l10n.addTime,
                                     style: TextStyle(
                                       color: AppTheme.habitsColor,
                                       fontSize: 13,
@@ -455,13 +417,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               ),
             ),
             const SizedBox(height: 40),
-
             FilledButton(
               onPressed: _saving ? null : _save,
               child: Text(
-                _saving
-                    ? localized(context, id: 'Menyimpan...', en: 'Saving...')
-                    : context.l10n.save,
+                _saving ? context.l10n.saving : context.l10n.save,
               ),
             ),
           ],
@@ -519,7 +478,7 @@ class _TimePickerRow extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                localized(context, id: 'Waktu pengingat', en: 'Reminder time'),
+                context.l10n.reminderTime,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 15,
