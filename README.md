@@ -8,6 +8,14 @@ A free, offline-first Android app for medicine reminders, hydration tracking, da
 
 ---
 
+![Banner](preview/banner-preview/banner-wide.png)
+
+| Home | Medicine | Habits | Water | Morning Gate | Wake-up Game |
+|---|---|---|---|---|---|
+| ![Home](preview/banner-preview/home-dashboard.png) | ![Medicine](preview/banner-preview/medicine.png) | ![Habits](preview/banner-preview/habit.png) | ![Water](preview/banner-preview/water-reminder.png) | ![Gate](preview/banner-preview/morning-gate.png) | ![Game](preview/banner-preview/morning-mini-games.png) |
+
+---
+
 ## Why It Exists
 
 I built Rutin while managing my own TB treatment. Taking medicine at exact times, every day, for 6+ months — a missed dose isn't just a bad habit, it can cause drug resistance. Every existing app I tried was either too generic, paywalled, or unreliable when it mattered most.
