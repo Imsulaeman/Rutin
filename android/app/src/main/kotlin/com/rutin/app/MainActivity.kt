@@ -169,18 +169,23 @@ class MainActivity : FlutterActivity() {
                         result.success(
                             hashMapOf(
                                 "notificationSound" to ReminderSoundPrefs.notificationSound(applicationContext),
-                                "alarmSound" to ReminderSoundPrefs.alarmSound(applicationContext)
+                                "alarmSound" to ReminderSoundPrefs.alarmSound(applicationContext),
+                                "habitSound" to ReminderSoundPrefs.habitSound(applicationContext)
                             )
                         )
                     }
                     "setReminderSoundSettings" -> {
                         val notificationSound = call.argument<String>("notificationSound")
                         val alarmSound = call.argument<String>("alarmSound")
+                        val habitSound = call.argument<String>("habitSound")
                         if (notificationSound != null) {
                             ReminderSoundPrefs.saveNotificationSound(applicationContext, notificationSound)
                         }
                         if (alarmSound != null) {
                             ReminderSoundPrefs.saveAlarmSound(applicationContext, alarmSound)
+                        }
+                        if (habitSound != null) {
+                            ReminderSoundPrefs.saveHabitSound(applicationContext, habitSound)
                         }
                         result.success(null)
                     }

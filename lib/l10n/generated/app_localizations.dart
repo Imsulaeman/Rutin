@@ -1517,14 +1517,26 @@ abstract class AppLocalizations {
   /// No description provided for @notificationSound.
   ///
   /// In en, this message translates to:
-  /// **'Notification sound'**
+  /// **'Water sound'**
   String get notificationSound;
 
   /// No description provided for @notificationSoundSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Used for Water and Habit reminders'**
+  /// **'Used for Water reminders'**
   String get notificationSoundSubtitle;
+
+  /// No description provided for @habitReminderSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Habit sound'**
+  String get habitReminderSound;
+
+  /// No description provided for @habitReminderSoundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for Habit reminders'**
+  String get habitReminderSoundSubtitle;
 
   /// No description provided for @medicineAlarmSound.
   ///

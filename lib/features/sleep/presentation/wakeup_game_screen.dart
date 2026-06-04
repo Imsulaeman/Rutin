@@ -66,7 +66,9 @@ class _WakeupGameScreenState extends State<WakeupGameScreen> {
 
   static int _todayGameIndex() {
     final now = DateTime.now();
-    final seed = now.year * 10000 + now.month * 100 + now.day;
+    final raw = now.year * 10000 + now.month * 100 + now.day;
+    // Consecutive dates produce correlated Random output — mix bits first.
+    final seed = (raw ^ (raw >> 16)) * 0x45d9f3b & 0x7FFFFFFF;
     return const [0, 2, 5][Random(seed).nextInt(3)];
   }
 

@@ -771,11 +771,16 @@ class AppLocalizationsId extends AppLocalizations {
       'Pakai notifikasi atau ringtone default ponsel';
 
   @override
-  String get notificationSound => 'Suara notifikasi';
+  String get notificationSound => 'Suara air';
 
   @override
-  String get notificationSoundSubtitle =>
-      'Dipakai untuk pengingat Air dan Kebiasaan';
+  String get notificationSoundSubtitle => 'Dipakai untuk pengingat Air';
+
+  @override
+  String get habitReminderSound => 'Suara kebiasaan';
+
+  @override
+  String get habitReminderSoundSubtitle => 'Dipakai untuk pengingat Kebiasaan';
 
   @override
   String get medicineAlarmSound => 'Suara alarm obat';

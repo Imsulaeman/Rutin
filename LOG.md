@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-06-04 (morning game always Connect the Dots fix)
+
+- Fixed morning gate game always showing Connect the Dots for multiple consecutive days.
+- Root cause: seed formula `year*10000 + month*100 + day` produces consecutive integers (20260602, 20260603, 20260604...). Dart's `Random` with consecutive integer seeds produces correlated `nextInt(3)` output — e.g. June 2–4 all mapped to index 5 (Connect the Dots).
+- Fix: apply a bit-mixing hash to the raw date integer before passing to `Random`, breaking the correlation between adjacent dates.
+
+---
+
+## 2026-06-04 (notification reliability + separate sound settings)
+
+- **Habit alarm reliability**: wrapped `showNotification()` and `schedule()` calls in `HabitAlarmReceiver.onReceive()` with `runCatching`. Each step now runs independently — a notification failure no longer kills the reschedule chain permanently.
+- **Sound setting not applying**: notification channels are immutable after first creation. Fixed by switching to **sound-keyed channel IDs** (`habit_reminder_chime`, `habit_reminder_system`, etc.) in both `HabitAlarmReceiver` and `WaterAlarmReceiver`. On sound change, the old channel is deleted and a fresh one with the correct sound is created automatically.
+- **Separate habit / water sound settings**: added `KEY_HABIT` / `habitSound` / `saveHabitSound` / `habitUri` to `ReminderSoundPrefs`. `HabitAlarmReceiver` now reads `habitUri()` instead of `notificationUri()`. Settings screen has a separate "Habit sound" row (seeded from the existing water sound for existing users).
+- Renamed "Notification sound" row → "Water sound" (EN: "Water sound", ID: "Suara air") to match the new separation.
+- Note: intermittent habit alarm misses on OEM devices (Xiaomi/Samsung) are likely OEM power management — ensure battery optimization is disabled in Settings → Battery.
+
+---
+
 ## 2026-06-03 (sleep gate fix 2)
 
 - Fixed morning gate requiring app to be open first.

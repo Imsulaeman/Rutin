@@ -769,10 +769,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use the phone default notification or ringtone';
 
   @override
-  String get notificationSound => 'Notification sound';
+  String get notificationSound => 'Water sound';
 
   @override
-  String get notificationSoundSubtitle => 'Used for Water and Habit reminders';
+  String get notificationSoundSubtitle => 'Used for Water reminders';
+
+  @override
+  String get habitReminderSound => 'Habit sound';
+
+  @override
+  String get habitReminderSoundSubtitle => 'Used for Habit reminders';
 
   @override
   String get medicineAlarmSound => 'Medicine alarm sound';

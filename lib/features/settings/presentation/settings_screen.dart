@@ -32,8 +32,10 @@ class _SettingsScreenState extends State<SettingsScreen>
   String _lang = LanguageService.current;
   String _notificationSound = 'chime';
   String _alarmSound = 'ringtone';
+  String _habitSound = 'chime';
   String _notificationSoundTitle = '';
   String _alarmSoundTitle = '';
+  String _habitSoundTitle = '';
   bool _backupBusy = false;
 
   @override
@@ -126,21 +128,25 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (raw == null || !mounted) return;
       final notif = (raw['notificationSound'] as String?) ?? _notificationSound;
       final alarm = (raw['alarmSound'] as String?) ?? _alarmSound;
+      final habit = (raw['habitSound'] as String?) ?? _habitSound;
       setState(() {
         _notificationSound = notif;
         _alarmSound = alarm;
+        _habitSound = habit;
       });
-      await _refreshSoundTitles(notif, alarm);
+      await _refreshSoundTitles(notif, alarm, habit);
     } catch (_) {}
   }
 
-  Future<void> _refreshSoundTitles(String notif, String alarm) async {
+  Future<void> _refreshSoundTitles(String notif, String alarm, [String? habit]) async {
     final notifTitle = await _getSoundTitle(notif);
     final alarmTitle = await _getSoundTitle(alarm);
+    final habitTitle = await _getSoundTitle(habit ?? _habitSound);
     if (!mounted) return;
     setState(() {
       _notificationSoundTitle = notifTitle;
       _alarmSoundTitle = alarmTitle;
+      _habitSoundTitle = habitTitle;
     });
   }
 
@@ -156,19 +162,23 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<void> _setSoundSettings({
     String? notificationSound,
     String? alarmSound,
+    String? habitSound,
   }) async {
     await _nativeCh.invokeMethod('setReminderSoundSettings', {
       if (notificationSound != null) 'notificationSound': notificationSound,
       if (alarmSound != null) 'alarmSound': alarmSound,
+      if (habitSound != null) 'habitSound': habitSound,
     });
     if (!mounted) return;
     setState(() {
       if (notificationSound != null) _notificationSound = notificationSound;
       if (alarmSound != null) _alarmSound = alarmSound;
+      if (habitSound != null) _habitSound = habitSound;
     });
     await _refreshSoundTitles(
       notificationSound ?? _notificationSound,
       alarmSound ?? _alarmSound,
+      habitSound ?? _habitSound,
     );
   }
 
@@ -242,14 +252,16 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-  String _soundLabel(String value, {bool isAlarm = false}) {
+  String _soundLabel(String value, {bool isAlarm = false, bool isHabit = false}) {
     return switch (value) {
       'system'   => context.l10n.phoneDefaultSound,
       'ringtone' => context.l10n.appRingtone,
       'chime'    => context.l10n.appSound,
       _ => isAlarm
           ? (_alarmSoundTitle.isNotEmpty ? _alarmSoundTitle : context.l10n.browsePhoneSounds)
-          : (_notificationSoundTitle.isNotEmpty ? _notificationSoundTitle : context.l10n.browsePhoneSounds),
+          : isHabit
+              ? (_habitSoundTitle.isNotEmpty ? _habitSoundTitle : context.l10n.browsePhoneSounds)
+              : (_notificationSoundTitle.isNotEmpty ? _notificationSoundTitle : context.l10n.browsePhoneSounds),
     };
   }
 
@@ -365,7 +377,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                     children: [
                       ListTile(
                         leading: const Icon(
-                          Icons.notifications_active_rounded,
+                          Icons.water_drop_rounded,
                         ),
                         title: Text(context.l10n.notificationSound),
                         subtitle: Text(context.l10n.notificationSoundSubtitle),
@@ -383,6 +395,29 @@ class _SettingsScreenState extends State<SettingsScreen>
                           soundType: 'notification',
                           onSelected: (value) =>
                               _setSoundSettings(notificationSound: value),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.self_improvement_rounded,
+                        ),
+                        title: Text(context.l10n.habitReminderSound),
+                        subtitle: Text(context.l10n.habitReminderSoundSubtitle),
+                        trailing: Text(
+                          _soundLabel(_habitSound, isHabit: true),
+                          style: const TextStyle(
+                            color: AppTheme.muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () => _pickSound(
+                          title: context.l10n.habitReminderSound,
+                          currentValue: _habitSound,
+                          soundType: 'notification',
+                          onSelected: (value) =>
+                              _setSoundSettings(habitSound: value),
                         ),
                       ),
                       const Divider(height: 1),

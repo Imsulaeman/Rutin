@@ -146,28 +146,36 @@ class HabitAlarmReceiver : BroadcastReceiver() {
 
         val today = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK).toWeekday()
         if (scheduleDays.isEmpty() || scheduleDays.contains(today)) {
-            showNotification(context, notifId, title)
+            runCatching { showNotification(context, notifId, title) }
         }
 
-        schedule(context, notifId, nextTriggerMillis(notifId, scheduleDays), title, scheduleDays)
+        // Run reschedule independently so a notification failure doesn't kill the alarm chain.
+        runCatching { schedule(context, notifId, nextTriggerMillis(notifId, scheduleDays), title, scheduleDays) }
     }
 
     private fun showNotification(context: Context, notifId: Int, title: String) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val currentSound = ReminderSoundPrefs.habitSound(context)
+        val channelId = "habit_reminder_${ReminderSoundPrefs.channelSuffix(currentSound)}"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            nm.deleteNotificationChannel("habit_reminder")
-            val audioAttrs = AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .build()
-            val channel = NotificationChannel(
-                CHANNEL_ID, NativeStrings.habitChannel(context), NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                setSound(ReminderSoundPrefs.notificationUri(context), audioAttrs)
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 250)
+            // Delete all stale habit channels so the active sound always matches the user setting.
+            nm.notificationChannels
+                .filter { it.id.startsWith("habit_reminder") && it.id != channelId }
+                .forEach { nm.deleteNotificationChannel(it.id) }
+            if (nm.getNotificationChannel(channelId) == null) {
+                val audioAttrs = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build()
+                val channel = NotificationChannel(
+                    channelId, NativeStrings.habitChannel(context), NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    setSound(ReminderSoundPrefs.habitUri(context), audioAttrs)
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 250)
+                }
+                nm.createNotificationChannel(channel)
             }
-            nm.createNotificationChannel(channel)
         }
         val openIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
         val pi = PendingIntent.getActivity(
@@ -175,7 +183,7 @@ class HabitAlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
         )
-        val notif = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notif = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(NativeStrings.habitBody(context))

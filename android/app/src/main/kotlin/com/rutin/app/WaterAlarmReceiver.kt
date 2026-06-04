@@ -85,20 +85,27 @@ class WaterAlarmReceiver : BroadcastReceiver() {
     private fun showNotification(context: Context) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        val currentSound = ReminderSoundPrefs.notificationSound(context)
+        val channelId = "water_reminder_${ReminderSoundPrefs.channelSuffix(currentSound)}"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            nm.deleteNotificationChannel("water_reminder_native")
-            val audioAttrs = AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .build()
-            val channel = NotificationChannel(
-                CHANNEL_ID, NativeStrings.waterChannel(context), NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                setSound(ReminderSoundPrefs.notificationUri(context), audioAttrs)
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 250)
+            // Delete all stale water channels so the active sound always matches the user setting.
+            nm.notificationChannels
+                .filter { it.id.startsWith("water_reminder") && it.id != channelId }
+                .forEach { nm.deleteNotificationChannel(it.id) }
+            if (nm.getNotificationChannel(channelId) == null) {
+                val audioAttrs = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build()
+                val channel = NotificationChannel(
+                    channelId, NativeStrings.waterChannel(context), NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    setSound(ReminderSoundPrefs.notificationUri(context), audioAttrs)
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 250)
+                }
+                nm.createNotificationChannel(channel)
             }
-            nm.createNotificationChannel(channel)
         }
 
         val actionIntent = Intent(context, WaterActionReceiver::class.java)
@@ -107,7 +114,7 @@ class WaterAlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(NativeStrings.waterTitle(context))
             .setContentText(NativeStrings.waterBody(context))
