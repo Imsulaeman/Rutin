@@ -1,6 +1,6 @@
 # Rutin — Daily Health Habits
 
-> Built for myself. Useful for everyone.
+> Never miss what matters. Keep the Routine.
 
 A free, offline-first Android app for medicine reminders, hydration tracking, daily habits, and a morning wake-up routine. No account. No paywall. No internet required.
 
