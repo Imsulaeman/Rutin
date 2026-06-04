@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
@@ -115,7 +115,7 @@ class ReminderActivity : Activity() {
         content.addView(spacer(3f))
 
         // White primary button.
-        content.addView(Button("✓  ${NativeStrings.medicineTaken(this)}", Color.WHITE, pink).apply {
+        content.addView(Button("âœ“  ${NativeStrings.medicineTaken(this)}", Color.WHITE, pink).apply {
             setOnClickListener {
                 writePendingTaken(alarmId, scheduledMinutes)
                 val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -127,7 +127,7 @@ class ReminderActivity : Activity() {
 
         // Outlined snooze button.
         content.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(0, dp(14)) })
-        content.addView(OutlinedButton("⏰  ${NativeStrings.medicineSnooze(this)}").apply {
+        content.addView(OutlinedButton("â°  ${NativeStrings.medicineSnooze(this)}").apply {
             setOnClickListener {
                 val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 nm.cancel(alarmId)
@@ -146,7 +146,7 @@ class ReminderActivity : Activity() {
             }
         })
 
-        content.addView(label("↻  ${NativeStrings.medicineRepeat(this)}", 12f, false, dp(16))
+        content.addView(label("â†»  ${NativeStrings.medicineRepeat(this)}", 12f, false, dp(16))
             .apply { alpha = 0.75f })
 
         root.addView(content)
@@ -273,3 +273,4 @@ class ReminderActivity : Activity() {
         // Block back: the reminder must be acknowledged.
     }
 }
+

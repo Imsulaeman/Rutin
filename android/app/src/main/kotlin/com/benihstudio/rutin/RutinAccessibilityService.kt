@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
@@ -21,7 +21,7 @@ class RutinAccessibilityService : AccessibilityService() {
         val sleepActive = sleepPrefs.getBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
 
         when {
-            // Gate is open — keep it in focus if user navigates away
+            // Gate is open â€” keep it in focus if user navigates away
             gameActive && !dismissedNormally -> startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -30,7 +30,7 @@ class RutinAccessibilityService : AccessibilityService() {
                         Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                 }
             )
-            // Sleep triggered — show gate on first window change after unlock
+            // Sleep triggered â€” show gate on first window change after unlock
             sleepActive -> startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -42,3 +42,4 @@ class RutinAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {}
 }
+

@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.content.ContentResolver
 import android.content.Context
@@ -11,8 +11,8 @@ object ReminderSoundPrefs {
     private const val KEY_ALARM = "alarm_sound"
     private const val KEY_HABIT = "habit_sound"
 
-    const val SOUND_DROP = "chime"    // notif_chime.ogg — Rutin Drop
-    const val SOUND_RING = "ringtone" // ringtone.ogg    — Rutin Ring
+    const val SOUND_DROP = "chime"    // notif_chime.ogg â€” Rutin Drop
+    const val SOUND_RING = "ringtone" // ringtone.ogg    â€” Rutin Ring
     const val SOUND_SYSTEM = "system"
 
     fun notificationSound(context: Context): String {
@@ -80,3 +80,4 @@ object ReminderSoundPrefs {
     private fun rawUri(context: Context, res: Int): Uri =
         Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/$res")
 }
+

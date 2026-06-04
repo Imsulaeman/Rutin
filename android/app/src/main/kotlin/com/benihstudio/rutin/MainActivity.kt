@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Activity
@@ -489,3 +489,4 @@ class MainActivity : FlutterActivity() {
             }
     }
 }
+

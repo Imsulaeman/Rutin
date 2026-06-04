@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.app.AlarmManager
 import android.app.AlarmManager.AlarmClockInfo
@@ -194,3 +194,4 @@ class HabitAlarmReceiver : BroadcastReceiver() {
         nm.notify(notifId, notif)
     }
 }
+

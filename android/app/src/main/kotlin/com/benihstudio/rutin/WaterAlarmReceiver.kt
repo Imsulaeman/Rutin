@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -68,7 +68,7 @@ class WaterAlarmReceiver : BroadcastReceiver() {
         when {
             debug || nextMin <= endMin -> schedule(context, intervalMs)
             else -> {
-                // Last reminder of the day — re-arm for tomorrow's start of window
+                // Last reminder of the day â€” re-arm for tomorrow's start of window
                 val next = java.util.Calendar.getInstance().apply {
                     add(java.util.Calendar.DAY_OF_YEAR, 1)
                     set(java.util.Calendar.HOUR_OF_DAY, startMin / 60)
@@ -126,3 +126,4 @@ class WaterAlarmReceiver : BroadcastReceiver() {
         nm.notify(NOTIFICATION_ID, notification)
     }
 }
+

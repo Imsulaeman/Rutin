@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.app.AlarmManager
 import android.app.Notification
@@ -33,7 +33,7 @@ class SleepModeService : Service() {
         private const val RC_AUDIO_CHECK = 9004
         private const val RC_MORNING_GATE = 9006
 
-        const val SLEEP_TRIGGER_DELAY_MS = 10 * 60 * 1000L  // 10 min silence → sleep
+        const val SLEEP_TRIGGER_DELAY_MS = 10 * 60 * 1000L  // 10 min silence â†’ sleep
         const val AUDIO_CHECK_INTERVAL_MS = 5 * 60 * 1000L  // poll while audio plays
         const val AUDIO_MAX_WAIT_MS = 3 * 60 * 60 * 1000L   // 3h audio fallback
 
@@ -211,7 +211,7 @@ class SleepModeService : Service() {
             .putBoolean(KEY_SLEEP_ACTIVE, false)
             .remove(KEY_SCREEN_OFF_TIME)
             .apply()
-        // Post a persistent notification — on Android 10+ apps can't start activities
+        // Post a persistent notification â€” on Android 10+ apps can't start activities
         // from background services, so we use a full-screen intent notification instead.
         // It appears as a heads-up/full-screen alert immediately on unlock.
         postMorningGateNotification(ctx)
@@ -241,3 +241,4 @@ class SleepModeService : Service() {
         }
     }
 }
+

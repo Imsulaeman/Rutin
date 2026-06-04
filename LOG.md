@@ -2,6 +2,21 @@
 
 ---
 
+## 2026-06-04 (Play Store setup + package rename)
+
+- Renamed package from `com.rutin.app` → `com.benihstudio.rutin` (original was already taken on Play Store).
+- Updated `namespace` and `applicationId` in `android/app/build.gradle.kts`.
+- Moved Kotlin source files from `com/rutin/app/` to `com/benihstudio/rutin/`; updated `package` declaration in all 15 Kotlin files.
+- Removed old `com/rutin/` directory.
+- Updated `android/app/google-services.json` with new Firebase app entry (`mobilesdk_app_id: 1:465017525957:android:d4eb9a26ecc2e2298f02ac`) for `com.benihstudio.rutin`; old `com.rutin.app` entry retained in file.
+- Fixed `gradle.properties` JVM crash: added `-XX:+UseSerialGC` and set `org.gradle.daemon=false`; root cause was CompressedOops blocking native heap growth on low-RAM machine.
+- Updated Settings About section: `builtBy` → "Benih Studio" (was "Ilham Maulana Sulaeman").
+- Built release AAB (`flutter build appbundle --release`) and uploaded to Play Console internal testing track under Benih Studio developer account.
+- Internal testing live: release name `1.0.0 (1)`, EN release notes.
+- Play Store path: internal testing → closed testing (12 testers, 14 days) → production. Closed testing required before production access.
+
+---
+
 ## 2026-06-04 (morning game always Connect the Dots fix)
 
 - Fixed morning gate game always showing Connect the Dots for multiple consecutive days.

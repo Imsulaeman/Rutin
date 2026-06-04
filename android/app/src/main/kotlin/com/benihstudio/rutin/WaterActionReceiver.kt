@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -15,3 +15,4 @@ class WaterActionReceiver : BroadcastReceiver() {
         prefs.edit().putInt("pending_glasses", current + 1).apply()
     }
 }
+

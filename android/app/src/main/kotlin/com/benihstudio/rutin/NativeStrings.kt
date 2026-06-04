@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.content.Context
 import java.util.Locale
@@ -51,3 +51,4 @@ object NativeStrings {
 
     private fun normalize(language: String): String = if (language == "id") "id" else "en"
 }
+

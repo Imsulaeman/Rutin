@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -279,3 +279,4 @@ object NativeReminderScheduler {
         }
     }
 }
+

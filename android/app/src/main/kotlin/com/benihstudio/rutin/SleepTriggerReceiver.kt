@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -16,7 +16,7 @@ class SleepTriggerReceiver : BroadcastReceiver() {
 
     private fun handleSleepTrigger(context: Context) {
         val prefs = context.getSharedPreferences(SleepModeService.PREFS, Context.MODE_PRIVATE)
-        // Screen came back on and cleared the key — don't activate
+        // Screen came back on and cleared the key â€” don't activate
         if (!prefs.contains(SleepModeService.KEY_SCREEN_OFF_TIME)) return
         prefs.edit().putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true).apply()
         // Re-arm service so its dynamic USER_PRESENT receiver is live when user unlocks
@@ -25,7 +25,7 @@ class SleepTriggerReceiver : BroadcastReceiver() {
 
     private fun handleAudioCheck(context: Context) {
         val prefs = context.getSharedPreferences(SleepModeService.PREFS, Context.MODE_PRIVATE)
-        // Screen came back on — alarm fired just after cancel, ignore
+        // Screen came back on â€” alarm fired just after cancel, ignore
         if (!prefs.contains(SleepModeService.KEY_SCREEN_OFF_TIME)) return
 
         val screenOffTime = prefs.getLong(SleepModeService.KEY_SCREEN_OFF_TIME, 0L)
@@ -34,7 +34,7 @@ class SleepTriggerReceiver : BroadcastReceiver() {
 
         when {
             !audio.isMusicActive -> {
-                // Audio finished → start 10-min silence countdown
+                // Audio finished â†’ start 10-min silence countdown
                 SleepModeService.scheduleAlarm(
                     context,
                     SleepModeService.makeSleepTriggerPI(context),
@@ -42,11 +42,11 @@ class SleepTriggerReceiver : BroadcastReceiver() {
                 )
             }
             elapsed >= SleepModeService.AUDIO_MAX_WAIT_MS -> {
-                // 3h of audio → fell asleep with media playing
+                // 3h of audio â†’ fell asleep with media playing
                 prefs.edit().putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true).apply()
             }
             else -> {
-                // Still playing → check again in 5 min
+                // Still playing â†’ check again in 5 min
                 SleepModeService.scheduleAlarm(
                     context,
                     SleepModeService.makeAudioCheckPI(context),
@@ -56,3 +56,4 @@ class SleepTriggerReceiver : BroadcastReceiver() {
         }
     }
 }
+

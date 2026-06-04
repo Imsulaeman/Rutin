@@ -492,7 +492,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                       ListTile(
                         leading: Icon(Icons.person_outline_rounded),
                         title: Text(context.l10n.builtBy),
-                        trailing: const Text('Ilham Maulana Sulaeman'),
+                        trailing: const Text('Benih Studio'),
                       ),
                       const Divider(height: 1),
                       ListTile(

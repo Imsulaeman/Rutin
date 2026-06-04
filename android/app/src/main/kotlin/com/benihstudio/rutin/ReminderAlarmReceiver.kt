@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.app.ActivityOptions
 import android.app.Notification
@@ -234,3 +234,4 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         return next.timeInMillis
     }
 }
+

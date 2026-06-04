@@ -214,8 +214,8 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [x] Play Store listing copy (ID + EN): short description, full description, feature graphic — see store_listing.md
 - [ ] Play Store screenshots (6 screens: Home, Medicine, Water, Habits, Sleep Gate, Game)
 - [ ] Feature graphic (1024×500px banner)
-- [ ] Update Settings About + privacy policy contact → Benih Studio
-- [ ] Upload signed APK to Play Console (awaiting account verification)
+- [x] Update Settings About + privacy policy contact → Benih Studio
+- [x] Upload signed AAB to Play Console — internal testing live (1.0.0 build 1)
 - [ ] Fill store listing in Play Console (copy ready in store_listing.md)
 - [ ] Complete content rating questionnaire in Play Console
 - [-] App pitch deck / one-pager — structure in `deck.md`
@@ -225,7 +225,7 @@ Status: `[ ]` todo | `[x]` done | `[-]` in progress | `[~]` blocked
 - [ ] Crash-free rate check (Firebase Crashlytics or at minimum no known crashes)
 - [ ] Run full `MANUAL_TEST_CHECKLIST.md` release-candidate gate on the real phone
 - [x] **Post-MVP design polish pass** (only once MVP is done + launch-ready): run `/emil-design-eng`, `/impeccable`, `/gpt-taste` across all screens for final visual refinement — full report in `report.md`
-- [ ] Play Store listing
+- [-] Play Store listing — internal testing live; closed testing (12 testers, 14 days) required before production
 
 ## From Review Report (report.md) — 2026-06-02
 

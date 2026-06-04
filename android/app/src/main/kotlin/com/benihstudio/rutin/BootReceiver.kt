@@ -1,4 +1,4 @@
-package com.rutin.app
+﻿package com.benihstudio.rutin
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -33,3 +33,4 @@ class BootReceiver : BroadcastReceiver() {
         }
     }
 }
+
