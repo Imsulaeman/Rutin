@@ -2,6 +2,13 @@
 
 ---
 
+## 2026-06-04 (repo cleanup + README screenshots)
+
+- Added screenshots and banner to README (`preview/banner-preview/`).
+- Removed irrelevant files from repo: `.codex_tmp_inspect_medicines.dart`, `flutter_01.png`, `scattered-idea.md`, `report.md`, `deck.md`, `AGENTS.md`, `LOGO_PROMPT.md`, `docs/plan/plan.md`, `web/`, `rutin-privacy/` submodule reference.
+
+---
+
 ## 2026-06-04 (Play Store setup + package rename)
 
 - Renamed package from `com.rutin.app` → `com.benihstudio.rutin` (original was already taken on Play Store).
