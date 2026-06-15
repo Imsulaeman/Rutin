@@ -113,7 +113,7 @@ android/app/src/main/kotlin/com/benihstudio/rutin/
 
 Sideload on any Android device. Enable *Install from unknown sources* if prompted.
 
-> **Google Play** — The app is ready for Play Store listing but is pending the closed testing requirement (12 opted-in testers for 14 consecutive days). If you'd like to help, reach out via [Threads @ulanghidup](https://www.threads.net/@ulanghidup).
+> **Google Play** — The app is ready for Play Store listing but is pending the closed testing requirement (12 opted-in testers for 14 consecutive days). If you'd like to help, reach out via [Threads @ulanghidup](https://www.threads.net/@ulanghidup) or [Instagram @imsulaeman](https://www.instagram.com/imsulaeman).
 
 ---
 
