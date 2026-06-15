@@ -50,7 +50,7 @@ Three auto-calculated personal records: Water Intake, Medicine Streak, Habit Str
 
 **Alarm-grade notifications** — `NativeReminderScheduler.kt` uses `AlarmManager.setExactAndAllowWhileIdle` with sound-keyed notification channels. Channels are recreated on sound change (Android channels are immutable after first creation). Reminders re-arm automatically for the next day.
 
-**Sleep detection without sensors** — `SleepModeService` sets `sleep_active` on screen-off after 10 minutes. No health permissions, no body sensors. Audio/video grace period: if playback is active, polls every 5 min via `AlarmManager`. Works on Android 13+ with the `FOREGROUND_SERVICE_SPECIAL_USE` type.
+**Sleep detection without sensors** — `SleepModeService` sets `sleep_active` on screen-off after 10 minutes of silence. Notification wakes (keyguard still locked) don't reset the timer — only actual user unlock does. Audio/video grace period: if playback is active, polls every 5 min via `AlarmManager`. Works on Android 13+ with the `FOREGROUND_SERVICE_SPECIAL_USE` type.
 
 **Home button intercept** — `RutinAccessibilityService` keeps the morning gate on screen even if the user presses Home or switches apps, without blocking emergency calls or system UI.
 
@@ -107,9 +107,17 @@ android/app/src/main/kotlin/com/benihstudio/rutin/
 
 ---
 
-## Status
+## Download
 
-**Internal testing on Play Store** — available via opt-in link. Working toward closed testing and production release.
+**[Download APK — v1.0.1](https://github.com/Imsulaeman/Rutin/releases/tag/v1.0.1)**
+
+Sideload on any Android device. Enable *Install from unknown sources* if prompted.
+
+> **Google Play** — The app is ready for Play Store listing but is pending the closed testing requirement (12 opted-in testers for 14 consecutive days). If you'd like to help, reach out via [Threads @ulanghidup](https://www.threads.net/@ulanghidup).
+
+---
+
+## Status
 
 All core features shipped and tested on a physical Android device (Infinix X6873, Android 13):
 - Medicine reminders with full-screen alarm

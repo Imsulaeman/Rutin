@@ -4,6 +4,10 @@
 
 ## 2026-06-15
 
+### Sleep timer notification wake fix
+- Notifications waking the phone screen (e.g. incoming messages) were resetting the 10-minute sleep timer, preventing `sleep_active` from ever being set.
+- Fix: `onScreenOn()` now checks `KeyguardManager.isKeyguardLocked()` — if the keyguard is still showing, the screen woke due to a notification (not user), so the timer is left running.
+
 ### Tutorial fix
 - Tutorial never appeared after onboarding because `TutorialTrigger.fire()` was called before `context.go('/')`, so no listener was attached yet when the event fired.
 - Fix: check `TutorialTrigger.notifier.value > 0` right after adding the listener in home screen `initState` — fires tutorial immediately if it was already triggered.

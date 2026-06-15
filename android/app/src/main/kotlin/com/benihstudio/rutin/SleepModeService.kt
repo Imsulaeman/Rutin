@@ -199,6 +199,8 @@ class SleepModeService : Service() {
     }
 
     private fun onScreenOn() {
+        val km = getSystemService(android.app.KeyguardManager::class.java)
+        if (km != null && km.isKeyguardLocked) return  // notification wake, not user — keep timer
         cancelAllAlarms(this)
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
             .remove(KEY_SCREEN_OFF_TIME).apply()
