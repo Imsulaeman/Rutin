@@ -103,6 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _treatmentsL.addListener(_load);
 
     TutorialTrigger.notifier.addListener(_onTutorialTrigger);
+    if (TutorialTrigger.notifier.value > 0) _onTutorialTrigger();
     _load();
     _entrance.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {

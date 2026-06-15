@@ -48,8 +48,13 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.getStringExtra("route") == "/morning-gate") {
-            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
-                MethodChannel(messenger, sleepChannelName).invokeMethod("launchGame", null)
+            val prefs = applicationContext.getSharedPreferences(SleepModeService.PREFS, Context.MODE_PRIVATE)
+            // gate_pending is the one-shot dedup flag — only the first arrival launches the gate
+            if (prefs.getBoolean("gate_pending", false)) {
+                prefs.edit().putBoolean("gate_pending", false).apply()
+                flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                    MethodChannel(messenger, sleepChannelName).invokeMethod("launchGame", null)
+                }
             }
         }
     }
@@ -443,6 +448,7 @@ class MainActivity : FlutterActivity() {
                             SleepModeService.PREFS, Context.MODE_PRIVATE
                         ).edit()
                             .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true)
+                            .putBoolean("gate_pending", true)
                             .apply()
                         // Reply first, then post launch on next looper cycle to avoid re-entrancy
                         result.success(null)
@@ -455,21 +461,21 @@ class MainActivity : FlutterActivity() {
                     "checkPendingGate" -> {
                         val hasPending = intent?.getStringExtra("route") == "/morning-gate"
                         if (hasPending) intent?.removeExtra("route")
-                        // Fallback: service may have been killed after sleep_active was set
-                        // but before USER_PRESENT was caught. Clear flag here (mirrors what
-                        // onUserPresent does) so skip doesn't re-trigger gate on next open.
                         val sleepPrefs = applicationContext.getSharedPreferences(
                             SleepModeService.PREFS, Context.MODE_PRIVATE
                         )
+                        val gatePending = sleepPrefs.getBoolean("gate_pending", false)
                         val sleepActive = sleepPrefs.getBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
-                        if (sleepActive) {
+                        val shouldLaunch = hasPending || gatePending || sleepActive
+                        if (shouldLaunch) {
                             sleepPrefs.edit()
+                                .putBoolean("gate_pending", false)
                                 .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
                                 .remove(SleepModeService.KEY_SCREEN_OFF_TIME)
                                 .apply()
                             SleepModeService.cancelMorningGateNotification(applicationContext)
                         }
-                        result.success(hasPending || sleepActive)
+                        result.success(shouldLaunch)
                     }
                     "setGameDismissedNormally" -> {
                         val value = call.arguments as? Boolean ?: true
@@ -477,6 +483,7 @@ class MainActivity : FlutterActivity() {
                             SleepModeService.PREFS, Context.MODE_PRIVATE
                         ).edit()
                             .putBoolean("game_dismissed_normally", value)
+                            .putBoolean("gate_pending", false)
                             .apply()
                         if (value) {
                             SleepModeService.cancelMorningGateNotification(applicationContext)

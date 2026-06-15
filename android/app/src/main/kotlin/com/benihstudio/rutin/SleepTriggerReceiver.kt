@@ -18,7 +18,10 @@ class SleepTriggerReceiver : BroadcastReceiver() {
         val prefs = context.getSharedPreferences(SleepModeService.PREFS, Context.MODE_PRIVATE)
         // Screen came back on and cleared the key â€” don't activate
         if (!prefs.contains(SleepModeService.KEY_SCREEN_OFF_TIME)) return
-        prefs.edit().putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true).apply()
+        prefs.edit()
+            .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true)
+            .putBoolean("gate_pending", true)
+            .apply()
         // Re-arm service so its dynamic USER_PRESENT receiver is live when user unlocks
         SleepModeService.start(context)
     }
@@ -42,8 +45,11 @@ class SleepTriggerReceiver : BroadcastReceiver() {
                 )
             }
             elapsed >= SleepModeService.AUDIO_MAX_WAIT_MS -> {
-                // 3h of audio â†’ fell asleep with media playing
-                prefs.edit().putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true).apply()
+                // 3h of audio → fell asleep with media playing
+                prefs.edit()
+                    .putBoolean(SleepModeService.KEY_SLEEP_ACTIVE, true)
+                    .putBoolean("gate_pending", true)
+                    .apply()
             }
             else -> {
                 // Still playing â†’ check again in 5 min
