@@ -2,7 +2,7 @@ name: habit_app
 description: "Daily health habits and medicine reminder. Free, offline-first, built for Indonesian TB patients."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+3
 
 environment:
   sdk: ^3.12.0
@@ -55,17 +55,17 @@ flutter:
     - assets/flame_mascot.webp
     - assets/moon_mascot.webp
     - assets/rutin-icon.png
-    - assets/rutin-icon-clean.png
+    - assets/rutin-icon.png
 flutter_native_splash:
   color: "#0B0E1A"
   android_12:
     color: "#0B0E1A"
-    image: assets/rutin-icon-clean.png
+    image: assets/rutin-icon.png
 
 flutter_launcher_icons:
   android: true
   ios: false
   image_path: assets/rutin-icon.png
   adaptive_icon_background: "#0B0E1A"
-  adaptive_icon_foreground: assets/rutin-icon-clean.png
+  adaptive_icon_foreground: assets/rutin-icon.png
   min_sdk_android: 26

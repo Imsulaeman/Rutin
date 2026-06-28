@@ -6,6 +6,22 @@ import 'medicine_model.dart';
 class MedicineRepository {
   Box<Medicine> get _medicines => Hive.box<Medicine>('medicines');
   Box<MedicineLog> get _logs => Hive.box<MedicineLog>('medicine_logs');
+  Box<String> get _notes => Hive.box<String>('medicine_notes');
+
+  String _noteKey(String medicineId, DateTime date) =>
+      '$medicineId|${date.year}-${date.month}-${date.day}';
+
+  String? getDayNote(String medicineId, DateTime date) =>
+      _notes.get(_noteKey(medicineId, date));
+
+  Future<void> saveDayNote(String medicineId, DateTime date, String? note) async {
+    final key = _noteKey(medicineId, date);
+    if (note == null || note.isEmpty) {
+      await _notes.delete(key);
+    } else {
+      await _notes.put(key, note);
+    }
+  }
 
   List<Medicine> getAll() =>
       _medicines.values.where((m) => m.isActive).toList();

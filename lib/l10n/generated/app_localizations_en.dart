@@ -831,7 +831,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enableAccessibilityHint =>
-      'For the best experience, enable Accessibility Service.';
+      'Rutin uses Accessibility Service only to keep the morning wake-up game on screen during sleep mode, so it cannot be skipped by switching apps. No personal data is collected or shared.';
 
   @override
   String get accessibilityService => 'Accessibility Service';

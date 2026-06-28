@@ -833,7 +833,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get enableAccessibilityHint =>
-      'Untuk pengalaman terbaik, aktifkan Accessibility Service.';
+      'Rutin menggunakan Accessibility Service hanya untuk mempertahankan permainan bangun tidur di layar saat mode tidur aktif, agar tidak bisa dilewati dengan berpindah aplikasi. Tidak ada data pribadi yang dikumpulkan atau dibagikan.';
 
   @override
   String get accessibilityService => 'Accessibility Service';

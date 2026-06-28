@@ -162,22 +162,40 @@ class TreatmentDetailScreen extends StatelessWidget {
     }
     pdf.addPage(
       pw.MultiPage(
+        header: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              context.l10n.pdfTitle,
+              style: pw.TextStyle(
+                fontSize: 18,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text('${context.l10n.condition}: ${profile.conditionName}'),
+            pw.Text(
+              '${context.l10n.startDate}: ${_date(context, profile.startDate)}',
+            ),
+            pw.Text(
+              '${context.l10n.duration}: ${profile.durationDays} ${context.l10n.days}',
+            ),
+            pw.Text(
+              '${context.l10n.medicine}: ${medicine?.name ?? '-'}',
+            ),
+            pw.SizedBox(height: 10),
+            pw.Divider(),
+            pw.SizedBox(height: 6),
+          ],
+        ),
+        footer: (_) => pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text(
+            '${context.l10n.exportedFrom} - ${_date(context, DateTime.now())}',
+            style: const pw.TextStyle(fontSize: 9),
+          ),
+        ),
         build: (_) => [
-          pw.Header(
-            level: 0,
-            child: pw.Text(context.l10n.pdfTitle),
-          ),
-          pw.Text('${context.l10n.condition}: ${profile.conditionName}'),
-          pw.Text(
-            '${context.l10n.startDate}: ${_date(context, profile.startDate)}',
-          ),
-          pw.Text(
-            '${context.l10n.duration}: ${profile.durationDays} ${context.l10n.days}',
-          ),
-          pw.Text(
-            '${context.l10n.medicine}: ${medicine?.name ?? '-'}',
-          ),
-          pw.SizedBox(height: 16),
           pw.TableHelper.fromTextArray(
             headers: [
               context.l10n.date,
@@ -186,10 +204,6 @@ class TreatmentDetailScreen extends StatelessWidget {
               context.l10n.status,
             ],
             data: rows,
-          ),
-          pw.SizedBox(height: 16),
-          pw.Text(
-            '${context.l10n.exportedFrom} - ${_date(context, DateTime.now())}',
           ),
         ],
       ),

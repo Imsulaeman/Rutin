@@ -466,7 +466,8 @@ class MainActivity : FlutterActivity() {
                         )
                         val gatePending = sleepPrefs.getBoolean("gate_pending", false)
                         val sleepActive = sleepPrefs.getBoolean(SleepModeService.KEY_SLEEP_ACTIVE, false)
-                        val shouldLaunch = hasPending || gatePending || sleepActive
+                        val shouldLaunch = (hasPending || gatePending || sleepActive) &&
+                            SleepModeService.isMorningWindow(applicationContext)
                         if (shouldLaunch) {
                             sleepPrefs.edit()
                                 .putBoolean("gate_pending", false)

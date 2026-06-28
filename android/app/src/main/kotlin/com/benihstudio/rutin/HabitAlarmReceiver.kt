@@ -2,6 +2,7 @@
 
 import android.app.AlarmManager
 import android.app.AlarmManager.AlarmClockInfo
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -156,23 +157,28 @@ class HabitAlarmReceiver : BroadcastReceiver() {
     private fun showNotification(context: Context, notifId: Int, title: String) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val currentSound = ReminderSoundPrefs.habitSound(context)
-        val channelId = "habit_reminder_${ReminderSoundPrefs.channelSuffix(currentSound)}"
+        val channelId = "habit_alarm_${ReminderSoundPrefs.channelSuffix(currentSound)}"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Delete all stale habit channels so the active sound always matches the user setting.
+            // Delete all stale habit channels (both old "habit_reminder_*" and "habit_alarm_*" prefixes).
             nm.notificationChannels
-                .filter { it.id.startsWith("habit_reminder") && it.id != channelId }
+                .filter {
+                    (it.id.startsWith("habit_reminder") || it.id.startsWith("habit_alarm")) &&
+                        it.id != channelId
+                }
                 .forEach { nm.deleteNotificationChannel(it.id) }
             if (nm.getNotificationChannel(channelId) == null) {
                 val audioAttrs = AudioAttributes.Builder()
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setUsage(AudioAttributes.USAGE_ALARM)
                     .build()
                 val channel = NotificationChannel(
                     channelId, NativeStrings.habitChannel(context), NotificationManager.IMPORTANCE_HIGH
                 ).apply {
                     setSound(ReminderSoundPrefs.habitUri(context), audioAttrs)
                     enableVibration(true)
-                    vibrationPattern = longArrayOf(0, 250)
+                    vibrationPattern = longArrayOf(0, 300, 100, 300)
+                    setBypassDnd(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 }
                 nm.createNotificationChannel(channel)
             }
@@ -188,6 +194,8 @@ class HabitAlarmReceiver : BroadcastReceiver() {
             .setContentTitle(title)
             .setContentText(NativeStrings.habitBody(context))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(pi)
             .setAutoCancel(true)
             .build()

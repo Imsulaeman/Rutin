@@ -2,6 +2,47 @@
 
 ---
 
+## 2026-06-28
+
+### Medicine notes (per-day)
+- Per-day notes stored in `Box<String>('medicine_notes')` keyed by `"$medicineId|$date"`. No model changes — plain string box, no adapter needed.
+- Repo: `getDayNote(id, date)` / `saveDayNote(id, date, note)`. Box opened in `main.dart`.
+- Three-dot menu on medicine card → "Catatan" → dialog pre-filled with today's note. Note shows under dosage on card (italic grey, notes icon).
+
+### profile_screen.dart: ValueListenable compile error
+- Added `import 'package:flutter/foundation.dart'` — `hive_flutter` doesn't re-export `ValueListenable` in the version used.
+
+### ReminderActivity.kt: curly quote syntax error
+- Smart/curly quotes `"..."` (U+201C/U+201D) in string literals caused Kotlin syntax errors. Replaced with ASCII straight quotes throughout the file.
+- Three-dot menu on each medicine card now has a "Catatan" option → opens a dialog to add/edit the note.
+- Note is displayed under the dosage line on the card (italic, grey, 2-line max) with a notes icon.
+
+### Treatment program: refresh + PDF multi-page fix
+- **Refresh bug:** `profile_screen.dart` only called `_load()` in `initState`. After saving a treatment in onboarding and popping back, `_treatment` stayed `null` → tile re-routed to onboarding instead of detail. Fix: added `ValueListenable<Box<TBTreatmentProfile>> _treatmentsL` listener in `_ProfileScreenState`, calls `_load()` on box change, removed in `dispose()`.
+- **PDF single-page bug:** `pw.MultiPage.build` had static metadata (title, condition, dates) mixed alongside `pw.TableHelper.fromTextArray`. `MultiPage` needs only pageable content in `build` — static blocks prevent it from measuring the table correctly. Fix: moved header content to `header:` callback (repeats on each page), footer to `footer:` callback, table alone in `build:`. Treatment logs spanning many months now paginate correctly.
+- **TODO: notes field on MedicineLog** — long-press dose to add note, notes column in PDF export. Pending model change + UI.
+
+### Morning gate evening fire + mojibake fix
+
+- **Bug 1 (gate fires at 9:45PM):** `SleepTriggerReceiver` sets `sleep_active=true` 10 min after any screen-off with no time-of-day check. Evening unlock (e.g. phone charging, user picks it up) fired the morning gate immediately.
+- **Fix:** added `SleepModeService.isMorningWindow(context)` — reads `wake_window_end` from `sleep_settings_native` prefs (default 600 = 10AM), returns true only when `nowMin <= wakeEnd`. Guard added to all three gate trigger sites: `onUserPresent`, `RutinAccessibilityService.onAccessibilityEvent`, and `MainActivity.checkPendingGate`. Evening unlocks now skip the gate; `sleep_active` and `gate_pending` stay set so the gate fires normally in the morning.
+- **Bug 2 (mojibake on alarm buttons):** `ReminderActivity.kt` button labels had UTF-8 emoji bytes mis-saved as Latin-1/Windows-1252 sequences — `✔` (U+2714), `⏰` (U+23F0), `↻` (U+21BB) appeared as `âœ"`, `â°`, `â†»`. Fixed by replacing with correct UTF-8 characters directly in the file.
+- **TODO: build APK and sideload to test both fixes.**
+
+---
+
+## 2026-06-26
+
+### Morning gate lockscreen fix
+- **Root cause:** `postMorningGateNotification` pointed `fullScreenIntent` at `MainActivity` (Flutter). Flutter needs to cold-boot before routing to `/morning-gate` — on a locked screen the OS sees a heavyweight activity with no lock-screen window flags and falls back to just showing the notification banner. Gate only appeared after manually opening the app.
+- **Fix:** added `MorningGateActivity` — a thin native trampoline that sets `setShowWhenLocked(true)`, `setTurnScreenOn(true)`, and `FLAG_KEEP_SCREEN_ON`, then immediately starts `MainActivity` with `route=/morning-gate` and finishes. Same pattern as `ReminderActivity` for medicine alarms.
+- Channel upgraded: `setBypassDnd(true)`, `lockscreenVisibility = VISIBILITY_PUBLIC`, `CATEGORY_ALARM`, `VISIBILITY_PUBLIC` on notification.
+- Channel ID bumped `morning_gate` → `morning_gate_v2` so existing installs get a fresh channel (Android caches channel flags permanently; ID change forces recreation).
+- No uninstall needed — sideload over existing install, data preserved. Channel recreated on next gate trigger.
+- **TODO: run `flutter build apk --release` and sideload to test.**
+
+---
+
 ## 2026-06-15
 
 ### Sleep timer notification wake fix

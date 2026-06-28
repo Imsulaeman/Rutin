@@ -333,7 +333,7 @@
   "sleepModeStartError": "Sleep mode could not start. Try enabling it again after updating the app.",
   "allowBackgroundTitle": "Allow Background Activity",
   "allowBackgroundBody": "Rutin needs background access so medicine alarms, water reminders, and Sleep Mode can still appear on time.\n\nAfter the Rutin app settings page opens, go to Battery, then turn off battery optimization or allow background activity.",
-  "enableAccessibilityHint": "For the best experience, enable Accessibility Service.",
+  "enableAccessibilityHint": "Rutin uses Accessibility Service only to keep the morning wake-up game on screen during sleep mode, so it cannot be skipped by switching apps. No personal data is collected or shared.",
   "accessibilityService": "Accessibility Service",
   "notAllowedYet": "Not allowed yet",
   "backgroundAllowed": "Background access is already allowed",

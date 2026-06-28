@@ -32,7 +32,7 @@ class RutinAccessibilityService : AccessibilityService() {
             )
             // gate_pending persists even if SleepModeService was killed, fixing
             // the unreliable appearance bug. Dedup happens in onNewIntent/checkPendingGate.
-            gatePending && !gameActive -> startActivity(
+            gatePending && !gameActive && SleepModeService.isMorningWindow(this) -> startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     putExtra("route", "/morning-gate")

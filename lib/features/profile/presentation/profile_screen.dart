@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _ageCtrl = TextEditingController();
 
   late final Box<UserProfile> _profileBox;
+  late final ValueListenable<Box<TBTreatmentProfile>> _treatmentsL;
   int _bestActiveStreak = 0;
   int _habitsDoneTotal = 0;
   int _editAvatarId = 0;
@@ -36,11 +38,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _profileBox = Hive.box<UserProfile>('user_profile');
+    _treatmentsL = Hive.box<TBTreatmentProfile>('tb_profiles').listenable();
+    _treatmentsL.addListener(_load);
     _load();
   }
 
   @override
   void dispose() {
+    _treatmentsL.removeListener(_load);
     _nameCtrl.dispose();
     _ageCtrl.dispose();
     super.dispose();

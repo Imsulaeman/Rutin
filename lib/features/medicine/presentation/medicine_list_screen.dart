@@ -208,6 +208,58 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
     setState(() {});
   }
 
+  Future<void> _showNoteDialog(MedicineRepository repo, Medicine medicine) async {
+    final today = DateTime.now();
+    final controller = TextEditingController(text: repo.getDayNote(medicine.id, today) ?? '');
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surface,
+        title: const Text('Catatan Hari Ini', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 4,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Efek samping, catatan dokter...',
+            hintStyle: const TextStyle(color: _grey),
+            filled: true,
+            fillColor: const Color(0xFF0F1524),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _surfaceLine),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _surfaceLine),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _medGradient.last),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(context.l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: _medGradient.last),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await repo.saveDayNote(medicine.id, today, controller.text.trim());
+              if (mounted) setState(() {});
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+  }
+
   Future<void> _showMedicineActions(
     MedicineRepository repo,
     Medicine medicine,
@@ -225,6 +277,14 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
               onTap: () async {
                 Navigator.pop(ctx);
                 await _editMedicine(medicine);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notes_rounded),
+              title: const Text('Catatan'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _showNoteDialog(repo, medicine);
               },
             ),
             ListTile(
@@ -378,6 +438,7 @@ class _MedicineListScreenState extends ConsumerState<MedicineListScreen>
                                   _showMedicineActions(repo, medicine),
                               debugTextFor: _debugTextFor,
                               streak: repo.getMedicineStreak(medicine.id),
+                              todayNote: repo.getDayNote(medicine.id, DateTime.now()),
                             ),
                           ),
                         ),
@@ -505,6 +566,7 @@ class _MedicineCard extends StatelessWidget {
     required this.onMoreTap,
     required this.debugTextFor,
     required this.streak,
+    required this.todayNote,
   });
 
   final Medicine medicine;
@@ -514,6 +576,7 @@ class _MedicineCard extends StatelessWidget {
   final VoidCallback onMoreTap;
   final String? Function(_Dose) debugTextFor;
   final int streak;
+  final String? todayNote;
 
   @override
   Widget build(BuildContext context) {
@@ -565,6 +628,27 @@ class _MedicineCard extends StatelessWidget {
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
+                        ),
+                      ],
+                      if ((todayNote ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.notes_rounded, size: 12, color: _grey),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                todayNote!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: _grey,
+                                  fontSize: 11,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],

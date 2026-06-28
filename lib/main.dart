@@ -79,6 +79,7 @@ Future<void> _openHiveBoxes() async {
     Hive.openBox<SleepSettings>('sleep_settings'),
     Hive.openBox<int>('morning_streaks'),
     Hive.openBox<String>('app_settings'),
+    Hive.openBox<String>('medicine_notes'),
   ]);
 }
 

@@ -28,7 +28,7 @@ class SleepModeService : Service() {
         private const val NOTIF_ID = 9001
         const val MORNING_GATE_NOTIF_ID = 9002
         private const val CHANNEL_ID = "sleep_mode_service"
-        private const val MORNING_GATE_CHANNEL_ID = "morning_gate"
+        private const val MORNING_GATE_CHANNEL_ID = "morning_gate_v2"
         private const val RC_SLEEP_TRIGGER = 9003
         private const val RC_AUDIO_CHECK = 9004
         private const val RC_MORNING_GATE = 9006
@@ -69,14 +69,17 @@ class SleepModeService : Service() {
                     MORNING_GATE_CHANNEL_ID,
                     NativeStrings.morningGateChannel(context),
                     NotificationManager.IMPORTANCE_HIGH,
-                ).apply { setShowBadge(true) }
+                ).apply {
+                    setShowBadge(true)
+                    setBypassDnd(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                }
                 nm.createNotificationChannel(ch)
             }
             val tapIntent = PendingIntent.getActivity(
                 context, RC_MORNING_GATE,
-                Intent(context, MainActivity::class.java).apply {
+                Intent(context, MorningGateActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    putExtra("route", "/morning-gate")
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
@@ -85,7 +88,8 @@ class SleepModeService : Service() {
                 .setContentTitle(NativeStrings.morningGateTitle(context))
                 .setContentText(NativeStrings.morningGateBody(context))
                 .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MAX)
-                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_REMINDER)
+                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(tapIntent)
                 .setFullScreenIntent(tapIntent, true)
                 .setAutoCancel(false)
@@ -97,6 +101,14 @@ class SleepModeService : Service() {
         fun cancelMorningGateNotification(context: Context) {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.cancel(MORNING_GATE_NOTIF_ID)
+        }
+
+        fun isMorningWindow(context: Context): Boolean {
+            val wakeEnd = context.getSharedPreferences("sleep_settings_native", Context.MODE_PRIVATE)
+                .getInt("wake_window_end", 600)
+            val cal = java.util.Calendar.getInstance()
+            val nowMin = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE)
+            return nowMin <= wakeEnd
         }
 
         fun cancelAllAlarms(context: Context) {
@@ -209,6 +221,8 @@ class SleepModeService : Service() {
     private fun onUserPresent(ctx: Context) {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean(KEY_SLEEP_ACTIVE, false)) return
+        // Only trigger during morning wake window — evening unlocks (e.g. re-charging) must not fire.
+        if (!isMorningWindow(ctx)) return
         prefs.edit()
             .putBoolean(KEY_SLEEP_ACTIVE, false)
             .remove(KEY_SCREEN_OFF_TIME)

@@ -84,7 +84,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _page = i),
                 children: [
                   _OnboardingPage(
-                    asset: 'assets/med_pill_mascot.webp',
                     headline: context.l10n.onboarding1Headline,
                     body: context.l10n.onboarding1Body,
                   ),
@@ -150,12 +149,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
 class _OnboardingPage extends StatelessWidget {
   const _OnboardingPage({
-    required this.asset,
+    this.asset,
     required this.headline,
     required this.body,
   });
 
-  final String asset;
+  final String? asset;
   final String headline;
   final String body;
 
@@ -166,8 +165,10 @@ class _OnboardingPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset(asset, height: 200, fit: BoxFit.contain),
-          const SizedBox(height: 40),
+          if (asset != null) ...[
+            Image.asset(asset!, height: 200, fit: BoxFit.contain),
+            const SizedBox(height: 40),
+          ],
           Text(
             headline,
             textAlign: TextAlign.center,

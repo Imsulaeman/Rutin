@@ -1631,7 +1631,7 @@ abstract class AppLocalizations {
   /// No description provided for @enableAccessibilityHint.
   ///
   /// In en, this message translates to:
-  /// **'For the best experience, enable Accessibility Service.'**
+  /// **'Rutin uses Accessibility Service only to keep the morning wake-up game on screen during sleep mode, so it cannot be skipped by switching apps. No personal data is collected or shared.'**
   String get enableAccessibilityHint;
 
   /// No description provided for @accessibilityService.

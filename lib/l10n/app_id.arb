@@ -333,7 +333,7 @@
   "sleepModeStartError": "Mode tidur belum dapat dijalankan. Coba aktifkan kembali setelah memperbarui aplikasi.",
   "allowBackgroundTitle": "Izinkan Berjalan di Latar",
   "allowBackgroundBody": "Rutin perlu diizinkan berjalan di latar agar alarm obat, pengingat air, dan Mode Tidur tetap muncul tepat waktu.\n\nSetelah halaman Pengaturan Aplikasi Rutin terbuka, masuk ke Baterai lalu matikan optimasi baterai atau izinkan aktivitas latar belakang.",
-  "enableAccessibilityHint": "Untuk pengalaman terbaik, aktifkan Accessibility Service.",
+  "enableAccessibilityHint": "Rutin menggunakan Accessibility Service hanya untuk mempertahankan permainan bangun tidur di layar saat mode tidur aktif, agar tidak bisa dilewati dengan berpindah aplikasi. Tidak ada data pribadi yang dikumpulkan atau dibagikan.",
   "accessibilityService": "Accessibility Service",
   "notAllowedYet": "Belum diizinkan",
   "backgroundAllowed": "Sudah diizinkan berjalan di latar belakang",
